@@ -1,7 +1,6 @@
 
 function setup_git() {
-  # TODO: install git
-  # TODO: install bash-completion
+  pacman_sync git
   # TODO: install hub
   # TODO: install diff-so-fancy
 
