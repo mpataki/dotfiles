@@ -9,19 +9,20 @@ function setup_bash(){
     print_with_color $YELLOW "$HOME/.bash_profile already exists. Do you want to override it? (yes/no)"
     read yn
     case $yn in
-      yes ) write_bash_profile;;
+      yes|Yes|YES|y|Y ) write_bash_profile;;
       * ) print_with_color $GREEN 'skipping...';;
     esac
   else
     write_bash_profile
   fi
 
-  # TODO: install bash-completion (?)
+  pacman_sync bash-completion
 }
 
 print_with_color $YELLOW 'Setup Bash? (yes/no)'
 read yn
 case $yn in
-  yes ) setup_bash;;
+  yes|Yes|YES|Y|y ) setup_bash;;
   * ) print_with_color $GREEN 'skipping...';;
 esac
+

@@ -28,7 +28,7 @@ function check_and_link_file() {
     print_with_color $YELLOW "$destination already exists. Do you want to override it? (yes/no)"
     read yn
     case $yn in
-      yes )
+      yes|Yes|YES|y|Y )
         if [ -d "$destination" ]; then
           rm -rf "$destination"
         else
@@ -52,7 +52,7 @@ function git_clone() {
     print_with_color $YELLOW "$dest already present. Do you want to overwrite it? (yes/no)"
     read yn
     case $yn in
-      yes )
+      yes|Yes|YES|y|Y )
         rm -rf $dest
         ;;
       * ) print_with_color $GREEN 'skipping...'; return;;
@@ -60,5 +60,24 @@ function git_clone() {
   fi
 
   git clone "$repo" "$dest"
+}
+
+function pacman_sync() {
+  package=$1
+
+  if ! pacman -Q $package ; then
+    print_with_color $YELLOW "Package '$package' not installed. Do you want to install it? (yes/no)"
+
+    read yn
+    case $yn in
+      yes|Yes|YES|y|Y )
+        pacman -S $package
+        ;;
+      * ) print_with_color $GREEN 'skipping...';;
+    esac
+  else
+    print_with_color $YELLOW "Syncing existing package - '$package'"
+    pacman -S $package # update the package
+  fi
 }
 
