@@ -39,7 +39,7 @@ end
 
 ---------------- Variable Definitions ----------------
 -- Themes define colours, icons, font and wallpapers.
-beautiful.init(awful.util.get_themes_dir() .. "default/theme.lua")
+beautiful.init(awful.util.getdir("config") .. "default/theme.lua")
 
 -- Default terminal and editor
 terminal = "guake"

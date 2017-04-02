@@ -17,7 +17,11 @@ function link_file() {
 
   print_with_color $GREEN "linking $source_file to $destination"
 
-  ln -s "$source_file" "$destination"
+  if [ -d $source_file ]; then
+    ln -sdf "$source_file" "$destination"
+  else
+    ln -sf "$source_file" "$destination"
+  fi
 }
 
 function check_and_link_file() {
