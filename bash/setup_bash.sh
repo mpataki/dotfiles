@@ -1,7 +1,7 @@
 
 function write_bashrc() {
   print_with_color $GREEN "writing $USER_HOME/.bash_profile"
-  echo ". `pwd`/bash/bash_profile" > $USER_HOME/.bashrc
+  echo ". `pwd`/bash/bashrc" > $USER_HOME/.bashrc
 }
 
 function setup_bash(){
