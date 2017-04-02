@@ -75,13 +75,13 @@ function pacman_sync() {
     read yn
     case $yn in
       yes|Yes|YES|y|Y )
-        pacman -S $package
+        sudo pacman -S $package
         ;;
       * ) print_with_color $GREEN 'skipping...';;
     esac
   else
     print_with_color $YELLOW "Syncing existing package - '$package'"
-    pacman -S $package # update the package
+    sudo pacman -S $package # update the package
   fi
 }
 

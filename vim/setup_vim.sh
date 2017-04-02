@@ -1,13 +1,13 @@
 function setup_vim(){
   pacman_sync vim
 
-  check_and_link_file `pwd`/vim/vimrc $USER_HOME/.vimrc
+  check_and_link_file `pwd`/vim/vimrc $HOME/.vimrc
 
-  if ! [ -e ~/.vim ]; then
-    mkdir ~/.vim
+  if ! [ -e $HOME/.vim ]; then
+    mkdir $HOME/.vim
   fi
 
-  git_clone https://github.com/ctrlpvim/ctrlp.vim.git $USER_HOME/.vim/bundle/ctrlp.vim
+  git_clone https://github.com/ctrlpvim/ctrlp.vim.git $HOME/.vim/bundle/ctrlp.vim
 }
 
 print_with_color $YELLOW 'Setup Vim? (yes/no)'

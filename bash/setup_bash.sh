@@ -1,12 +1,12 @@
 
 function write_bashrc() {
-  print_with_color $GREEN "writing $USER_HOME/.bash_profile"
-  echo ". `pwd`/bash/bashrc" > $USER_HOME/.bashrc
+  print_with_color $GREEN "writing $HOME/.bash_profile"
+  echo ". `pwd`/bash/bashrc" > $HOME/.bashrc
 }
 
 function setup_bash(){
-  if [ -e $USER_HOME/.bashrc ]; then
-    print_with_color $YELLOW "$USER_HOME/.bashrc already exists. Do you want to override it? (yes/no)"
+  if [ -e $HOME/.bashrc ]; then
+    print_with_color $YELLOW "$HOME/.bashrc already exists. Do you want to override it? (yes/no)"
     read yn
     case $yn in
       yes|Yes|YES|y|Y ) write_bashrc;;

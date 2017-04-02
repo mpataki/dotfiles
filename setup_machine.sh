@@ -1,5 +1,4 @@
-USER_HOME=$1
-
+#!/bin/bash
 . lib/helpers.sh
 
 . bash/setup_bash.sh
