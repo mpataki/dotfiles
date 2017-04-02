@@ -2,6 +2,9 @@
 
 . lib/helpers.sh
 
+print_with_color $GREEN "This script installs programs. Please enter your root password."
+[ `whoami` = root ] || exec su -c $0 root
+
 . bash/setup_bash.sh
 . git/setup_git.sh
 . vim/setup_vim.sh
