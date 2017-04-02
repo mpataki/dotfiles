@@ -1,19 +1,19 @@
 
-function write_bash_profile() {
+function write_bashrc() {
   print_with_color $GREEN "writing $USER_HOME/.bash_profile"
-  echo ". `pwd`/bash/bash_profile" > $USER_HOME/.bash_profile
+  echo ". `pwd`/bash/bash_profile" > $USER_HOME/.bashrc
 }
 
 function setup_bash(){
-  if [ -e $USER_HOME/.bash_profile ]; then
-    print_with_color $YELLOW "$USER_HOME/.bash_profile already exists. Do you want to override it? (yes/no)"
+  if [ -e $USER_HOME/.bashrc ]; then
+    print_with_color $YELLOW "$USER_HOME/.bashrc already exists. Do you want to override it? (yes/no)"
     read yn
     case $yn in
-      yes|Yes|YES|y|Y ) write_bash_profile;;
+      yes|Yes|YES|y|Y ) write_bashrc;;
       * ) print_with_color $GREEN 'skipping...';;
     esac
   else
-    write_bash_profile
+    write_bashrc
   fi
 
   pacman_sync bash-completion
