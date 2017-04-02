@@ -1,0 +1,5 @@
+
+# experimental
+export NOTES_S3_BUCKET=note-store
+export LOCAL_NOTE_STORE=$HOME/notes
+
