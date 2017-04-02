@@ -1,12 +1,12 @@
 
 function write_bash_profile() {
-  print_with_color $GREEN "writing $HOME/.bash_profile"
-  echo ". `pwd`/bash/bash_profile" > $HOME/.bash_profile
+  print_with_color $GREEN "writing $USER_HOME/.bash_profile"
+  echo ". `pwd`/bash/bash_profile" > $USER_HOME/.bash_profile
 }
 
 function setup_bash(){
-  if [ -e $HOME/.bash_profile ]; then
-    print_with_color $YELLOW "$HOME/.bash_profile already exists. Do you want to override it? (yes/no)"
+  if [ -e $USER_HOME/.bash_profile ]; then
+    print_with_color $YELLOW "$USER_HOME/.bash_profile already exists. Do you want to override it? (yes/no)"
     read yn
     case $yn in
       yes|Yes|YES|y|Y ) write_bash_profile;;

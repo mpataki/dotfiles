@@ -4,8 +4,8 @@ function setup_git() {
   # TODO: install hub
   # TODO: install diff-so-fancy
 
-  check_and_link_file `pwd`/git/gitconfig $HOME/.gitconfig
-  check_and_link_file `pwd`/git/gitignore $HOME/.gitignore
+  check_and_link_file `pwd`/git/gitconfig $USER_HOME/.gitconfig
+  check_and_link_file `pwd`/git/gitignore $USER_HOME/.gitignore
 }
 
 print_with_color $YELLOW 'Setup Git? (yes/no)'

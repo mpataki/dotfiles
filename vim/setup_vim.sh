@@ -1,7 +1,7 @@
 function setup_vim(){
   pacman_sync vim
 
-  check_and_link_file `pwd`/vim/vimrc $HOME/.vimrc
+  check_and_link_file `pwd`/vim/vimrc $USER_HOME/.vimrc
 
   if ! [ -e ~/.vim ]; then
     mkdir ~/.vim
@@ -16,3 +16,4 @@ case $yn in
   yes|Yes|YES|y|Y ) setup_vim;;
   * ) print_with_color $GREEN 'skipping...';;
 esac
+
