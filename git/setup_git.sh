@@ -11,7 +11,7 @@ function setup_git() {
 print_with_color $YELLOW 'Setup Git? (yes/no)'
 read yn
 case $yn in
-  yes ) setup_git;;
+  yes|Yes|YES|y|Y ) setup_git;;
   * ) print_with_color $GREEN 'skipping...';;
 esac
 

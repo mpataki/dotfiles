@@ -13,7 +13,7 @@ local hotkeys_popup = require("awful.hotkeys_popup").widget
 -- Enable VIM help for hotkeys widget when client with matching name is opened:
 require("awful.hotkeys_popup.keys.vim")
 
--- {{{ Error handling
+----------------- Error handling -----------------
 -- Check if awesome encountered an error during startup and fell back to
 -- another config (This code will only ever execute for the fallback config)
 if awesome.startup_errors then
@@ -36,22 +36,18 @@ do
         in_error = false
     end)
 end
--- }}}
 
--- {{{ Variable definitions
+---------------- Variable Definitions ----------------
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(awful.util.get_themes_dir() .. "default/theme.lua")
 
--- This is used later as the default terminal and editor to run.
+-- Default terminal and editor
 terminal = "guake"
 editor = os.getenv("EDITOR") or "vim"
 editor_cmd = terminal .. " -e " .. editor
 
--- Default modkey.
+-- Default modkey
 -- Usually, Mod4 is the key with a logo between Control and Alt.
--- If you do not like this or do not have such a key,
--- I suggest you to remap Mod4 to another key using xmodmap or other tools.
--- However, you can use another modifier like Mod1, but it may interact with others.
 modkey = "Mod4"
 
 -- Table of layouts to cover with awful.layout.inc, order matters.
@@ -73,9 +69,8 @@ awful.layout.layouts = {
     -- awful.layout.suit.corner.sw,
     -- awful.layout.suit.corner.se,
 }
--- }}}
 
--- {{{ Helper functions
+----------------- Helper Functions -------------------
 local function client_menu_toggle_fn()
     local instance = nil
 
@@ -88,9 +83,8 @@ local function client_menu_toggle_fn()
         end
     end
 end
--- }}}
 
--- {{{ Menu
+-------------------- Menu ----------------------
 -- Create a launcher widget and a main menu
 myawesomemenu = {
    { "hotkeys", function() return false, hotkeys_popup.show_help end},
@@ -110,12 +104,11 @@ mylauncher = awful.widget.launcher({ image = beautiful.awesome_icon,
 
 -- Menubar configuration
 menubar.utils.terminal = terminal -- Set the terminal for applications that require it
--- }}}
 
 -- Keyboard map indicator and switcher
 mykeyboardlayout = awful.widget.keyboardlayout()
 
--- {{{ Wibar
+-------------------- Wibar --------------------
 -- Create a textclock widget
 mytextclock = wibox.widget.textclock()
 
@@ -222,17 +215,15 @@ awful.screen.connect_for_each_screen(function(s)
         },
     }
 end)
--- }}}
 
--- {{{ Mouse bindings
+---------------- Mouse Bindings ----------------
 root.buttons(gears.table.join(
     awful.button({ }, 3, function () mymainmenu:toggle() end),
     awful.button({ }, 4, awful.tag.viewnext),
     awful.button({ }, 5, awful.tag.viewprev)
 ))
--- }}}
 
--- {{{ Key bindings
+--------------- Key Bindings ---------------
 globalkeys = gears.table.join(
     awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
               {description="show help", group="awesome"}),
@@ -434,9 +425,8 @@ clientbuttons = gears.table.join(
 
 -- Set keys
 root.keys(globalkeys)
--- }}}
 
--- {{{ Rules
+------------------ Rules ------------------
 -- Rules to apply to new clients (through the "manage" signal).
 awful.rules.rules = {
     -- All clients will match this rule.
@@ -487,9 +477,8 @@ awful.rules.rules = {
     -- { rule = { class = "Firefox" },
     --   properties = { screen = 1, tag = "2" } },
 }
--- }}}
 
--- {{{ Signals
+-------------------- Signals --------------------
 -- Signal function to execute when a new client appears.
 client.connect_signal("manage", function (c)
     -- Set the windows at the slave,
@@ -556,4 +545,4 @@ end)
 
 client.connect_signal("focus", function(c) c.border_color = beautiful.border_focus end)
 client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
--- }}}
+

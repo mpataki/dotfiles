@@ -13,7 +13,7 @@ function setup_gnupg() {
 print_with_color $YELLOW 'Setup GnuPG? (yes/no)'
 read yn
 case $yn in
-  yes ) setup_gnupg;;
+  yes|Yes|YES|y|Y ) setup_gnupg;;
   * ) print_with_color $GREEN 'skipping...';;
 esac
 

@@ -13,7 +13,7 @@ function setup_awesome() {
 print_with_color $YELLOW 'Setup AwesomeWM? (yes/no)'
 read yn
 case $yn in
-  yes ) setup_awesome;;
+  yes|Yes|YES|y|Y ) setup_awesome;;
   * ) print_with_color $GREEN 'skipping...';;
 esac
 
