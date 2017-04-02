@@ -5,8 +5,8 @@ function setup_awesome() {
   config_dir=$HOME/.config/awesome
 
   [ -e $config_dir ] || mkdir -p $config_dir
-  check_and_link_file ./awesome/rc.lua $config_dir/rc.lua
-  check_and_link_file ./awesome/themes $config_dir/
+  check_and_link_file `pwd`/awesome/rc.lua $config_dir/rc.lua
+  check_and_link_file `pwd`/awesome/themes/ $config_dir/
 }
 
 print_with_color $YELLOW 'Setup AwesomeWM? (yes/no)'

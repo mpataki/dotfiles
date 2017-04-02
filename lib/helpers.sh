@@ -28,7 +28,7 @@ function check_and_link_file() {
   source_file=$1
   destination=$2
 
-  if [[ -e $destination ]]; then
+    if [ -f $source_file ] && [ -e $destination ]; then
     print_with_color $YELLOW "$destination already exists. Do you want to override it? (yes/no)"
     read yn
     case $yn in
