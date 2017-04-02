@@ -14,3 +14,4 @@ case $yn in
   yes ) setup_git;;
   * ) print_with_color $GREEN 'skipping...';;
 esac
+
