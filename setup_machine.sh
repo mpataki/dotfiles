@@ -6,6 +6,7 @@
 . vim/setup_vim.sh
 . gnupg/setup_gnupg.sh
 . awesome/setup_awesome.sh
+. xterm/setup_xterm.sh
 
 # TODO: install rbenv
 # TODO: install wget
