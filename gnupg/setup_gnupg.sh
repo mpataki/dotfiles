@@ -8,6 +8,7 @@ function setup_gnupg() {
 
   check_and_link_file `pwd`/gnupg/gpg.conf $HOME/.gnupg/gpg.conf
   check_and_link_file `pwd`/gnupg/gpg-agent.conf $HOME/.gnupg/gpg-agent.conf
+  echo "recall: gpg needs it's keyring populated with the private key corresponding to the public key used to encrypt your password-store"
 }
 
 print_with_color $YELLOW 'Setup GnuPG? (yes/no)'
