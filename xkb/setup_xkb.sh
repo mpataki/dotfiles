@@ -5,6 +5,7 @@
 function setup_xkb() {
   check_and_link_file `pwd`/xterm/Xresources $HOME/.Xresources
 
+  pacman_sync xorg-xkbcomp
   pacman_sync xorg-xev
 }
 
