@@ -3,7 +3,7 @@
 . lib/helpers.sh
 
 function setup_xkb() {
-  check_and_link_file `pwd`/xterm/Xresources $HOME/.Xresources
+  check_and_link_file `pwd`/xkb/Xkeymap $HOME/.XKeymap
 
   pacman_sync xorg-xkbcomp
   pacman_sync xorg-xev
