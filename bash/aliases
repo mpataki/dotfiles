@@ -15,7 +15,7 @@ alias gps='git ps'
 alias be='bundle exec'
 
 # system
-alias ls='ls --color
+alias ls='ls --color'
 
 # experimental
 alias notesync='aws s3 sync s3://note-store ~/notes && aws s3 sync ~/notes s3://note-store'
