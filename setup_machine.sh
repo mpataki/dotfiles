@@ -7,12 +7,7 @@
 . gnupg/setup_gnupg.sh
 . awesome/setup_awesome.sh
 . xterm/setup_xterm.sh
-
-# TODO: install rbenv
-# TODO: install wget
-# TODO: install pass
-# TODO: install chrome
-# TODO: install Albert (?)
+. xkb/setup_xkb.sh
 
 print_with_color $GREEN "Done."
 
