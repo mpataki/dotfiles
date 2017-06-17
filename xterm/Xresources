@@ -17,8 +17,8 @@ xterm*color0:       #282a2e
 xterm*color8:       #373b41
 
 ! red
-xterm*color1:       #ad2828
-xterm*color9:       #cc5353
+*.color1:       #c2564a
+*.color9:       #cc6666
 
 ! green
 xterm*color2:       #8c9440

@@ -1316,7 +1316,7 @@ xkb_symbols "pc+us+inet(evdev)" {
         type= "CTRL+ALT",
         symbols[Group1]= [     KP_Multiply,     KP_Multiply,     KP_Multiply,     KP_Multiply,   XF86ClearGrab ]
     };
-    key <LALT> {         [           Alt_L,          Meta_L ] };
+    key <LALT> {         [         Super_L ] };
     key <SPCE> {         [           space ] };
     key <CAPS> {         [       Caps_Lock ] };
     key <FK01> {
@@ -1437,7 +1437,7 @@ xkb_symbols "pc+us+inet(evdev)" {
     key <I129> {         [      KP_Decimal,      KP_Decimal ] };
     key <HNGL> {         [          Hangul ] };
     key <HJCV> {         [    Hangul_Hanja ] };
-    key <LWIN> {         [         Super_L ] };
+    key <LWIN> {         [           Alt_L,          Meta_L ] };
     key <RWIN> {         [         Super_R ] };
     key <COMP> {         [            Menu ] };
     key <STOP> {         [          Cancel ] };

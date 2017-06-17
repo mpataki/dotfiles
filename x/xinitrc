@@ -1,4 +1,4 @@
 [[ -f ~/.Xresources ]] && xrdb -merge -I$HOME ~/.Xresources
-itest -f ~/.Xkeymap && xkbcomp ~/.Xkeymap $DISPLAY
+test -f ~/.Xkeymap && xkbcomp ~/.Xkeymap $DISPLAY
 exec awesome
 

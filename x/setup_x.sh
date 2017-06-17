@@ -3,7 +3,7 @@
 function setup_x() {
   # TODO: install packages
 
-  check_and_link_file `pwd`/x/xinitrc $HOME/.xintrc
+  check_and_link_file `pwd`/x/xinitrc $HOME/.xinitrc
 }
 
 print_with_color $YELLOW 'Setup X? (yes/no)'
