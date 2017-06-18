@@ -1,6 +1,8 @@
 
 function setup_gnupg() {
-  # TODO: install gpg & deps (pinentry as well)
+  pacman_sync gnupg
+  pacman_sync pinentry
+  pacman_sync pass
 
   if ! [ -d $HOME/.gnupg ]; then
     mkdir $HOME/.gnupg
