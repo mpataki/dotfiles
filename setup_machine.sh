@@ -1,6 +1,10 @@
 #!/bin/bash
 . lib/helpers.sh
 
+if ! [[ `which sudo` ]]; then
+  echo "sudo needs to be installed for this to work"
+fi
+
 . bash/setup_bash.sh
 . git/setup_git.sh
 . vim/setup_vim.sh
