@@ -15,6 +15,7 @@ fi
 . xterm/setup_xterm.sh
 . xkb/setup_xkb.sh
 . java/setup_java.sh
+. docker/setup_docker.sh
 . misc_tools/setup_misc_tools.sh
 
 print_with_color $GREEN "Done."
