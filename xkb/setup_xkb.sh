@@ -5,6 +5,7 @@
 function setup_xkb() {
   check_and_link_file `pwd`/xkb/Xkeymap $HOME/.Xkeymap
 
+  pacman_sync xorg-xrdb
   pacman_sync xorg-xkbcomp
   pacman_sync xorg-xev
 }

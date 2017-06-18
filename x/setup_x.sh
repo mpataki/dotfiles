@@ -1,8 +1,9 @@
 #! /bin/bash
 
 function setup_x() {
-  # TODO: install packages
-
+  pacman_sync xorg-xinit
+  pacman_sync xf86-video # this might be a bit too system specific...
+  pacman_sync xclip
   check_and_link_file `pwd`/x/xinitrc $HOME/.xinitrc
 }
 
