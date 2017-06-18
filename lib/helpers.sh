@@ -85,3 +85,13 @@ function pacman_sync() {
   fi
 }
 
+function aur_install() {
+  package=$1
+  git_url=$2
+  dest=$HOME/builds/$package
+
+  make -p $HOME/builds
+  git_clone $git_url $dest
+
+  cd $dest && makepkg -si && cd -
+}
