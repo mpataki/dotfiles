@@ -17,5 +17,10 @@ alias be='bundle exec'
 # system
 alias ls='ls --color'
 
+# hub
+if [[ `which hub` ]]; then
+  eval "$(hub alias -s)"
+fi
+
 # experimental
 alias notesync='aws s3 sync s3://note-store ~/notes && aws s3 sync ~/notes s3://note-store'
