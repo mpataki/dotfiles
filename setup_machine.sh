@@ -8,12 +8,14 @@ fi
 . bash/setup_bash.sh
 . git/setup_git.sh
 . vim/setup_vim.sh
+. NetworkManager/setup_NetworkManager.sh
 . gnupg/setup_gnupg.sh
 . x/setup_x.sh
 . awesome/setup_awesome.sh
 . xterm/setup_xterm.sh
 . xkb/setup_xkb.sh
 . java/setup_java.sh
+. misc_tools/setup_misc_tools.sh
 
 print_with_color $GREEN "Done."
 
