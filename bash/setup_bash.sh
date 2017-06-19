@@ -2,6 +2,7 @@
 function write_bashrc() {
   print_with_color $GREEN "writing $HOME/.bash_profile"
   echo ". `pwd`/bash/bashrc" > $HOME/.bashrc
+  check_and_link_file `pwd`/bash/bash_profile $HOME/.bash_profile
 }
 
 function setup_bash(){
