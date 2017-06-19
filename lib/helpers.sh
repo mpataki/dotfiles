@@ -14,19 +14,29 @@ function print_with_color() {
 function link_file() {
   source_file=$1
   destination=$2
+  use_sudo=$3
 
   print_with_color $GREEN "linking $source_file to $destination"
 
   if [ -d $source_file ]; then
-    ln -sdf "$source_file" "$destination"
+    if [ -z $use_sudo ]; then
+      sudo ln -sdf "$source_file" "$destination"
+    else
+      ln -sdf "$source_file" "$destination"
+    fi
   else
-    ln -sf "$source_file" "$destination"
+    if [ -z $use_sudo ]; then
+      sudo ln -sf "$source_file" "$destination"
+    else
+      ln -sf "$source_file" "$destination"
+    fi
   fi
 }
 
 function check_and_link_file() {
   source_file=$1
   destination=$2
+  use_sudo=$3
 
     if [ -f $source_file ] && [ -e $destination ]; then
     print_with_color $YELLOW "$destination already exists. Do you want to override it? (yes/no)"
@@ -39,12 +49,12 @@ function check_and_link_file() {
           rm "$destination"
         fi
 
-        link_file "$source_file" "$destination"
+        link_file "$source_file" "$destination" $use_sudo
         ;;
       * ) print_with_color $GREEN 'skipping...';;
     esac
   else
-    link_file "$source_file" "$destination"
+    link_file "$source_file" "$destination" $use_sudo
   fi
 }
 

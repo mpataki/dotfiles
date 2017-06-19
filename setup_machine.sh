@@ -8,15 +8,16 @@ fi
 . bash/setup_bash.sh
 . git/setup_git.sh
 . vim/setup_vim.sh
+. tmux/setup_tmux.sh
 . NetworkManager/setup_NetworkManager.sh
 . gnupg/setup_gnupg.sh
 . x/setup_x.sh
 . awesome/setup_awesome.sh
 . xterm/setup_xterm.sh
 . xkb/setup_xkb.sh
+. synaptics/setup_synaptics.sh
 . java/setup_java.sh
 . docker/setup_docker.sh
-. tmux/setup_tmux.sh
 . misc_tools/setup_misc_tools.sh
 
 print_with_color $GREEN "Done."
