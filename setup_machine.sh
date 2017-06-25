@@ -18,6 +18,7 @@ fi
 . synaptics/setup_synaptics.sh
 . java/setup_java.sh
 . docker/setup_docker.sh
+. slack/setup_slack.sh
 . misc_tools/setup_misc_tools.sh
 
 print_with_color $GREEN "Done."
