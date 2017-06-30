@@ -16,7 +16,7 @@ fi
 . xterm/setup_xterm.sh
 . xkb/setup_xkb.sh
 . xbacklight/setup_xbacklight.sh
-# . synaptics/setup_synaptics.sh
+. synaptics/setup_synaptics.sh
 . java/setup_java.sh
 . docker/setup_docker.sh
 . slack/setup_slack.sh
