@@ -15,7 +15,8 @@ fi
 . awesome/setup_awesome.sh
 . xterm/setup_xterm.sh
 . xkb/setup_xkb.sh
-. synaptics/setup_synaptics.sh
+. xbacklight/setup_xbacklight.sh
+# . synaptics/setup_synaptics.sh
 . java/setup_java.sh
 . docker/setup_docker.sh
 . slack/setup_slack.sh
