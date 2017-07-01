@@ -12,6 +12,7 @@ fi
 . NetworkManager/setup_NetworkManager.sh
 . gnupg/setup_gnupg.sh
 . x/setup_x.sh
+. intel_graphics/setup_intel_graphics.sh
 . awesome/setup_awesome.sh
 . xterm/setup_xterm.sh
 . xkb/setup_xkb.sh
