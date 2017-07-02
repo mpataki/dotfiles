@@ -37,6 +37,9 @@ do
     end)
 end
 
+-- Cyclefocus (more macOS-like super + tab behaviour)
+local cyclefocus = require('cyclefocus')
+
 -- Variable definitions
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(awful.util.get_themes_dir() .. "default/theme.lua")
@@ -263,14 +266,26 @@ globalkeys = gears.table.join(
               {description = "focus the previous screen", group = "screen"}),
     awful.key({ modkey,           }, "u", awful.client.urgent.jumpto,
               {description = "jump to urgent client", group = "client"}),
-    awful.key({ modkey,           }, "Tab",
-        function ()
-            awful.client.focus.history.previous()
-            if client.focus then
-                client.focus:raise()
-            end
-        end,
-        {description = "go back", group = "client"}),
+
+    -- Default behaviour
+    -- awful.key({ modkey,           }, "Tab",
+    --     function ()
+    --         awful.client.focus.history.previous()
+    --         if client.focus then
+    --             client.focus:raise()
+    --         end
+    --     end,
+    --    {description = "go back", group = "client"}),
+
+    -- More macOS-like super + tab behaviour
+    -- modkey+Tab: cycle through all clients. https://github.com/blueyed/awesome-cyclefocus/
+    awful.key({ modkey }, "Tab", function(c)
+        cyclefocus.cycle({modifier="Super_L"})
+    end),
+    -- modkey+Shift+Tab: backwards
+    awful.key({ modkey, "Shift" }, "Tab", function(c)
+        cyclefocus.cycle({modifier="Super_L"})
+    end),
 
     -- Standard program
     awful.key({ modkey,           }, "Return", function () awful.spawn(terminal) end,
