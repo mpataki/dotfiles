@@ -5,6 +5,7 @@ function setup_misc_tools() {
   pacman_sync openssh
   pacman_sync wget
   pacman_sync lsof
+  pacman_sync jq
 
   # dirty monaco font install
   mkdir -p $HOME/builds
