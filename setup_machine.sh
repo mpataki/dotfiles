@@ -10,6 +10,7 @@ fi
 . vim/setup_vim.sh
 . tmux/setup_tmux.sh
 . gnupg/setup_gnupg.sh
+. zsh/setup_zsh.sh
 . java/setup_java.sh
 . docker/setup_docker.sh
 . slack/setup_slack.sh

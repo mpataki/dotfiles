@@ -1,0 +1,96 @@
+# Path to oh-my-zsh
+export ZSH=/home/mat/.oh-my-zsh
+
+# theme
+# ZSH_THEME="robbyrussell"
+ZSH_THEME="geometry/geometry"
+GEOMETRY_PROMPT_PLUGINS=(exec_time git)
+PROMPT_GEOMETRY_GIT_CONFLICTS=true
+GEOMETRY_COLOR_GIT_BRANCH=cyan
+GEOMETRY_SYMBOL_PROMPT="▶ "
+GEOMETRY_SYMBOL_EXIT_VALUE="▷ "
+
+# Plugins to load (plugins can be found in ~/.oh-my-zsh/plugins/*)
+# Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
+plugins=(pacman aws docker mvn pass colored-man-pages)
+
+source $ZSH/oh-my-zsh.sh
+
+HISTFILE=~/.histfile
+HISTSIZE=1000
+SAVEHIST=1000
+
+unsetopt autocd extendedglob nomatch
+bindkey -v
+
+zstyle :compinstall filename '/home/mat/.zshrc'
+
+bindkey -v '^?' backward-delete-char # backspace behaviour aligned with vim behaviour
+
+# enable reverse search
+bindkey -v
+bindkey '^R' history-incremental-search-backward
+
+# hub (Github git extension)
+if [[ `which hub &> /dev/null` ]]; then
+  eval "$(hub alias -s)"
+  fpath=(~/.zsh/completions $fpath)
+  autoload -U compinit && compinit
+fi
+
+# MySQL 5.6
+# export PATH="/usr/local/opt/mysql@5.6/bin:$PATH"
+
+# python
+# export PATH="/usr/local/opt/python/libexec/bin:$PATH"
+
+# rbenv
+if [ -d $HOME/.rbenv ]; then
+  eval "$(rbenv init -)"
+fi
+
+# kubectl
+#if [ $commands[kubectl] ]; then
+#  source <(kubectl completion zsh)
+#fi
+
+SCRIPT_DIR=$0:A:h
+
+. $SCRIPT_DIR/../shell/aliases
+. $SCRIPT_DIR/../shell/environment
+
+# Uncomment the following line to use case-sensitive completion.
+# CASE_SENSITIVE="true"
+
+# Uncomment the following line to use hyphen-insensitive completion. Case
+# sensitive completion must be off. _ and - will be interchangeable.
+# HYPHEN_INSENSITIVE="true"
+
+# Uncomment the following line to disable bi-weekly auto-update checks.
+# DISABLE_AUTO_UPDATE="true"
+
+# Uncomment the following line to change how often to auto-update (in days).
+# export UPDATE_ZSH_DAYS=13
+
+# Uncomment the following line to disable auto-setting terminal title.
+# DISABLE_AUTO_TITLE="true"
+
+# Uncomment the following line to enable command auto-correction.
+# ENABLE_CORRECTION="true"
+
+# Uncomment the following line to display red dots whilst waiting for completion.
+COMPLETION_WAITING_DOTS="true"
+
+# Uncomment the following line if you want to disable marking untracked files
+# under VCS as dirty. This makes repository status check for large repositories
+# much, much faster.
+# DISABLE_UNTRACKED_FILES_DIRTY="true"
+
+# Uncomment the following line if you want to change the command execution time
+# stamp shown in the history command output.
+# The optional three formats: "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
+# HIST_STAMPS="mm/dd/yyyy"
+
+# Would you like to use another custom folder than $ZSH/custom?
+# ZSH_CUSTOM=/path/to/new-custom-folder
+
