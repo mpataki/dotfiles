@@ -2,9 +2,11 @@
 
 function setup_docker() {
   pacman_sync docker
+  check_and_link_file `pwd`/docker/docker.json /etc/docker/daemon.json
   sudo usermod -a -G docker $USER
   newgrp docker
   systemctl enable docker
+  systemctl restart docker
 }
 
 print_with_color $YELLOW 'Setup docker? (yes/no)'
