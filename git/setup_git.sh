@@ -1,8 +1,8 @@
 
 function setup_git() {
   pacman_sync git
-  # TODO: install hub
-  # TODO: install diff-so-fancy
+  pacman_sync hub
+  pacman_sync diff-so-fancy
 
   check_and_link_file `pwd`/git/gitconfig $HOME/.gitconfig
   check_and_link_file `pwd`/git/gitignore $HOME/.gitignore
