@@ -4,6 +4,7 @@
 
 function setup_tmux() {
   pacman_sync tmux
+  pacman_sync xsel
 
   git_clone https://github.com/tmux-plugins/tpm $HOME/.tmux/plugins/tpm
 

@@ -1,5 +1,5 @@
 function setup_vim(){
-  pacman_sync vim
+  pacman_sync gvim
 
   check_and_link_file `pwd`/vim/vimrc $HOME/.vimrc
   check_and_link_file `pwd`/vim/colors $HOME/.vim/colors
