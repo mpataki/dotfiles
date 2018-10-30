@@ -1,5 +1,6 @@
 function setup_vim(){
   pacman_sync gvim
+  pacman_sync the_silver_searcher
 
   check_and_link_file `pwd`/vim/vimrc $HOME/.vimrc
   check_and_link_file `pwd`/vim/colors $HOME/.vim/colors
