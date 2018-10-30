@@ -48,7 +48,7 @@ autocmd BufWritePre * :%s/\s\+$//e
 set backspace=indent,eol,start
 
 " copy to the clipboard when using yy
-set clipboard=unnamed
+set clipboard=unnamedplus
 
 " The Silver Searcher
 if executable('ag')
