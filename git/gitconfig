@@ -44,4 +44,3 @@
   markEmptyLines = false
 [interactive]
   # diffFilter = "diff-so-fancy"
-
