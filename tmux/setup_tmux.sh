@@ -9,6 +9,8 @@ function setup_tmux() {
   git_clone https://github.com/tmux-plugins/tpm $HOME/.tmux/plugins/tpm
 
   check_and_link_file `pwd`/tmux/tmux.conf $HOME/.tmux.conf
+
+  print_with_color $YELLOW 'remember to install the plugins if this is the first run (prefix + I)'
 }
 
 print_with_color $YELLOW 'Setup tmux? (yes/no)'
