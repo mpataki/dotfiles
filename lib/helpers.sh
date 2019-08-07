@@ -107,3 +107,19 @@ function aur_install() {
 
   cd $dest && makepkg -si && cd -
 }
+
+function yaourt_sync() {
+  package=$1
+
+  if ! yaourt -Q $package ; then
+    print_with_color $YELLOW "Package '$package' not installed. Do you want to install it? (yes/no)"
+
+    read yn
+    case $yn in
+      yes|Yes|YES|y|Y )
+        yaourt -S $package
+        ;;
+      * ) print_with_color $GREEN 'skipping...';;
+    esac
+  fi
+}
