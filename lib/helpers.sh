@@ -96,6 +96,8 @@ function pacman_sync() {
 }
 
 function aur_install() {
+  echo 'you probably want to be using yaourt install for AUR packages'
+
   package=$1
   git_url=$2
   dest=$HOME/builds/$package
