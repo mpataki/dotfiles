@@ -6,6 +6,7 @@ function setup_misc_tools() {
   pacman_sync wget
   pacman_sync lsof
   pacman_sync jq
+  yaourt_sync google-chrome
 
   # dirty monaco font install
   mkdir -p $HOME/builds
