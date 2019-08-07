@@ -89,9 +89,6 @@ function pacman_sync() {
         ;;
       * ) print_with_color $GREEN 'skipping...';;
     esac
-  else
-    print_with_color $YELLOW "Syncing existing package - '$package'"
-    sudo pacman -S $package # update the package
   fi
 }
 
@@ -121,8 +118,5 @@ function yaourt_sync() {
         ;;
       * ) print_with_color $GREEN 'skipping...';;
     esac
-  else
-    print_with_color $YELLOW "Syncing existing package - '$package'"
-    sudo yaourt -S $package # update the package
   fi
 }
