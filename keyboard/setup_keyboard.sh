@@ -16,7 +16,7 @@ function setup_keyboard() {
 EOM
 
     sudo systemctl enable udevmon
-    print_with_color $YELLOW 'reboot for keyboard changes to take effect';;
+    print_with_color $YELLOW 'reboot for keyboard changes to take effect'
   fi
 }
 
