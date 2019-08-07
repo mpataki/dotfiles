@@ -17,5 +17,6 @@ fi
 . slack/setup_slack.sh
 . misc_tools/setup_misc_tools.sh
 . keyboard/setup_keyboard.sh
+. xfce/setup_xfce.sh
 
 print_with_color $GREEN "Done."
