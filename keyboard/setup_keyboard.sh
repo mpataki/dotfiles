@@ -3,7 +3,17 @@
 . lib/helpers.sh
 
 function setup_keyboard() {
-  yaourt_sync interception-caps2esc
+  here=`pwd`
+
+  git_clone https://github.com/mpataki/caps2esc.git /tmp/caps2esc
+  cd /tmp/caps2esc
+  mkdir build
+  cd build
+  cmake ..
+  make build
+  sudo make install
+
+  cd $here
 
   if ! [[ `grep caps2esc /etc/udevmon.yaml` ]]; then
     sudo touch /etc/udevmon.yaml
@@ -16,7 +26,7 @@ function setup_keyboard() {
 EOM
 
     sudo systemctl enable udevmon
-    print_with_color $YELLOW 'reboot for keyboard changes to take effect'
+    sudo systemctl restart udevmon
   fi
 }
 
