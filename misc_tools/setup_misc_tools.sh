@@ -7,6 +7,7 @@ function setup_misc_tools() {
   pacman_sync lsof
   pacman_sync jq
   pacman_sync ansible
+  pacman_sync bind-tools
   yaourt_sync google-chrome
 
   # dirty monaco font install
