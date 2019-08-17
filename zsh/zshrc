@@ -50,9 +50,9 @@ if [ -d $HOME/.rbenv ]; then
 fi
 
 # kubectl
-#if [ $commands[kubectl] ]; then
-#  source <(kubectl completion zsh)
-#fi
+if [ $commands[kubectl] ]; then
+  source <(kubectl completion zsh)
+fi
 
 SCRIPT_DIR=$0:A:h
 
