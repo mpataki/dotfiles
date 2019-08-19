@@ -7,8 +7,10 @@ function setup_misc_tools() {
   pacman_sync lsof
   pacman_sync jq
   pacman_sync ansible
+  pacman_sync sshpass
   pacman_sync bind-tools
   yaourt_sync google-chrome
+  pacman_sync netcat
 
   # dirty monaco font install
   mkdir -p $HOME/builds
