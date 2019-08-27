@@ -11,6 +11,10 @@ function setup_misc_tools() {
   pacman_sync bind-tools
   yaourt_sync google-chrome
   pacman_sync netcat
+  yaourt_sync boostnote
+
+  gpg --recv-keys 1C61A2656FB57B7E4DE0F4C1FC918B335044912E
+  yaourt_sync dropbox
 
   # dirty monaco font install
   mkdir -p $HOME/builds
