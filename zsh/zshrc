@@ -61,6 +61,10 @@ if [ $commands[kubectl] ]; then
   source <(kubectl completion zsh)
 fi
 
+# jenv
+export PATH="$HOME/.jenv/bin:$PATH"
+eval "$(jenv init -)"
+
 SCRIPT_DIR=$0:A:h
 
 . $SCRIPT_DIR/../shell/aliases
