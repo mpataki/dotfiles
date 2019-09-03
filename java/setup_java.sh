@@ -1,7 +1,8 @@
 #!/bin/bash
 
 function setup_java() {
-  pacman_sync jdk8-openjdk
+  git_clone https://github.com/jenv/jenv.git ~/.jenv
+
   aur_install intellij-idea-ultimate-edition 'https://aur.archlinux.org/intellij-idea-ultimate-edition.git'
 }
 
