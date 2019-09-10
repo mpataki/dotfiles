@@ -3,7 +3,10 @@
 function setup_java() {
   git_clone https://github.com/jenv/jenv.git ~/.jenv
 
-  aur_install intellij-idea-ultimate-edition 'https://aur.archlinux.org/intellij-idea-ultimate-edition.git'
+  yaourt_sync intellij-idea-ce
+
+  yaourt_sync jdk-openjdk
+  yaourt_sync jdk11-openjdk
 }
 
 print_with_color $YELLOW 'Setup Java Development Environment? (yes/no)'
