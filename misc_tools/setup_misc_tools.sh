@@ -13,6 +13,9 @@ function setup_misc_tools() {
   pacman_sync netcat
   yaourt_sync boostnote
   yaourt_sync aws-cli
+  yaourt_sync networkmanager-openvpn
+  yaourt_sync network-manager-applet
+  yaourt_sync ulauncher
 
   gpg --recv-keys 1C61A2656FB57B7E4DE0F4C1FC918B335044912E
   yaourt_sync dropbox
