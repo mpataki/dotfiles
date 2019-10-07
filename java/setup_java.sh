@@ -7,6 +7,7 @@ function setup_java() {
 
   yaourt_sync jdk-openjdk
   yaourt_sync jdk11-openjdk
+  yaourt_sync maven
 }
 
 print_with_color $YELLOW 'Setup Java Development Environment? (yes/no)'
