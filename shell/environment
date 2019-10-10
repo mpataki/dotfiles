@@ -1,7 +1,7 @@
 export NOTES_S3_BUCKET=note-store
 export LOCAL_NOTE_STORE=$HOME/notes
 export EDITOR=/usr/bin/vim
-export BROWSER=/opt/google/chrome/chrome
+export BROWSER=/usr/bin/firefox
 export GPG_TTY=$(tty)
 
 source $HOME/.env
