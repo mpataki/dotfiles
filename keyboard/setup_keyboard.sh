@@ -3,6 +3,8 @@
 . lib/helpers.sh
 
 function setup_keyboard() {
+  yaourt_sync interception-tools
+
   here=`pwd`
 
   git_clone https://github.com/mpataki/caps2esc.git /tmp/caps2esc
