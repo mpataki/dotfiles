@@ -65,6 +65,11 @@ fi
 export PATH="$HOME/.jenv/bin:$PATH"
 eval "$(jenv init -)"
 
+# ssh-agent
+eval $(ssh-agent) > /dev/null # thanks, I hate it.
+ssh-add ~/.ssh/jcto-platform.pem &> /dev/null
+ssh-add ~/.ssh/uken-platform.pem &> /dev/null
+
 SCRIPT_DIR=$0:A:h
 
 . $SCRIPT_DIR/../shell/aliases
