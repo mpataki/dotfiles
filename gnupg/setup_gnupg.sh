@@ -10,6 +10,10 @@ function setup_gnupg() {
 
   check_and_link_file `pwd`/gnupg/gpg.conf $HOME/.gnupg/gpg.conf
   check_and_link_file `pwd`/gnupg/gpg-agent.conf $HOME/.gnupg/gpg-agent.conf
+  check_and_link_file `pwd`/gnupg/scdaemon.conf $HOME/.gnupg/scdaemon.conf
+
+  systemctl start pcscd
+  systemctl enable pcscd
   echo "recall: gpg needs it's keyring populated with the private key corresponding to the public key used to encrypt your password-store"
 }
 
