@@ -85,7 +85,7 @@ function pacman_sync() {
     read yn
     case $yn in
       yes|Yes|YES|y|Y )
-        sudo pacman -S $package
+        sudo pacman -Sy $package
         ;;
       * ) print_with_color $GREEN 'skipping...';;
     esac
@@ -114,7 +114,7 @@ function yaourt_sync() {
     read yn
     case $yn in
       yes|Yes|YES|y|Y )
-        yaourt -S $package
+        yaourt -Sy $package
         ;;
       * ) print_with_color $GREEN 'skipping...';;
     esac
