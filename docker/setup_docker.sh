@@ -7,7 +7,6 @@ function setup_docker() {
   check_and_link_file `pwd`/docker/docker.json /etc/docker/daemon.json
   sudo usermod -a -G docker $USER
   newgrp docker
-  systemctl enable docker
   systemctl restart docker
 }
 
