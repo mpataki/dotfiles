@@ -5,7 +5,7 @@ function setup_java() {
 
   yaourt_sync intellij-idea-ce
 
-  yaourt_sync jdk-openjdk
+  yaourt_sync jdk8-openjdk
   yaourt_sync jdk11-openjdk
   yaourt_sync maven
 }
