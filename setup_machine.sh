@@ -20,7 +20,7 @@ fi
 . misc_tools/setup_misc_tools.sh
 . keyboard/setup_keyboard.sh
 . xfce/setup_xfce.sh
-. wacom/setup_wacom.sh
+. tablet/setup_tablet.sh
 . simple_terminal/setup_simple_teminal.sh
 
 print_with_color $GREEN "Done."
