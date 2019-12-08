@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function setup_slack() {
-  aur_install slack_desktop 'https://aur.archlinux.org/slack-desktop.git'
+  yaourt_sync slack-desktop
 }
 
 print_with_color $YELLOW 'Setup Slack? (yes/no)'
