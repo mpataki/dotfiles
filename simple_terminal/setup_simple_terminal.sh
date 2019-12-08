@@ -13,7 +13,7 @@ function setup_st() {
   sudo make clean install
 
   cd $here
-  #rm -rf $HOME/builds/st
+  rm -rf $HOME/builds/st
 }
 
 print_with_color $YELLOW 'Setup simple terminal (st)? (yes/no)'
