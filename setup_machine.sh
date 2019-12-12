@@ -22,5 +22,6 @@ fi
 . xfce/setup_xfce.sh
 . tablet/setup_tablet.sh
 . simple_terminal/setup_simple_teminal.sh
+. virtual_keyboard/setup_virtual_keyboard.sh
 
 print_with_color $GREEN "Done."
