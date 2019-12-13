@@ -9,6 +9,11 @@ function setup_tablet() {
   # screen rotation
   pacman_sync iio-sensor-proxy-git
   pacman_sync screenrotator-git
+  pacman_sync xf86-input-evdev
+  yaourt_sync xinput_calibrator
+  yaourt_sync touchegg
+
+  print_with_color $YELLOW 'Run xinput_calibrator to calibrate the touch screen'
 }
 
 print_with_color $YELLOW 'Setup tablet mode? (yes/no)'
