@@ -66,3 +66,6 @@ if executable('ag')
 endif
 
 autocmd BufRead *.sql set filetype=mysql
+
+" you complete me - rust support
+let g:ycm_rust_src_path = '/usr/lib/rustlib/src'
