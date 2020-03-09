@@ -35,7 +35,7 @@ call plug#begin('~/.vim/plugged') " Inialize Plug
 
 Plug 'ctrlpvim/ctrlp.vim'
 Plug 'vim-airline/vim-airline'
-Plug 'scrooloose/nerdtree'
+Plug 'preservim/nerdtree'
 Plug 'Xuyuanp/nerdtree-git-plugin'
 Plug 'airblade/vim-gitgutter'
 
@@ -69,3 +69,6 @@ autocmd BufRead *.sql set filetype=mysql
 
 " you complete me - rust support
 let g:ycm_rust_src_path = '/usr/lib/rustlib/src'
+
+" NERDTree Shortcuts
+map <C-n> :NERDTreeToggle<CR>
