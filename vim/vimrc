@@ -44,9 +44,6 @@ call plug#end()
 " strip trailing whitespace on save
 autocmd BufWritePre * :%s/\s\+$//e
 
-" fix backspace on mac
-set backspace=indent,eol,start
-
 " copy to the clipboard when using yy
 set clipboard=unnamedplus
 
