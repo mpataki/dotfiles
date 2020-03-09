@@ -7,6 +7,7 @@ function setup_vim(){
 
   check_and_link_file `pwd`/vim/vimrc $HOME/.vimrc
   check_and_link_file `pwd`/vim/colors $HOME/.vim/colors
+  check_and_link_file `pwd`/vim/ycm_extra_conf.py $HOME/.vim/ycm_extra_conf.py
 
   if ! [ -e $HOME/.vim ]; then
     mkdir $HOME/.vim

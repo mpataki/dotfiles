@@ -64,8 +64,12 @@ endif
 
 autocmd BufRead *.sql set filetype=mysql
 
-" you complete me - rust support
+" you complete me
+let g:ycm_global_ycm_extra_conf = '~/.vim/ycm_extra_conf.py'
 let g:ycm_rust_src_path = '/usr/lib/rustlib/src'
 
-" NERDTree Shortcuts
+" Keyboard Shortcuts
 map <C-n> :NERDTreeToggle<CR>
+map <C-b> :YcmCompleter GoToDefinition<CR>
+map <C-g> :YcmCompleter GoToReferences<CR>
+map <C-m> :YcmCompleter GetDoc<CR>
