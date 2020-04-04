@@ -5,8 +5,9 @@
 function setup_thinkpad() {
   yaourt_sync fwupd
   yaourt_sync dmidecode
+  yaourt_sync sof-firmware
 
-  print_with_color $GREEN 'Remember to run firmware upgrades with as decribed here: https://wiki.archlinux.org/index.php/fwupd'
+  print_with_color $GREEN 'Remember to run firmware upgrades as decribed here: https://wiki.archlinux.org/index.php/fwupd'
 }
 
 print_with_color $YELLOW 'Setup thinkpad specific requirements? (yes/no)'
