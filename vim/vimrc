@@ -1,6 +1,4 @@
 syntax on
-let g:neodark#terminal_transparent = 1 " use the default terminal background
-" colorscheme neodark
 
 set expandtab
 set tabstop=2
@@ -38,7 +36,6 @@ Plug 'vim-airline/vim-airline'
 Plug 'preservim/nerdtree'
 Plug 'Xuyuanp/nerdtree-git-plugin'
 Plug 'airblade/vim-gitgutter'
-
 call plug#end()
 
 " strip trailing whitespace on save
@@ -69,7 +66,7 @@ let g:ycm_global_ycm_extra_conf = '~/.vim/ycm_extra_conf.py'
 let g:ycm_rust_src_path = '/usr/lib/rustlib/src'
 
 " Keyboard Shortcuts
-map <C-n> :NERDTreeToggle<CR>
+map <C-n> :NERDTreeFocus<CR>
 map <C-b> :YcmCompleter GoToDefinition<CR>
 map <C-g> :YcmCompleter GoToReferences<CR>
 map <C-m> :YcmCompleter GetDoc<CR>
