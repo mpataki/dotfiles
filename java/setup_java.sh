@@ -8,6 +8,8 @@ function setup_java() {
   yaourt_sync jdk8-openjdk
   yaourt_sync jdk11-openjdk
   yaourt_sync maven
+
+  check_and_link_file `pwd`/java/ideavimrc $HOME/.ideavimrc
 }
 
 print_with_color $YELLOW 'Setup Java Development Environment? (yes/no)'
