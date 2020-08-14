@@ -6,6 +6,9 @@ function setup_thinkpad() {
   yaourt_sync fwupd
   yaourt_sync dmidecode
   yaourt_sync sof-firmware
+  yaourt_sync alsa-utils
+
+  check_and_link_file `pwd`/thinkpad/disable-dmic.conf /etc/modprobe.d/disable-dmic.conf
 
   print_with_color $GREEN 'Remember to run firmware upgrades as decribed here: https://wiki.archlinux.org/index.php/fwupd'
 }
