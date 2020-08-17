@@ -14,6 +14,7 @@ fi
 . gnupg/setup_gnupg.sh
 . zsh/setup_zsh.sh
 . java/setup_java.sh
+. ruby/setup_ruby.sh
 . python/setup_python.sh
 . docker/setup_docker.sh
 . slack/setup_slack.sh
