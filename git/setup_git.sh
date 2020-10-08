@@ -2,6 +2,7 @@
 function setup_git() {
   pacman_sync git
   pacman_sync hub
+  pacman_sync github-cli
   pacman_sync diff-so-fancy
 
   check_and_link_file `pwd`/git/gitconfig $HOME/.gitconfig
