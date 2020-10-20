@@ -8,6 +8,7 @@ function setup_java() {
   yaourt_sync jdk8-openjdk
   yaourt_sync jdk11-openjdk
   yaourt_sync maven
+  yaourt_sync gradle
 
   check_and_link_file `pwd`/java/ideavimrc $HOME/.ideavimrc
 }
