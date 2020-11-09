@@ -13,20 +13,21 @@ function setup_zsh(){
   # oh-my-zshell
   sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
-
   # theme
-  git_clone https://github.com/bhilburn/powerlevel9k.git ~/.oh-my-zsh/custom/themes/powerlevel9k
+  git_clone https://github.com/romkatv/powerlevel10k.git $HOME/.oh-my-zsh/themes/powerlevel10k
 
-  wget https://github.com/powerline/powerline/raw/develop/font/PowerlineSymbols.otf
-  wget https://github.com/powerline/powerline/raw/develop/font/10-powerline-symbols.conf
+  wget https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf
+  wget https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf
+  wget https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf
+  wget https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf
 
   mkdir -p ~/.local/share/fonts
-  mv PowerlineSymbols.otf ~/.local/share/fonts/
+  mv 'MesloLGS NF Regular.ttf' ~/.local/share/fonts/
+  mv 'MesloLGS NF Bold.ttf' ~/.local/share/fonts/
+  mv 'MesloLGS NF Italic.ttf' ~/.local/share/fonts/
+  mv 'MesloLGS NF Bold Italic.ttf' ~/.local/share/fonts/
 
   fc-cache -vf ~/.local/share/fonts/
-
-  mkdir -p ~/.config/fontconfig/conf.d/
-  mv 10-powerline-symbols.conf ~/.config/fontconfig/conf.d/
 
   if [ -e $HOME/.zshrc ]; then
     print_with_color $YELLOW "$HOME/.zshrc already exists. Do you want to override it? (yes/no)"
