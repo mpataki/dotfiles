@@ -1,10 +1,11 @@
+
+SCRIPT_DIR=$0:A:h
+
 # Path to oh-my-zsh
 export ZSH=/home/mat/.oh-my-zsh
 
 # theme
-ZSH_THEME="powerlevel9k/powerlevel9k"
-POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(dir vcs)
-POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status vi_mode context)
+ZSH_THEME="powerlevel10k/powerlevel10k"
 
 # Plugins to load (plugins can e found in ~/.oh-my-zsh/plugins/*)
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
@@ -19,6 +20,7 @@ plugins=(
 )
 
 source $ZSH/oh-my-zsh.sh
+source $SCRIPT_DIR/p10k.zsh
 
 HISTFILE=~/.histfile
 HISTSIZE=1000
@@ -61,8 +63,6 @@ fi
 eval $(ssh-agent) > /dev/null # thanks, I hate it.
 ssh-add ~/.ssh/jcto-platform.pem &> /dev/null
 ssh-add ~/.ssh/uken-platform.pem &> /dev/null
-
-SCRIPT_DIR=$0:A:h
 
 . $SCRIPT_DIR/../shell/aliases
 . $SCRIPT_DIR/../shell/environment
