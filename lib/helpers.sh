@@ -73,7 +73,7 @@ function git_clone() {
     esac
   fi
 
-  git clone "$repo" "$dest"
+  git clone --depth=1 "$repo" "$dest"
 }
 
 function pacman_sync() {
