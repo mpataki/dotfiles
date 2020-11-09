@@ -7,6 +7,10 @@ function setup_git() {
 
   check_and_link_file `pwd`/git/gitconfig $HOME/.gitconfig
   check_and_link_file `pwd`/git/gitignore $HOME/.gitignore
+
+  # hub completions
+  mkdir -p ~/.zsh/completions
+  cp /usr/local/share/zsh/site-functions/_hub ~/.zsh/completions/_hub
 }
 
 print_with_color $YELLOW 'Setup Git? (yes/no)'
