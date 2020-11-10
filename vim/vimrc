@@ -21,14 +21,14 @@ set nobackup
 set nowb
 set noswapfile
 
-" Install Vim-Plug & my preferred plugins
-" https://github.com/junegunn/vim-plug/wiki/tips#automatic-installation
+" install Vim-Plug -- https://github.com/junegunn/vim-plug/wiki/tips#automatic-installation
 if empty(glob('~/.vim/autoload/plug.vim'))
   silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
     \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
   autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
 endif
 
+" install plugins
 call plug#begin('~/.vim/plugged') " Inialize Plug
 
 Plug 'ctrlpvim/ctrlp.vim'
@@ -36,6 +36,7 @@ Plug 'vim-airline/vim-airline'
 Plug 'preservim/nerdtree'
 Plug 'Xuyuanp/nerdtree-git-plugin'
 Plug 'airblade/vim-gitgutter'
+
 call plug#end()
 
 " strip trailing whitespace on save
@@ -61,12 +62,5 @@ endif
 
 autocmd BufRead *.sql set filetype=mysql
 
-" you complete me
-let g:ycm_global_ycm_extra_conf = '~/.vim/ycm_extra_conf.py'
-let g:ycm_rust_src_path = '/usr/lib/rustlib/src'
-
 " Keyboard Shortcuts
 map <C-n> :NERDTreeFocus<CR>
-map <C-b> :YcmCompleter GoToDefinition<CR>
-map <C-g> :YcmCompleter GoToReferences<CR>
-map <C-m> :YcmCompleter GetDoc<CR>
