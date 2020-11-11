@@ -1,7 +1,7 @@
 export NOTES_S3_BUCKET=note-store
 export LOCAL_NOTE_STORE=$HOME/notes
 export EDITOR=/usr/bin/vim
-export BROWSER=/usr/bin/firefox
+export BROWSER=/usr/bin/brave
 export GPG_TTY=$(tty)
 export SPARK_HOME=/home/mat/code/spark-2.1.0-bin-hadoop2.7
 
