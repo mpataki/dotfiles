@@ -39,7 +39,7 @@ function check_and_link_file() {
   use_sudo=$3
 
     if [ -f $source_file ] && [ -e $destination ]; then
-    print_with_color $YELLOW "$destination already exists. Do you want to override it? (yes/no)"
+    print_with_color $YELLOW "$destination already exists. Do you want to override it? (y/n)"
     read yn
     case $yn in
       yes|Yes|YES|y|Y )
@@ -63,7 +63,7 @@ function git_clone() {
   dest=$2
 
   if [ -e "$dest" ]; then
-    print_with_color $YELLOW "$dest already present. Do you want to overwrite it? (yes/no)"
+    print_with_color $YELLOW "$dest already present. Do you want to overwrite it? (y/n)"
     read yn
     case $yn in
       yes|Yes|YES|y|Y )
@@ -80,7 +80,7 @@ function pacman_sync() {
   package=$1
 
   if ! pacman -Q $package ; then
-    print_with_color $YELLOW "Package '$package' not installed. Do you want to install it? (yes/no)"
+    print_with_color $YELLOW "Package '$package' not installed. Do you want to install it? (y/n)"
 
     read yn
     case $yn in
@@ -109,7 +109,7 @@ function yaourt_sync() {
   package=$1
 
   if ! yaourt -Q $package ; then
-    print_with_color $YELLOW "Package '$package' not installed. Do you want to install it? (yes/no)"
+    print_with_color $YELLOW "Package '$package' not installed. Do you want to install it? (y/n)"
 
     read yn
     case $yn in
