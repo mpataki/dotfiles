@@ -13,7 +13,7 @@ function setup_tmux() {
   print_with_color $YELLOW 'remember to install the plugins if this is the first run (prefix + I)'
 }
 
-print_with_color $YELLOW 'Setup tmux? (yes/no)'
+print_with_color $YELLOW 'Setup tmux? (y/n)'
 read yn
 case $yn in
   yes|Yes|YES|Y|y ) setup_tmux;;
