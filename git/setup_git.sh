@@ -7,6 +7,7 @@ function setup_git() {
   pacman_sync diff-so-fancy
 
   check_and_link_file `pwd`/git/gitconfig $HOME/.gitconfig
+  check_and_link_file `pwd`/git/gitconfig-jcto $HOME/.gitconfig-jcto
   check_and_link_file `pwd`/git/gitignore $HOME/.gitignore
 }
 

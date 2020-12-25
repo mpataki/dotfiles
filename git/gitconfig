@@ -40,8 +40,8 @@
 	fetch = +refs/pull/*/head:refs/remotes/origin/pull/*
 [include]
   path = ~/.gitconfig.local
-[includeIf "gitdir:~/code/jchq/"]
-  path = ~/.gitconfig-jchq
+[includeIf "gitdir:~/code/jcto/"]
+  path = ~/.gitconfig-jcto
 [diff-so-fancy]
   markEmptyLines = false
 [interactive]
