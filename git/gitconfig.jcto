@@ -1,3 +1,5 @@
 [user]
   email = mat@jamcity.com
   signingkey = C07E9A735C085746
+[core]
+  sshCommand = ssh -i ~/.ssh/id_ed25519_jc
