@@ -48,5 +48,3 @@
   # diffFilter = "diff-so-fancy"
 [commit]
 	gpgsign = true
-[user]
-	signingkey = 4B5A975D4DE22696
