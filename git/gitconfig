@@ -41,7 +41,7 @@
 [include]
   path = ~/.gitconfig.local
 [includeIf "gitdir:~/code/jcto/"]
-  path = ~/.gitconfig-jcto
+  path = ~/.gitconfig.jcto
 [diff-so-fancy]
   markEmptyLines = false
 [interactive]
