@@ -1,4 +1,5 @@
 #!/bin/bash
+. lib/helpers.sh
 
 function setup_misc_tools() {
   pacman_sync htop
@@ -24,6 +25,16 @@ function setup_misc_tools() {
 
   gpg --recv-keys 1C61A2656FB57B7E4DE0F4C1FC918B335044912E
   yaourt_sync dropbox
+
+  # kafkacat
+  yaourt_sync libserdes-git
+  yaourt_sync yajl
+  git_clone https://github.com/edenhill/kafkacat /tmp/kafkacat
+  cd /tmp/kafkacat
+  ./configure
+  make
+  mv kafkacat $HOME/.local/bin/
+  rm -rf /tmp/kafkacat
 
   # dirty monaco font install
   mkdir -p $HOME/builds
