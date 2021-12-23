@@ -93,7 +93,7 @@ function pacman_sync() {
 }
 
 function aur_install() {
-  echo 'you probably want to be using yaourt install for AUR packages'
+  echo 'you probably want to be using yay install for AUR packages'
 
   package=$1
   git_url=$2
@@ -105,16 +105,16 @@ function aur_install() {
   cd $dest && makepkg -si && cd -
 }
 
-function yaourt_sync() {
+function yay_sync() {
   package=$1
 
-  if ! yaourt -Q $package ; then
+  if ! yay -Q $package ; then
     print_with_color $YELLOW "Package '$package' not installed. Do you want to install it? (y/n)"
 
     read yn
     case $yn in
       yes|Yes|YES|y|Y )
-        yaourt -Sy $package
+        yay -Sy $package
         ;;
       * ) print_with_color $GREEN 'skipping...';;
     esac

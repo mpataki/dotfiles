@@ -10,25 +10,25 @@ function setup_misc_tools() {
   pacman_sync ansible
   pacman_sync sshpass
   pacman_sync bind-tools
-  yaourt_sync google-chrome
+  yay_sync google-chrome
   pacman_sync netcat
-  yaourt_sync boostnote
-  yaourt_sync aws-cli
-  yaourt_sync networkmanager-openvpn
-  yaourt_sync network-manager-applet
-  yaourt_sync net-tools
-  yaourt_sync datagrip
-  yaourt_sync packer
-  yaourt_sync tcpflow
-  yaourt_sync yubikey-manager-qt
-  yaourt_sync alfred
+  yay_sync boostnote
+  yay_sync aws-cli
+  yay_sync networkmanager-openvpn
+  yay_sync network-manager-applet
+  yay_sync net-tools
+  yay_sync datagrip
+  yay_sync packer
+  yay_sync tcpflow
+  yay_sync yubikey-manager-qt
+  yay_sync alfred
 
   gpg --recv-keys 1C61A2656FB57B7E4DE0F4C1FC918B335044912E
-  yaourt_sync dropbox
+  yay_sync dropbox
 
   # kafkacat
-  yaourt_sync libserdes-git
-  yaourt_sync yajl
+  yay_sync libserdes-git
+  yay_sync yajl
   git_clone https://github.com/edenhill/kafkacat /tmp/kafkacat
   cd /tmp/kafkacat
   ./configure
