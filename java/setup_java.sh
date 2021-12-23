@@ -3,12 +3,12 @@
 function setup_java() {
   git_clone https://github.com/jenv/jenv.git ~/.jenv
 
-  yaourt_sync intellij-idea-ce
+  yay_sync intellij-idea-ce
 
-  yaourt_sync jdk8-openjdk
-  yaourt_sync jdk11-openjdk
-  yaourt_sync maven
-  yaourt_sync gradle
+  yay_sync jdk8-openjdk
+  yay_sync jdk11-openjdk
+  yay_sync maven
+  yay_sync gradle
 
   check_and_link_file `pwd`/java/ideavimrc $HOME/.ideavimrc
 }

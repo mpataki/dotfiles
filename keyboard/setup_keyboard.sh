@@ -3,7 +3,7 @@
 . lib/helpers.sh
 
 function setup_keyboard() {
-  yaourt_sync interception-tools
+  yay_sync interception-tools
 
   here=`pwd`
 

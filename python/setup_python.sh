@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function setup_python() {
-  yaourt_sync pyenv
+  yay_sync pyenv
 }
 
 print_with_color $YELLOW 'Setup python? (y/n)'

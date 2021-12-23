@@ -6,7 +6,7 @@ if ! [[ `which sudo` ]]; then
   exit 1
 fi
 
-. yaourt/setup_yaourt.sh
+. yay/setup_yay.sh
 . bash/setup_bash.sh
 . git/setup_git.sh
 . vim/setup_vim.sh

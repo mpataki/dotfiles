@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function setup_slack() {
-  yaourt_sync slack-desktop
+  yay_sync slack-desktop
 }
 
 print_with_color $YELLOW 'Setup Slack? (yes/no)'

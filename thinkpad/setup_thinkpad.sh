@@ -3,10 +3,10 @@
 . lib/helpers.sh
 
 function setup_thinkpad() {
-  yaourt_sync fwupd
-  yaourt_sync dmidecode
-  yaourt_sync sof-firmware
-  yaourt_sync alsa-utils
+  yay_sync fwupd
+  yay_sync dmidecode
+  yay_sync sof-firmware
+  yay_sync alsa-utils
 
   check_and_link_file `pwd`/thinkpad/disable-dmic.conf /etc/modprobe.d/disable-dmic.conf
 

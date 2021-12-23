@@ -10,8 +10,8 @@ function setup_tablet() {
   pacman_sync iio-sensor-proxy-git
   pacman_sync screenrotator-git
   pacman_sync xf86-input-evdev
-  yaourt_sync xinput_calibrator
-  yaourt_sync touchegg
+  yay_sync xinput_calibrator
+  yay_sync touchegg
 
   print_with_color $YELLOW 'Run xinput_calibrator to calibrate the touch screen'
 }

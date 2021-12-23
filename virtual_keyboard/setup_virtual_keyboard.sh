@@ -3,7 +3,7 @@
 . lib/helpers.sh
 
 function setup_virtual_keyboard() {
-  yaourt_sync onboard
+  yay_sync onboard
   systemctl enable acpid
   systemctl start acpid
 
