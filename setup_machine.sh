@@ -19,7 +19,7 @@ fi
 . docker/setup_docker.sh
 . slack/setup_slack.sh
 . misc_tools/setup_misc_tools.sh
-. keyboard/setup_keyboard.sh
+#. keyboard/setup_keyboard.sh
 . xfce/setup_xfce.sh
 . tablet/setup_tablet.sh
 . simple_terminal/setup_simple_terminal.sh
