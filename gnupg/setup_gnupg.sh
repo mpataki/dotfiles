@@ -2,6 +2,7 @@
 function setup_gnupg() {
   pacman_sync gnupg
   pacman_sync pinentry
+  pacman_sync xclip
   pacman_sync pass
 
   if ! [ -d $HOME/.gnupg ]; then
@@ -14,6 +15,10 @@ function setup_gnupg() {
 
   systemctl start pcscd
   systemctl enable pcscd
+
+  find ~/.gnupg -type f -exec chmod 600 {} \;
+  find ~/.gnupg -type d -exec chmod 700 {} \;
+
   echo "recall: gpg needs it's keyring populated with the private key corresponding to the public key used to encrypt your password-store"
 }
 

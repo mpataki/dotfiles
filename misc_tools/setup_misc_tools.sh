@@ -2,6 +2,8 @@
 . lib/helpers.sh
 
 function setup_misc_tools() {
+  pacman_sync cmake
+  pacman_sync make
   pacman_sync htop
   pacman_sync openssh
   pacman_sync wget
@@ -10,31 +12,30 @@ function setup_misc_tools() {
   pacman_sync ansible
   pacman_sync sshpass
   pacman_sync bind-tools
-  yay_sync google-chrome
+  # yay_sync google-chrome
   pacman_sync netcat
-  yay_sync boostnote
+  # yay_sync boostnote
   yay_sync aws-cli
-  yay_sync networkmanager-openvpn
-  yay_sync network-manager-applet
-  yay_sync net-tools
+  # yay_sync networkmanager-openvpn
+  # yay_sync network-manager-applet
+  # yay_sync net-tools
+  yay_sync intellij-idea-ultimate-edition
   yay_sync datagrip
+  yay_sync pycharm-professional
+  yay_sync webstorm
   yay_sync packer
   yay_sync tcpflow
   yay_sync yubikey-manager-qt
-  yay_sync alfred
+  yay_sync albert-bin
+  yay_sync brave-bin
+  yay_sync slack-desktop
+  yay_sync kcat-cli
 
   gpg --recv-keys 1C61A2656FB57B7E4DE0F4C1FC918B335044912E
   yay_sync dropbox
 
-  # kafkacat
   yay_sync libserdes-git
   yay_sync yajl
-  git_clone https://github.com/edenhill/kafkacat /tmp/kafkacat
-  cd /tmp/kafkacat
-  ./configure
-  make
-  mv kafkacat $HOME/.local/bin/
-  rm -rf /tmp/kafkacat
 
   # dirty monaco font install
   mkdir -p $HOME/builds

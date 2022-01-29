@@ -3,8 +3,6 @@
 function setup_java() {
   git_clone https://github.com/jenv/jenv.git ~/.jenv
 
-  yay_sync intellij-idea-ce
-
   yay_sync jdk8-openjdk
   yay_sync jdk11-openjdk
   yay_sync maven

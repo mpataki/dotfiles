@@ -37,14 +37,6 @@ bindkey -v '^?' backward-delete-char # backspace behaviour aligned with vim beha
 bindkey -v
 bindkey '^R' history-incremental-search-backward
 
-# hub (Github git extension)
-if [[ `which hub` ]]; then
-  eval "$(hub alias -s)"
-  fpath=(~/.zsh/completions $fpath)
-  autoload -U compinit && compinit
-fi
-
-
 if [[ `which gh` ]]; then
   eval "$(gh completion -s zsh)"
 fi
