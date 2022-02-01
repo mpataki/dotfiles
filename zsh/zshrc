@@ -39,6 +39,18 @@ bindkey '^R' history-incremental-search-backward
 
 if [[ `which gh` ]]; then
   eval "$(gh completion -s zsh)"
+
+  function gh-work() {
+    rm ~/.config/gh/hosts.yml &> /dev/null || true
+    ln -s ~/.config/gh/hosts-jc.yml ~/.config/gh/hosts.yml
+    echo "gh is now setup with work credentials"
+  }
+
+  function gh-personal() {
+    rm ~/.config/gh/hosts.yml &> /dev/null || true
+    ln -s ~/.config/gh/hosts-personal.yml ~/.config/gh/hosts.yml
+    echo "gh is now setup with personal credentials"
+  }
 fi
 
 # rbenv
