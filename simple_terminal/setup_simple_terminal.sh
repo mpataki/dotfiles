@@ -3,6 +3,7 @@
 . lib/helpers.sh
 
 function setup_st() {
+  yay_sync pkgconfig
   git_clone https://git.suckless.org/st $HOME/builds/st
 
   here=`pwd`
