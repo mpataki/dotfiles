@@ -30,6 +30,7 @@ function setup_misc_tools() {
   yay_sync brave-bin
   yay_sync slack-desktop
   yay_sync kcat-cli
+  yay_sync ksnip
 
   gpg --recv-keys 1C61A2656FB57B7E4DE0F4C1FC918B335044912E
   yay_sync dropbox
