@@ -67,6 +67,10 @@ if [[ `which pyenv` ]]; then
   eval "$(pyenv init -)"
 fi
 
+if [[ `which pyenv-virtualenv` ]]; then
+  eval "$(pyenv virtualenv-init -)"
+fi
+
 # kubectl
 if [ $commands[kubectl] ]; then
   source <(kubectl completion zsh)
