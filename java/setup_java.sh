@@ -5,6 +5,7 @@ function setup_java() {
 
   yay_sync jdk8-openjdk
   yay_sync jdk11-openjdk
+  yay_sync jdk-openjdk
   yay_sync maven
   yay_sync gradle
 
