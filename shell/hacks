@@ -1,2 +1,0 @@
-
-alias jctovpn='sudo openvpn --config ~/.config/jcto-vpn/client.ovpn --auth-user-pass'

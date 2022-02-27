@@ -7,8 +7,5 @@ export GPG_TTY=$(tty)
 #export SPARK_HOME=/home/mat/code/spark-2.4.3-bin-hadoop2.7
 export SPARK_HOME=/home/mat/code/spark-3.1.1-bin-hadoop3.2
 
-export KUBECONFIG=$HOME/.kube/config-local:$HOME/.kube/config-mindjolt
-
 source $HOME/.env
-
 
