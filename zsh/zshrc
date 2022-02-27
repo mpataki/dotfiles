@@ -81,9 +81,26 @@ eval $(ssh-agent) > /dev/null # thanks, I hate it.
 ssh-add ~/.ssh/jcto-platform.pem &> /dev/null
 ssh-add ~/.ssh/uken-platform.pem &> /dev/null
 
+
+function k8s-k3s-config() {
+    echo 'using local k3s config'
+    export KUBECONFIG=~/.kube/config_k3s
+}
+
+function k8s-k3s-config() {
+    echo 'using local k3s config'
+    export KUBECONFIG=~/.kube/config_k3s
+}
+
+function k8s-syncdna-config() {
+    echo 'using syncdna k8s config'
+    export KUBECONFIG=~/.kube/config-syncdna
+}
+
+k8s-k3s-config
+
 . $SCRIPT_DIR/../shell/aliases
 . $SCRIPT_DIR/../shell/environment
-. $SCRIPT_DIR/../shell/hacks
 
 # Uncomment the following line to use case-sensitive completion.
 # CASE_SENSITIVE="true"
