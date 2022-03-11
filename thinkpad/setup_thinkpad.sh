@@ -7,6 +7,8 @@ function setup_thinkpad() {
   yay_sync dmidecode
   yay_sync sof-firmware
   yay_sync alsa-utils
+  yay_sync tlp
+  yay_sync tlpui
 
   check_and_link_file `pwd`/thinkpad/disable-dmic.conf /etc/modprobe.d/disable-dmic.conf
 
