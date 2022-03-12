@@ -82,17 +82,18 @@ ssh-add ~/.ssh/jcto-platform.pem &> /dev/null
 ssh-add ~/.ssh/uken-platform.pem &> /dev/null
 
 function k8s-k3s-config() {
-    echo 'using local k3s config'
+    echo 'using LOCAL k3s config'
     export KUBECONFIG=~/.kube/config_k3s
 }
 
 function k8s-syncdna-config() {
     echo 'using SYNC-DNA k8s config'
     export KUBECONFIG=~/.kube/config-syncdna
+}
 
 function k8s-mindjolt-config() {
     echo 'using MINDJOLT k8s config'
-    export KUBECONFIG=~/.kube/config_k3s
+    export KUBECONFIG=~/.kube/config-mindjolt
 }
 
 k8s-k3s-config
