@@ -96,6 +96,11 @@ function k8s-mindjolt-config() {
     export KUBECONFIG=~/.kube/config-mindjolt
 }
 
+function k8s-mindjolt-sandbox-config() {
+    echo 'using MINDJOLT SANDBOX k8s config'
+    export KUBECONFIG=~/.kube/config-mindjolt-sandbox
+}
+
 k8s-k3s-config
 
 . $SCRIPT_DIR/../shell/aliases
