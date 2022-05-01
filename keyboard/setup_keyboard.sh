@@ -18,9 +18,9 @@ function setup_keyboard() {
   cd $here
 
   if ! [[ `grep caps2esc /etc/interception/udevmon.yaml` ]]; then
-    sudo touch /etc/interception/udevmon.yaml
+    sudo touch /etc/interception/udevmon.d/udevmon.yaml
 
-    sudo tee /etc/interception/udevmon.yaml <<- EOM
+    sudo tee /etc/interception/udevmon.d/udevmon.yaml <<- EOM
 - JOB: "intercept -g \$DEVNODE | caps2esc | uinput -d \$DEVNODE"
   DEVICE:
     EVENTS:
