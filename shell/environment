@@ -7,5 +7,7 @@ export GPG_TTY=$(tty)
 #export SPARK_HOME=/home/mat/code/spark-2.4.3-bin-hadoop2.7
 export SPARK_HOME=/home/mat/code/spark-3.1.1-bin-hadoop3.2
 
+export PATH="/home/mat/code/kafka-3.2.0-src/bin/:$PATH"
+
 source $HOME/.env
 
