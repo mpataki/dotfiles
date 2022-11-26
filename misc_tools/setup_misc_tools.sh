@@ -31,6 +31,9 @@ function setup_misc_tools() {
   yay_sync k9s
   yay_sync net-tools
   yay_sync grpcurl
+  yay_sync xfce4-terminal
+  yay_sync visual-studio-code-bin
+  yay_sync 1password
 
   # gpg --recv-keys 1C61A2656FB57B7E4DE0F4C1FC918B335044912E
   # yay_sync dropbox
