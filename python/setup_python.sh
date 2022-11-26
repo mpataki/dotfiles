@@ -3,6 +3,7 @@
 function setup_python() {
   yay_sync pyenv
   yay_sync pyenv-virtualenv
+  yay_sync pycharm-professional
 }
 
 print_with_color $YELLOW 'Setup python? (y/n)'
