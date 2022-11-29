@@ -27,7 +27,7 @@ function setup_misc_tools() {
   yay_sync yubikey-manager-qt
   yay_sync albert
   yay_sync brave-bin
-  # yay_sync slack-desktop
+  yay_sync slack-desktop
   yay_sync ksnip
   yay_sync k9s
   yay_sync net-tools
