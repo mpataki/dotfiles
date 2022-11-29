@@ -2,6 +2,7 @@
 . lib/helpers.sh
 
 function setup_misc_tools() {
+  pacman_sync base-devel
   pacman_sync cmake
   pacman_sync make
   pacman_sync htop
