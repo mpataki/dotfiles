@@ -4,14 +4,15 @@
 
 function setup_java() {
   git_clone https://github.com/jenv/jenv.git ~/.jenv
+  mkdir $HOME/.jenv/versions
 
   yay_sync jdk8-openjdk
   yay_sync jdk11-openjdk
   yay_sync jdk17-openjdk
-  #yay_sync jdk-openjdk
+  yay_sync jdk-openjdk
   yay_sync maven
   yay_sync gradle
-  yay_sync intellij-idea-ultimate-edition
+  # yay_sync intellij-idea-ultimate-edition # let's do this via snap
 
   check_and_link_file `pwd`/java/ideavimrc $HOME/.ideavimrc
 }

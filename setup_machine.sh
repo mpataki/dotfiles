@@ -19,6 +19,7 @@ fi
 . python/setup_python.sh
 . docker/setup_docker.sh
 . slack/setup_slack.sh
+. snap/setup_snap.sh
 . misc_tools/setup_misc_tools.sh
 #. keyboard/setup_keyboard.sh
 #. xfce/setup_xfce.sh
