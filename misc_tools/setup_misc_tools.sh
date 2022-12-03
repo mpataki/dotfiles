@@ -20,8 +20,8 @@ function setup_misc_tools() {
   # yay_sync networkmanager-openvpn
   # yay_sync network-manager-applet
   # yay_sync net-tools
-  yay_sync datagrip
-  yay_sync webstorm
+  # yay_sync datagrip
+  # yay_sync webstorm
   yay_sync packer
   yay_sync tcpflow
   yay_sync yubikey-manager-qt
