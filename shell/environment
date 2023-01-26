@@ -11,5 +11,8 @@ export PATH="/home/mat/code/kafka-3.2.0-src/bin/:$PATH"
 
 export GRAALVM_HOME=/usr/lib/jvm/java-17-graalvm
 
+# GH CLI
+export CLICOLOR_FORCE=true
+
 source $HOME/.env
 
