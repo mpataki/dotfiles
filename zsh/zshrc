@@ -5,7 +5,8 @@ SCRIPT_DIR=$0:A:h
 export ZSH=/home/mat/.oh-my-zsh
 
 # theme
-ZSH_THEME="powerlevel10k/powerlevel10k"
+#ZSH_THEME="powerlevel10k/powerlevel10k"
+eval "$(starship init zsh)"
 
 # Plugins to load (plugins can e found in ~/.oh-my-zsh/plugins/*)
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
