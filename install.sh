@@ -22,6 +22,7 @@ else # linux
   #. keyboard/setup_keyboard.sh
   #. tablet/setup_tablet.sh
   . dotnet/setup_dotnet.sh # this can probably be updated for mac also
+  . docker/setup_docker.sh
 fi
 
 # both
