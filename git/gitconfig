@@ -37,16 +37,22 @@
 [push]
   default = current
 [remote "origin"]
-	fetch = +refs/pull/*/head:refs/remotes/origin/pull/*
-[include]
-  path = ~/.gitconfig.local
-[includeIf "gitdir:~/code/jcto/"]
-  path = ~/.gitconfig.jcto
+  fetch = +refs/pull/*/head:refs/remotes/origin/pull/*
 [diff-so-fancy]
   markEmptyLines = false
 [interactive]
   # diffFilter = "diff-so-fancy"
-[commit]
-	gpgsign = true
 [init]
-	defaultBranch = main
+  defaultBranch = main
+[user]
+  signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDDVtwFM7SGxzVLvG3SFe30ZWoFpEnK5s8qpcytTfgX
+[gpg]
+  format = ssh
+[gpg "ssh"]
+  program = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+[commit]
+  gpgsign = true
+[include]
+  path = ~/.gitconfig.local
+[includeIf "gitdir:~/code/jc/"]
+  path = ~/.gitconfig.jc
