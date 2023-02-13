@@ -30,9 +30,7 @@ fi
 . git/setup_git.sh
 . tmux/setup_tmux.sh
 . java/setup_java.sh
-# . ruby/setup_ruby.sh
 . python/setup_python.sh
-. docker/setup_docker.sh
 . misc_tools/setup_misc_tools.sh
 
 print_with_color $GREEN "Done."
