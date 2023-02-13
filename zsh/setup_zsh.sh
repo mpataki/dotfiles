@@ -7,10 +7,16 @@ function write_zshrc() {
 }
 
 function setup_zsh(){
-  pacman_sync 'zsh'
-  pacman_sync 'zsh-completions'
-  yay_sync starship # prompt
-  yay_sync tt-hack-nerd
+  install_package 'zsh'
+  install_package 'zsh-completions'
+  install_package starship # prompt
+
+  if is_mac; then
+    brew tap homebrew/cask-fonts
+    brew install --cask font-hack-nerd-font 
+  else
+    install_package tt-hack-nerd
+  fi
 
   # oh-my-zshell
   sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
