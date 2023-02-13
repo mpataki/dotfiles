@@ -2,7 +2,7 @@
 SCRIPT_DIR=$0:A:h
 
 # Path to oh-my-zsh
-export ZSH=/home/mat/.oh-my-zsh
+export ZSH=$HOME/.oh-my-zsh
 
 # theme
 #ZSH_THEME="powerlevel10k/powerlevel10k"
