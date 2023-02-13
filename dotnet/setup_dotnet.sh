@@ -1,7 +1,6 @@
 #!/bin/bash
 
 function setup_dotnet() {
-  yay_sync rider
   yay_sync dotnet-sdk
 
   sudo sh dotnet/dotnet-install.sh --install-dir /usr/share/dotnet -version 5.0.405
