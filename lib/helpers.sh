@@ -120,3 +120,37 @@ function yay_sync() {
     esac
   fi
 }
+
+function brew_install() {
+  pacakge=$1
+
+  if ! [[ `brew list | grep $package` ]]; then
+    print_with_color $YELLOW "Package '$package' not installed. Do you want to install it? (y/n)"
+
+    read yn
+    case $yn in
+      yes|Yes|YES|y|Y )
+        brew install $package
+        ;;
+      * ) print_with_color $GREEN 'skipping...';;
+    esac
+  fi
+}
+
+function is_mac() {
+  if [[ `uname | grep Darwin` ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+function install_package() {
+  package=$1
+
+  if is_mac; then
+    brew_install $package;
+  else
+    yay_sync $package;
+  fi
+}

@@ -3,16 +3,30 @@
 . lib/helpers.sh
 
 function setup_java() {
-  git_clone https://github.com/jenv/jenv.git ~/.jenv
-  mkdir $HOME/.jenv/versions
+  if is_mac; then
+    install_package jenv
+    # brew install openjdk@8 # requires x86. no good on arm
+    brew install openjdk@11
+    brew install openjdk@17
+    brew install openjdk@19
 
-  yay_sync jdk8-openjdk
-  yay_sync jdk11-openjdk
-  yay_sync jdk17-openjdk
-  yay_sync jdk-openjdk
-  yay_sync maven
-  yay_sync gradle
-  # yay_sync intellij-idea-ultimate-edition # let's do this via snap
+    jenv add /opt/homebrew/Cellar/openjdk@11/*
+    jenv add /opt/homebrew/Cellar/openjdk@17/*
+    jenv add /opt/homebrew/Cellar/openjdk/*
+
+  else
+    git_clone https://github.com/jenv/jenv.git ~/.jenv
+
+    install_package jdk8-openjdk
+    install_package jdk11-openjdk
+    install_package jdk17-openjdk
+    install_package jdk-openjdk
+  fi
+
+  mkdir -p $HOME/.jenv/versions
+
+  install_package maven
+  install_package gradle
 
   check_and_link_file `pwd`/java/ideavimrc $HOME/.ideavimrc
 }

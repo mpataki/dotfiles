@@ -2,13 +2,19 @@
 . lib/helpers.sh
 
 function setup_git() {
-  pacman_sync git
-  pacman_sync github-cli
-  pacman_sync diff-so-fancy
+  install_package git
+
+  if is_mac; then
+    install_package gh
+  else
+    install_package github-cli
+  fi
+
+  install_package diff-so-fancy
 
   check_and_link_file `pwd`/git/gitconfig $HOME/.gitconfig
   check_and_link_file `pwd`/git/gitignore $HOME/.gitignore
-  check_and_link_file `pwd`/git/gitconfig.jcto $HOME/.gitconfig.jcto
+  check_and_link_file `pwd`/git/gitconfig.jc $HOME/.gitconfig.jc
 }
 
 print_with_color $YELLOW 'Setup Git? (y/n)'
