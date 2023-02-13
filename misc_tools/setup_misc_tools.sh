@@ -39,6 +39,7 @@ function setup_misc_tools() {
   install_package grpcurl
   install_package 1password
   install_package ctop
+  install_package node
 }
 
 print_with_color $YELLOW 'Setup misc. tools? (yes/no)'
