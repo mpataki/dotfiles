@@ -3,8 +3,8 @@
 . lib/helpers.sh
 
 function setup_tmux() {
-  pacman_sync tmux
-  pacman_sync xsel
+  install_package tmux
+  install_package xsel
 
   git_clone https://github.com/tmux-plugins/tpm $HOME/.tmux/plugins/tpm
 
