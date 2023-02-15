@@ -4,6 +4,7 @@
 function setup_misc_tools() {
   if is_mac; then
     install_package awscli
+    install_package watch
   else
     pacman_sync base-devel
     pacman_sync cmake
@@ -40,6 +41,7 @@ function setup_misc_tools() {
   install_package 1password
   install_package ctop
   install_package node
+  install_package tree
 }
 
 print_with_color $YELLOW 'Setup misc. tools? (yes/no)'
