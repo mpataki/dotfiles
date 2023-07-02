@@ -10,9 +10,9 @@ function setup_java() {
     brew install openjdk@17
     brew install openjdk@19
 
-    jenv add /opt/homebrew/Cellar/openjdk@11/*
-    jenv add /opt/homebrew/Cellar/openjdk@17/*
-    jenv add /opt/homebrew/Cellar/openjdk/*
+    jenv add /opt/homebrew/Cellar/openjdk@11/*/
+    jenv add /opt/homebrew/Cellar/openjdk@17/*/
+    jenv add /opt/homebrew/Cellar/openjdk/*/
 
   else
     git_clone https://github.com/jenv/jenv.git ~/.jenv
