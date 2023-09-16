@@ -42,8 +42,12 @@ call plug#end()
 " strip trailing whitespace on save
 autocmd BufWritePre * :%s/\s\+$//e
 
-" copy to the clipboard when using yy
-set clipboard=unnamedplus
+" copy to the clipboard when using yy: linux
+" set clipboard=unnamedplus
+
+" copy to the clipboard when using yy: mac
+set clipboard=unnamed
+
 
 " The Silver Searcher
 if executable('ag')
