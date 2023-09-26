@@ -2,4 +2,4 @@
   email = mat@jamcity.com
   signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKQ4e2xHtx1AQolWpchBSfXPDFlS5/SMK/5MCYptkVKA
 [core]
-  sshCommand = ssh -i ~/.ssh/id_ed25519-matJC-github.pub
+  sshCommand = ssh -i ~/.ssh/id_ed25519-work.pub
