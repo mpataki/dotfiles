@@ -18,18 +18,10 @@ function link_file() {
 
   print_with_color $GREEN "linking $source_file to $destination"
 
-  if [ -d $source_file ]; then
-    if [ -n $use_sudo ]; then
-      sudo ln -sdf "$source_file" "$destination"
-    else
-      ln -sdf "$source_file" "$destination"
-    fi
+  if [ -n $use_sudo ]; then
+    sudo ln -sf "$source_file" "$destination"
   else
-    if [ -n $use_sudo ]; then
-      sudo ln -sf "$source_file" "$destination"
-    else
-      ln -sf "$source_file" "$destination"
-    fi
+    ln -sf "$source_file" "$destination"
   fi
 }
 

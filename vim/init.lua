@@ -1,0 +1,2 @@
+require("mpataki")
+print("hello")

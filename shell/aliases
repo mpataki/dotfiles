@@ -1,4 +1,4 @@
-alias e='vim'
+alias e='nvim'
 
 # git
 alias g='git'
@@ -23,15 +23,8 @@ alias tl='tmux list-sessions'
 alias tksv='tmux kill-server'
 alias tkss='tmux kill-session -t'
 
-# ruby
-alias be='bundle exec'
-
 # system
 alias ls='ls -G' # turn on colors
 alias pacman='sudo pacman'
 alias systemctl='sudo systemctl'
 
-# hub
-if [[ `which hub &> /dev/null` ]]; then
-  eval "$(hub alias -s)"
-fi
