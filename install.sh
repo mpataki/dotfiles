@@ -18,7 +18,6 @@ if is_mac; then
 else # linux
   . yay/setup_yay.sh
   . snap/setup_snap.sh
-  . vim/setup_vim.sh # this should be on mac also, but could use some modernization first.
   #. keyboard/setup_keyboard.sh
   #. tablet/setup_tablet.sh
   . dotnet/setup_dotnet.sh # this can probably be updated for mac also
@@ -29,6 +28,8 @@ fi
 . zsh/setup_zsh.sh
 . git/setup_git.sh
 . tmux/setup_tmux.sh
+. vim/setup_vim.sh
+. rust/setup_rust.sh
 . java/setup_java.sh
 . python/setup_python.sh
 . misc_tools/setup_misc_tools.sh
