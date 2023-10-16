@@ -1,2 +1,1 @@
 require("mpataki")
-print("hello")

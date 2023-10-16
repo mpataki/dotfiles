@@ -20,6 +20,7 @@ function setup_vim(){
   mkdir -p $HOME/.config/nvim
   check_and_link_file `pwd`/vim/init.lua $HOME/.config/nvim/init.lua
   check_and_link_file `pwd`/vim/lua/ $HOME/.config/nvim
+  check_and_link_file `pwd`/vim/after/ $HOME/.config/nvim
 }
 
 print_with_color $YELLOW 'Setup Vim? (y/n)'
