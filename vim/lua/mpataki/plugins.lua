@@ -10,6 +10,7 @@ return {
 	{ "theprimeagen/harpoon" },
 	{ "mbbill/undotree" },
 	{ "tpope/vim-fugitive" },
+    { "airblade/vim-gitgutter" },
 
 	-- LSP-zero:
 	{'williamboman/mason.nvim'},
