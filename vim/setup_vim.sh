@@ -12,8 +12,7 @@ function setup_vim(){
 
   # language servers
   install_package lua-language-server
-  install_package eslist
-  install_package tsserver
+  install_package eslint
   install_package bash-language-server
   install_package yaml-language-server
 }
