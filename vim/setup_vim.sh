@@ -2,18 +2,6 @@
 . lib/helpers.sh
 
 function setup_vim(){
-  # GVIM -- TODO: remove once neovim is dialed in
-  # install_package gvim
-  # install_package the_silver_searcher
-
-  # check_and_link_file `pwd`/vim/vimrc $HOME/.vimrc
-  # check_and_link_file `pwd`/vim/colors $HOME/.vim/colors
-
-  # if ! [ -e $HOME/.vim ]; then
-    #mkdir $HOME/.vim
-  #fi
-
-  # Neovim
   install_package neovim
   install_package ripgrep
   
