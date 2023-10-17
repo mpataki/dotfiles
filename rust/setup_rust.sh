@@ -2,8 +2,7 @@
 . lib/helpers.sh
 
 function setup_rust(){
-  install_package rust
-  install_package rust-analyzer
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 }
 
 print_with_color $YELLOW 'Setup Rust? (y/n)'
