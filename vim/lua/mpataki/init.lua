@@ -1,6 +1,5 @@
--- TODO: put this in a better spot
-vim.g.mapleader = " "
+
+require("mpataki.remap")
+require("mpataki.set")
 
 require("mpataki.lazy")
-require("mpataki.remap")
-
