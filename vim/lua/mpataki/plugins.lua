@@ -9,7 +9,7 @@ return {
 	{ "nvim-treesitter/nvim-treesitter", cmd='TSUpdate' },
 	{ "theprimeagen/harpoon" },
 	{ "mbbill/undotree" },
-	{ "tpope/vim-fugitive" },
+	-- { "tpope/vim-fugitive" }, -- git client
     { "airblade/vim-gitgutter" },
 
 	-- LSP-zero:
