@@ -1,6 +1,6 @@
 local lsp = require('lsp-zero')
 
--- Fix Undefined global 'vim'
+-- Fix Undefined global 'vim' in neovim lua
 lsp.configure('lua_ls', {
     settings = {
         Lua = {
@@ -39,3 +39,4 @@ require('mason-lspconfig').setup({
 })
 
 lsp.setup()
+
