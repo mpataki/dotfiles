@@ -2,33 +2,10 @@
 -- https://github.com/hrsh7th/nvim-cmp/wiki/Example-mappings#intellij-like-mapping
 local cmp = require("cmp")
 
--- `:` cmdline setup.
-cmp.setup.cmdline(':', {
-    mapping = cmp.mapping.preset.cmdline(),
-    sources = cmp.config.sources({
-        { name = 'path' }
-    }, {
-        {
-            name = 'cmdline',
-            option = {
-                ignore_cmds = { 'Man', '!' }
-            }
-        }
-    })
-})
-
 cmp.setup({
     mapping = {
         ['<CR>'] = cmp.mapping.confirm({ select = true }),
         ['<Tab>'] = cmp.mapping({
-            c = function(fallback)
-                if cmp.visible() then
-                    cmp.select_next_item()
-                    cmp.mapping.complete()
-                else
-                    fallback()
-                end
-            end,
             i = function(fallback)
                 -- This little snippet will confirm with tab, and if no entry is selected, will confirm the first item
                 if cmp.visible() then
@@ -45,13 +22,6 @@ cmp.setup({
         ['<Down>'] = cmp.mapping(cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Select }), {'i'}),
         ['<Up>'] = cmp.mapping(cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Select }), {'i'}),
         ['<C-n>'] = cmp.mapping({
-            c = function()
-                if cmp.visible() then
-                    cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
-                else
-                    vim.api.nvim_feedkeys('<Down>', 'n', true)
-                end
-            end,
             i = function(fallback)
                 if cmp.visible() then
                     cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
@@ -61,13 +31,6 @@ cmp.setup({
             end
         }),
         ['<C-p>'] = cmp.mapping({
-            c = function()
-                if cmp.visible() then
-                    cmp.select_prev_item({ behavior = cmp.SelectBehavior.Select })
-                else
-                    vim.api.nvim_feedkeys('<Up>', 'n', true)
-                end
-            end,
             i = function(fallback)
                 if cmp.visible() then
                     cmp.select_prev_item({ behavior = cmp.SelectBehavior.Select })
@@ -76,8 +39,8 @@ cmp.setup({
                 end
             end
         }),
-        ['<C-b>'] = cmp.mapping(cmp.mapping.scroll_docs(-4), {'i', 'c'}),
-        ['<C-f>'] = cmp.mapping(cmp.mapping.scroll_docs(4), {'i', 'c'}),
+        ['<C-b>'] = cmp.mapping(cmp.mapping.scroll_docs(-4), {'i'}),
+        ['<C-f>'] = cmp.mapping(cmp.mapping.scroll_docs(4), {'i'}),
     }
 })
 
