@@ -4,18 +4,29 @@ local cmp = require("cmp")
 
 cmp.setup({
     mapping = {
-        ["<Tab>"] = cmp.mapping(function(fallback)
-            -- This little snippet will confirm with tab, and if no entry is selected, will confirm the first item
-            if cmp.visible() then
-                local entry = cmp.get_selected_entry()
-                if not entry then
-                    cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+        ['<CR>'] = cmp.mapping.confirm({ select = true }),
+        ["<Tab>"] = cmp.mapping({
+            c = function(fallback)
+                if cmp.visible() then
+                    cmp.select_next_item()
+                    cmp.mapping.complete()
+                else
+                    fallback()
                 end
-                cmp.confirm()
-            else
-                fallback()
+            end,
+            i = function(fallback)
+                -- This little snippet will confirm with tab, and if no entry is selected, will confirm the first item
+                if cmp.visible() then
+                    local entry = cmp.get_selected_entry()
+                    if not entry then
+                        cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+                    end
+                    cmp.confirm()
+                else
+                    fallback()
+                end
             end
-        end, {"i","s","c",}),
+        }),
         ['<Down>'] = cmp.mapping(cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Select }), {'i'}),
         ['<Up>'] = cmp.mapping(cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Select }), {'i'}),
         ['<C-n>'] = cmp.mapping({
@@ -23,7 +34,7 @@ cmp.setup({
                 if cmp.visible() then
                     cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
                 else
-                    vim.api.nvim_feedkeys(t('<Down>'), 'n', true)
+                    vim.api.nvim_feedkeys('<Down>', 'n', true)
                 end
             end,
             i = function(fallback)
@@ -39,7 +50,7 @@ cmp.setup({
                 if cmp.visible() then
                     cmp.select_prev_item({ behavior = cmp.SelectBehavior.Select })
                 else
-                    vim.api.nvim_feedkeys(t('<Up>'), 'n', true)
+                    vim.api.nvim_feedkeys('<Up>', 'n', true)
                 end
             end,
             i = function(fallback)
