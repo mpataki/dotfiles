@@ -2,10 +2,33 @@
 -- https://github.com/hrsh7th/nvim-cmp/wiki/Example-mappings#intellij-like-mapping
 local cmp = require("cmp")
 
+-- `:` cmdline setup.
+cmp.setup.cmdline(':', {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = cmp.config.sources({
+        { name = 'path' }
+    }, {
+        {
+            name = 'cmdline',
+            option = {
+                ignore_cmds = { 'Man', '!' }
+            }
+        }
+    })
+})
+
 cmp.setup({
     mapping = {
         ['<CR>'] = cmp.mapping.confirm({ select = true }),
         ['<Tab>'] = cmp.mapping({
+            c = function(fallback)
+                if cmp.visible() then
+                    cmp.select_next_item()
+                    cmp.mapping.complete()
+                else
+                    fallback()
+                end
+            end,
             i = function(fallback)
                 -- This little snippet will confirm with tab, and if no entry is selected, will confirm the first item
                 if cmp.visible() then
