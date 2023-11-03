@@ -5,15 +5,7 @@ local cmp = require("cmp")
 cmp.setup({
     mapping = {
         ['<CR>'] = cmp.mapping.confirm({ select = true }),
-        ["<Tab>"] = cmp.mapping({
-            c = function(fallback)
-                if cmp.visible() then
-                    cmp.select_next_item()
-                    cmp.mapping.complete()
-                else
-                    fallback()
-                end
-            end,
+        ['<Tab>'] = cmp.mapping({
             i = function(fallback)
                 -- This little snippet will confirm with tab, and if no entry is selected, will confirm the first item
                 if cmp.visible() then
