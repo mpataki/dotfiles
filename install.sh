@@ -30,6 +30,7 @@ fi
 . tmux/setup_tmux.sh
 . vim/setup_vim.sh
 . rust/setup_rust.sh
+. go/setup_go.sh
 . java/setup_java.sh
 . python/setup_python.sh
 . misc_tools/setup_misc_tools.sh
