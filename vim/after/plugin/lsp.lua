@@ -12,18 +12,16 @@ lsp.configure('lua_ls', {
 })
 
 lsp.on_attach(function(client, bufnr)
-	local opts = { buffer = bufnr, remap = false }
-
 	-- see :help lsp-zero-keybindings
 	-- to learn the available actions
-	lsp.default_keymaps(opts)
+	lsp.default_keymaps({
+        buffer = bufnr,
+        remap = false
+    })
 end)
-
 
 require('mason').setup({})
 require('mason-lspconfig').setup({
-	-- Replace the language servers listed here 
-	-- with the ones you want to install
 	ensure_installed = {
 		'lua_ls',
 		'rust_analyzer',
