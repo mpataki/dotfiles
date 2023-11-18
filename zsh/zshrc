@@ -105,8 +105,8 @@ function k8s-mindjolt-sandbox-config() {
     export KUBECONFIG=~/.kube/config-mindjolt-sandbox
 }
 
-. $SCRIPT_DIR/../shell/aliases
-. $SCRIPT_DIR/../shell/environment
+. $SCRIPT_DIR/../shell/aliases.sh
+. $SCRIPT_DIR/../shell/environment.sh
 
 # Uncomment the following line to use case-sensitive completion.
 # CASE_SENSITIVE="true"
