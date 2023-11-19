@@ -27,9 +27,9 @@ require('mason-lspconfig').setup({
 		'rust_analyzer',
 		'tsserver',
 		'eslint',
-		-- 'java_language_server',
 		'bashls',
 		'yamlls',
+        'jdtls', -- java lsp support + dap for debuggiing
 	},
 	handlers = {
 		lsp.default_setup,
