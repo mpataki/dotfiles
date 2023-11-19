@@ -7,7 +7,7 @@ export ZSH=$HOME/.oh-my-zsh
 # Plugins to load (plugins can e found in ~/.oh-my-zsh/plugins/*)
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 plugins=(
-  aws
+  #aws
   #docker
   #mvn
   #pass
