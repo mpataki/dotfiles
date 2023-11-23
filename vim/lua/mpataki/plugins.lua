@@ -4,8 +4,7 @@ return {
         tag = '0.1.4',
         dependencies = { 'nvim-lua/plenary.nvim' },
     },
-    -- { "srcery-colors/srcery-vim", lazy=true, priority=1000 },
-    { "kabbamine/yowish.vim", lazy=true, priority=1000 },
+    {'nvim-telescope/telescope-ui-select.nvim'},
     { "nvim-treesitter/nvim-treesitter", cmd='TSUpdate' },
     { "theprimeagen/harpoon" },
     { "mbbill/undotree" },
@@ -21,5 +20,23 @@ return {
     {'hrsh7th/cmp-nvim-lsp'},
     {'hrsh7th/nvim-cmp'},
     {'L3MON4D3/LuaSnip'},
-    {'mfussenegger/nvim-jdtls'}
+
+    -- running/debugging
+    {'mfussenegger/nvim-dap'},
+    {'rcarriga/nvim-dap-ui'},
+
+    -- java lsp/debugging
+    {
+        'mfussenegger/nvim-jdtls',
+        dependencies={
+            {'microsoft/java-debug'},
+            {'microsoft/vscode-java-test'},
+        }
+    },
+
+    -- colorschemes
+    -- { "srcery-colors/srcery-vim", lazy=true, priority=1000 },
+    { "kabbamine/yowish.vim", lazy=true, priority=1000 },
+    -- { "srcery-colors/srcery-vim", lazy=true, priority=1000 },
+    -- { "embark-theme/vim", lazy=true, priority=1000 },
 }

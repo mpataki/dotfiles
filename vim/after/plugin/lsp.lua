@@ -29,7 +29,6 @@ require('mason-lspconfig').setup({
 		'eslint',
 		'bashls',
 		'yamlls',
-        'jdtls', -- java lsp support + dap for debuggiing
 	},
 	handlers = {
 		lsp.default_setup,

@@ -16,8 +16,5 @@ export GRAALVM_HOME=/usr/lib/jvm/java-17-graalvm
 # GH CLI
 export CLICOLOR_FORCE=true
 
-# HACK FOR JDTLS -- nvim java lsp lombok jar.
-export JDTLS_JVM_ARGS="-javaagent:$HOME/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.28/*/lombok-1.18.28.jar"
-
 source $HOME/.env
 
