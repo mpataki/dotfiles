@@ -29,6 +29,7 @@ require('mason-lspconfig').setup({
 		'eslint',
 		'bashls',
 		'yamlls',
+        'gradle_ls',
 	},
 	handlers = {
 		lsp.default_setup,
