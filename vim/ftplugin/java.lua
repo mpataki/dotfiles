@@ -49,10 +49,6 @@ settings = {
                 }
             }
         },
-        sources = {
-            { directory = "src/java/main" },
-            { directory = "avro-schemata/build/generated-main-avro-java" },
-        }
     }
 },
 on_attach = function(client, bufnr)
