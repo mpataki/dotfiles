@@ -21,10 +21,6 @@ return {
     {'hrsh7th/nvim-cmp'},
     {'L3MON4D3/LuaSnip'},
 
-    -- running/debugging
-    {'mfussenegger/nvim-dap'},
-    {'rcarriga/nvim-dap-ui'},
-
     -- java lsp/debugging
     {
         'mfussenegger/nvim-jdtls',
@@ -33,6 +29,8 @@ return {
             {'microsoft/vscode-java-test'},
         }
     },
+    {'mfussenegger/nvim-dap'},
+    {'rcarriga/nvim-dap-ui'},
 
     -- colorschemes
     -- { "srcery-colors/srcery-vim", lazy=true, priority=1000 },
