@@ -18,6 +18,9 @@ lsp.on_attach(function(client, bufnr)
         buffer = bufnr,
         remap = false
     })
+
+    -- more lsp remaps
+    vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action)
 end)
 
 require('mason').setup({})
@@ -34,7 +37,6 @@ require('mason-lspconfig').setup({
     },
     handlers = {
         lsp.default_setup,
-
     },
 })
 
