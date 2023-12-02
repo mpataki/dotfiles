@@ -16,3 +16,6 @@ vim.keymap.set("n", "<leader>Y", '"+Y')
 
 vim.keymap.set("n", "<leader>f", vim.lsp.buf.format)
 
+-- more lsp remaps
+vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action)
+
