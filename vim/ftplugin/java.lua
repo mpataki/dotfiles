@@ -58,6 +58,13 @@ on_attach = function(client, bufnr)
     -- require('jdtls.dap').setup_dap_main_class_configs()
     -- require('jdtls').test_class()
     -- require('jdtls').test_nearest_method()
+
+
+    local mapper = function(mode, key, result)
+        vim.api.nvim_buf_set_keymap(0, mode, key, result, {noremap=true, silent=true})
+    end
+
+    mapper('n', 'gi',   '<cmd>lua require("jdtls").organize_imports()<CR>')
 end
 }
 

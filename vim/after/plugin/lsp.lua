@@ -12,15 +12,30 @@ lsp.configure('lua_ls', {
 })
 
 lsp.on_attach(function(client, bufnr)
+    local mapper = function(mode, key, result)
+        vim.api.nvim_buf_set_keymap(0, mode, key, result, {noremap=true, silent=true})
+    end
+
 	-- see :help lsp-zero-keybindings
 	-- to learn the available actions
-	lsp.default_keymaps({
-        buffer = bufnr,
-        remap = false
-    })
+	-- lsp.default_keymaps({
+ --        buffer = bufnr,
+ --        remap = false
+ --    })
 
-    -- more lsp remaps
-    vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action)
+    mapper('n', 'K',    '<cmd>lua vim.lsp.buf.hover()<CR>')
+    mapper('n', 'gd',   '<cmd>lua vim.lsp.buf.definition()<CR>')
+    mapper('n', 'gD',   '<cmd>lua vim.lsp.buf.declaration()<CR>')
+    mapper('n', 'gi',   '<cmd>lua vim.lsp.buf.implementation()<CR>')
+    mapper('n', 'go',   '<cmd>lua vim.lsp.buf.type_definition()<CR>')
+    mapper('n', 'gr',   '<cmd>lua require("telescope.builtin").lsp_references()<CR>')
+    mapper('n', 'gs',   '<cmd>lua vim.lsp.buf.signature_help()<CR>')
+    mapper('n', 'gR',   '<cmd>lua vim.lsp.buf.rename()<CR>')
+    mapper('n', 'gf',   '<cmd>lua vim.lsp.buf.format()<CR>')
+    mapper('n', 'ga',   '<cmd>lua vim.lsp.buf.code_action()<CR>')
+    mapper('n', 'gl',   '<cmd>lua vim.diagnostic.open_float()<CR>')
+    mapper('n', '[d',   '<cmd>lua vim.diagnostic.goto_prev()<CR>')
+    mapper('n', ']d',   '<cmd>lua vim.diagnostic.goto_next()<CR>')
 end)
 
 require('mason').setup({})
