@@ -5,6 +5,7 @@ function setup_vim(){
   install_package neovim
   install_package ripgrep
   install_package jdtls
+  install_package fd # telescope uses this to filesystem searching
   
   mkdir -p $HOME/.config/nvim
   check_and_link_file `pwd`/vim/init.lua $HOME/.config/nvim/init.lua

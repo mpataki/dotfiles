@@ -1,16 +1,24 @@
 local telescope = require('telescope')
+local actions = require("telescope.actions")
+local builtin = require('telescope.builtin')
 
 telescope.setup({
+    defaults = {
+        mappings = {
+            i = {
+                ["<esc>"] = actions.close
+            }
+        },
+    },
     extensions = {
-        require('telescope.themes').get_dropdown({
-            -- opts
-      })
+        ['ui-select'] = {
+            require('telescope.themes').get_dropdown({
+            })
+        }
     }
 })
 
 telescope.load_extension("ui-select")
-
-local builtin = require('telescope.builtin')
 
 vim.keymap.set('n', '<leader>pf', builtin.find_files, {})
 vim.keymap.set('n', '<C-p>', builtin.git_files, {})
