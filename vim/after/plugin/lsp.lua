@@ -39,6 +39,7 @@ lsp.on_attach(function(client, bufnr)
 end)
 
 require('mason').setup({})
+
 require('mason-lspconfig').setup({
     ensure_installed = {
         'lua_ls',
@@ -52,6 +53,14 @@ require('mason-lspconfig').setup({
     },
     handlers = {
         lsp.default_setup,
+    },
+})
+
+require('mason-nvim-dap').setup({
+    -- list of adapters https://github.com/jay-babu/mason-nvim-dap.nvim/blob/main/lua/mason-nvim-dap/mappings/source.lua 
+    ensure_installed = {
+        'javadbg',
+        'javatest',
     },
 })
 

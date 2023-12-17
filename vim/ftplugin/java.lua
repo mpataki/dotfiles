@@ -3,6 +3,7 @@ local root_dir = require('jdtls.setup').find_root(root_markers)
 local home = os.getenv('HOME')
 local workspace_folder = home .. "/.local/share/eclipse/" .. vim.fn.fnamemodify(root_dir, ":p:h:t")
 
+
 local config = {
     cmd = {
         '/opt/homebrew/Cellar/openjdk/20.0.1/bin/java',
@@ -24,12 +25,12 @@ local config = {
         '-configuration', '/opt/homebrew/Cellar/jdtls/1.29.0/libexec/config_mac_arm',
         '-data', workspace_folder
     },
-    root_dir =
-        root_dir,
-        init_options = {
-            bundles = { -- integrate java-debug
-            vim.fn.glob(home .. "/.local/share/jars/com.microsoft.java.debug.plugin-0.50.0.jar", 1)
-        };
+    root_dir = root_dir,
+    init_options = {
+        bundles = { -- integrate java-debug & java test runners
+            vim.fn.glob(home .. "/.local/share/nvim/mason/packages/java-debug-adapter/extension/server/com.microsoft.java.debug.plugin-*.jar", true),
+            vim.fn.glob(home .. "/.local/share/nvim/mason/packages/java-test/extension/server/*.jar", 1),
+        }
     },
     settings = {
         signatureHelp = { enabled = true },

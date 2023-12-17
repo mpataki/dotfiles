@@ -31,6 +31,7 @@ return {
     },
     {'mfussenegger/nvim-dap'},
     {'rcarriga/nvim-dap-ui'},
+    {'jay-babu/mason-nvim-dap.nvim'},
 
     -- colorschemes
     -- { "srcery-colors/srcery-vim", lazy=true, priority=1000 },
