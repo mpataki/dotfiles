@@ -49,6 +49,7 @@ require('mason-lspconfig').setup({
         'bashls',
         'yamlls',
         'gradle_ls',
+        -- 'jdtls', // I'll roll this one manually to get more control.. java..
         -- 'bufls',
     },
     handlers = {

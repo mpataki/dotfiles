@@ -14,7 +14,8 @@ require('nvim-treesitter.configs').setup {
       "rust",
       "proto",
       "terraform",
-      "dockerfile"
+      "dockerfile",
+      "xml"
   },
 
   -- Install parsers synchronously (only applied to `ensure_installed`)
