@@ -31,11 +31,8 @@ vim.keymap.set('n', '<Leader>ds', function()
 end)
 
 vim.keymap.set({'n', 'v'}, '<Leader>du', function()
-    require("dapui").toggle()
-end)
-
-vim.keymap.set({'n', 'v'}, '<Leader>dl', function()
     require('jdtls.dap').setup_dap_main_class_configs()
     require('dap.ext.vscode').load_launchjs('./launch.json')
     require("dapui").toggle()
 end)
+
