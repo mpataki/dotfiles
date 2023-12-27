@@ -30,6 +30,10 @@ vim.keymap.set('n', '<Leader>ds', function()
     widgets.centered_float(widgets.scopes)
 end)
 
+vim.keymap.set('n', '<Leader>dc', function()
+    require('dap').repl.open()
+end)
+
 vim.keymap.set({'n', 'v'}, '<Leader>du', function()
     require('jdtls.dap').setup_dap_main_class_configs()
     require('dap.ext.vscode').load_launchjs('./launch.json')
