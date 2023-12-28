@@ -172,6 +172,16 @@ function DebugGradleTests()
     runGradleTests(true)
 end
 
+function RunBoot()
+    vim.cmd('tabedit term://./gradlew bootRun')
+end
+
+function DebugBoot()
+    vim.cmd('tabedit term://./gradlew bootRun --debug-jvm')
+end
+
 vim.api.nvim_create_user_command('RunGradleTests', RunGradleTests, {})
 vim.api.nvim_create_user_command('DebugGradleTests', DebugGradleTests, {})
+vim.api.nvim_create_user_command('RunBoot', RunBoot, {})
+vim.api.nvim_create_user_command('DebugBoot', DebugBoot, {})
 
