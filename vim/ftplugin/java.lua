@@ -86,6 +86,31 @@ local config = {
 
 require('jdtls').start_or_attach(config)
 
+-- map '.' preceeding @Nested class names with to "\$"
+local function mapSymbolNameToTestFilterPattern(symbol)
+    local result = ""
+    local saw_first_class = false
+
+    for token in string.gmatch(symbol, "(%w+).?") do
+        local to_add = "."
+
+        if string.match(token, "^%u") then
+            if not saw_first_class then
+                saw_first_class = true
+            else
+                to_add = '$'
+            end
+        end
+
+        result = result .. to_add .. token
+    end
+
+    -- strip leading "."
+    result = string.sub(result, 2, -1)
+
+    return result
+end
+
 -- query the LSP for the class or method under the cursor
 local function extractTestFilterFromLsp(co)
     local params = vim.lsp.util.make_position_params()
@@ -109,9 +134,11 @@ local function extractTestFilterFromLsp(co)
             local pattern = "%s([^%s]+)%("
             local capture = string.match(contents, pattern)
 
-            if capture then
+            if capture ~= nil then
                 to_return = capture
             end
+
+            to_return = mapSymbolNameToTestFilterPattern(to_return)
 
             coroutine.resume(co, to_return)
         end
@@ -120,13 +147,11 @@ end
 
 -- run (or debug) gradle tests by method or class
 local function runGradleTests(debug)
-    local co = coroutine.create(function(class_or_method)
-        print(class_or_method)
-
+    local co = coroutine.create(function(test_filter)
         local command = 'split term://./gradlew test'
 
-        if class_or_method then
-            command = command .. ' --tests "' .. class_or_method .. '"'
+        if test_filter ~= nil and test_filter ~= "" then
+            command = command .. " --tests '" .. test_filter .. "'"
         end
 
         if debug then
