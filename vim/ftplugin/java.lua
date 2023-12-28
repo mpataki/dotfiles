@@ -148,7 +148,7 @@ end
 -- run (or debug) gradle tests by method or class
 local function runGradleTests(debug)
     local co = coroutine.create(function(test_filter)
-        local command = 'split term://./gradlew test'
+        local command = 'tabedit term://./gradlew test'
 
         if test_filter ~= nil and test_filter ~= "" then
             command = command .. " --tests '" .. test_filter .. "'"
