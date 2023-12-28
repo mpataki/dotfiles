@@ -85,3 +85,68 @@ local config = {
 }
 
 require('jdtls').start_or_attach(config)
+
+-- query the LSP for the class or method under the cursor
+local function extractTestFilterFromLsp(co)
+    local params = vim.lsp.util.make_position_params()
+    vim.lsp.buf_request(0, 'textDocument/hover', params, function(err, result, ctx, config)
+        if err then
+            print("Error: " .. err)
+            return
+        end
+
+        if result and result.contents then
+            local contents = result.contents
+
+            if type(contents) == 'table' then
+                contents = contents.value or contents[1].value
+            end
+
+            -- parse out the method name or fall back to the class name,
+            --   depending on what's under the cursor
+            local to_return = contents
+
+            local pattern = "%s([^%s]+)%("
+            local capture = string.match(contents, pattern)
+
+            if capture then
+                to_return = capture
+            end
+
+            coroutine.resume(co, to_return)
+        end
+    end)
+end
+
+-- run (or debug) gradle tests by method or class
+local function runGradleTests(debug)
+    local co = coroutine.create(function(class_or_method)
+        print(class_or_method)
+
+        local command = 'split term://./gradlew test'
+
+        if class_or_method then
+            command = command .. ' --tests "' .. class_or_method .. '"'
+        end
+
+        if debug then
+            command = command .. ' --debug-jvm'
+        end
+
+        vim.cmd(command)
+    end)
+
+    extractTestFilterFromLsp(co)
+end
+
+function RunGradleTests()
+    runGradleTests(false)
+end
+
+function DebugGradleTests()
+    runGradleTests(true)
+end
+
+vim.api.nvim_create_user_command('RunGradleTests', RunGradleTests, {})
+vim.api.nvim_create_user_command('DebugGradleTests', DebugGradleTests, {})
+
