@@ -4,6 +4,7 @@
 local home = os.getenv('HOME')
 local root_dir = require('jdtls.setup').find_root({'gradlew', '.git'})
 local workspace_folder = home .. "/.local/share/eclipse/" .. vim.fn.fnamemodify(root_dir, ":p:h:t")
+local dap = require('dap')
 
 local cmd = {
     vim.fn.glob("/opt/homebrew/Cellar/openjdk/21.*/bin/java", true),
@@ -145,10 +146,30 @@ local function extractTestFilterFromLsp(co)
     end)
 end
 
+local function startTerm(command)
+    vim.cmd('tabedit term://' .. command)
+
+    -- set the command in a buf var so we can easily restart it
+    local bufnr = vim.api.nvim_get_current_buf()
+    vim.api.nvim_buf_set_var(bufnr, 'terminal_command', command)
+end
+
+function RestartTerm()
+    if vim.bo.buftype == 'terminal' then
+        local bufnr = vim.api.nvim_get_current_buf()
+        local command = vim.api.nvim_buf_get_var(bufnr, 'terminal_command')
+
+        -- Close the current terminal buffer
+        vim.api.nvim_buf_delete(0, { force = true })
+
+        startTerm(command)
+    end
+end
+
 -- run (or debug) gradle tests by method or class
 local function runGradleTests(debug)
     local co = coroutine.create(function(test_filter)
-        local command = 'tabedit term://./gradlew test'
+        local command = './gradlew test --rerun'
 
         if test_filter ~= nil and test_filter ~= "" then
             command = command .. " --tests '" .. test_filter .. "'"
@@ -158,7 +179,7 @@ local function runGradleTests(debug)
             command = command .. ' --debug-jvm'
         end
 
-        vim.cmd(command)
+        startTerm(command)
     end)
 
     extractTestFilterFromLsp(co)
@@ -184,4 +205,5 @@ vim.api.nvim_create_user_command('RunGradleTests', RunGradleTests, {})
 vim.api.nvim_create_user_command('DebugGradleTests', DebugGradleTests, {})
 vim.api.nvim_create_user_command('RunBoot', RunBoot, {})
 vim.api.nvim_create_user_command('DebugBoot', DebugBoot, {})
+vim.api.nvim_create_user_command('RestartTerm', RestartTerm, {})
 
