@@ -213,6 +213,7 @@ function DebugGradleTests()
     runGradleTests(true)
 end
 
+-- TODO: this feels too project specific. 
 function RunBoot()
     startTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun')
 end
@@ -226,4 +227,10 @@ vim.api.nvim_create_user_command('DebugGradleTests', DebugGradleTests, {})
 vim.api.nvim_create_user_command('RunBoot', RunBoot, {})
 vim.api.nvim_create_user_command('DebugBoot', DebugBoot, {})
 vim.api.nvim_create_user_command('RestartTerm', RestartTerm, {})
+
+vim.keymap.set('n', '<Leader>gt', RunGradleTests)
+vim.keymap.set('n', '<Leader>gT', DebugGradleTests)
+vim.keymap.set('n', '<Leader>gr', RunBoot)
+vim.keymap.set('n', '<Leader>gR', DebugBoot)
+vim.keymap.set({'n','t'}, '<Leader>r', RestartTerm)
 
