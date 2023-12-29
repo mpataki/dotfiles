@@ -154,10 +154,30 @@ local function startTerm(command)
     vim.api.nvim_buf_set_var(bufnr, 'terminal_command', command)
 end
 
+local function sendSigtermToTerminal(bufnr)
+    -- Ensure the buffer is a valid terminal
+    if vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_get_option(bufnr, 'buftype') == 'terminal' then
+        -- Get the job ID
+        local job_id = vim.api.nvim_buf_get_var(bufnr, 'terminal_job_id')
+
+        if job_id then
+            -- Send SIGTERM to the job
+            vim.fn.jobstop(job_id)
+        else
+            print("No job ID found for buffer " .. bufnr)
+        end
+    else
+        print("Buffer " .. bufnr .. " is not a terminal")
+    end
+end
+
 function RestartTerm()
     if vim.bo.buftype == 'terminal' then
         local bufnr = vim.api.nvim_get_current_buf()
         local command = vim.api.nvim_buf_get_var(bufnr, 'terminal_command')
+
+        -- kill any running process
+        sendSigtermToTerminal(bufnr)
 
         -- Close the current terminal buffer
         vim.api.nvim_buf_delete(0, { force = true })
@@ -194,11 +214,11 @@ function DebugGradleTests()
 end
 
 function RunBoot()
-    vim.cmd('tabedit term://./gradlew bootRun')
+    startTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun')
 end
 
 function DebugBoot()
-    vim.cmd('tabedit term://./gradlew bootRun --debug-jvm')
+    startTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun --debug-jvm')
 end
 
 vim.api.nvim_create_user_command('RunGradleTests', RunGradleTests, {})
