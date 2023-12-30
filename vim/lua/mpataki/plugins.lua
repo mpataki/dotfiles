@@ -14,7 +14,7 @@ return {
     { 'numToStr/Comment.nvim' },
 
     -- LSP-zero:
-    { 
+    {
         -- specifying registries here to allow for updating java-test. Try removing the registries in a few weeks.
         -- https://github.com/mason-org/mason-registry/pull/3348#issuecomment-1842510761
         'williamboman/mason.nvim',
@@ -36,6 +36,17 @@ return {
     { 'mfussenegger/nvim-dap' },
     { 'rcarriga/nvim-dap-ui' },
     { 'jay-babu/mason-nvim-dap.nvim' },
+
+    {
+        "nvim-neo-tree/neo-tree.nvim",
+        branch = "v3.x",
+        dependencies = {
+            "nvim-lua/plenary.nvim",
+            "nvim-tree/nvim-web-devicons",
+            "MunifTanjim/nui.nvim",
+            -- "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
+        }
+    },
 
     -- colorschemes
     -- { 'srcery-colors/srcery-vim', lazy=true, priority=1000 },
