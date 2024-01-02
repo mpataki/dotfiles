@@ -4,7 +4,6 @@
 local home = os.getenv('HOME')
 local root_dir = require('jdtls.setup').find_root({'gradlew', '.git'})
 local workspace_folder = home .. "/.local/share/eclipse/" .. vim.fn.fnamemodify(root_dir, ":p:h:t")
-local dap = require('dap')
 
 local cmd = {
     vim.fn.glob("/opt/homebrew/Cellar/openjdk/21.*/bin/java", true),
@@ -76,6 +75,8 @@ local config = {
         }
     },
     on_attach = function(client, bufnr)
+        client.server_capabilities.semanticTokensProvider = nil
+
         require('jdtls').setup_dap({ hotcodereplace = 'auto' })
 
         vim.api.nvim_buf_set_keymap(0, 'n', 'gi', '<cmd>lua require("jdtls").organize_imports()<CR>', {noremap=true, silent=true})
@@ -213,7 +214,7 @@ function DebugGradleTests()
     runGradleTests(true)
 end
 
--- TODO: this feels too project specific. 
+-- TODO: this feels too project specific.
 function RunBoot()
     startTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun')
 end
