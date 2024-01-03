@@ -11,6 +11,8 @@ function setup_zsh(){
   install_package 'zsh-completions'
   install_package starship # prompt
 
+  check_and_link_file `pwd`/zsh/starship.toml $HOME/.config/starship.toml
+
   if is_mac; then
     brew tap homebrew/cask-fonts
     brew install --cask font-hack-nerd-font 
