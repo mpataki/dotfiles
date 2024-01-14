@@ -7,7 +7,6 @@ return {
     { 'nvim-telescope/telescope-ui-select.nvim' },
     { 'nvim-telescope/telescope-dap.nvim' },
     { 'nvim-treesitter/nvim-treesitter', cmd='TSUpdate' },
-    { 'theprimeagen/harpoon' },
     { 'mbbill/undotree' },
     -- { 'tpope/vim-fugitive' }, -- git client
     { 'airblade/vim-gitgutter' },
