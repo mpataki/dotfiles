@@ -4,9 +4,6 @@ return {
         tag = '0.1.4',
         dependencies = { 'nvim-lua/plenary.nvim' },
     },
-    { 'nvim-telescope/telescope-ui-select.nvim' },
-    { 'nvim-telescope/telescope-dap.nvim' },
-    { 'nvim-treesitter/nvim-treesitter', cmd='TSUpdate' },
     { 'mbbill/undotree' },
     -- { 'tpope/vim-fugitive' }, -- git client
     { 'airblade/vim-gitgutter' },

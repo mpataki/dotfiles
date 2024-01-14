@@ -1,6 +1,7 @@
 return {
     { 'rcarriga/nvim-dap-ui' },
     { 'jay-babu/mason-nvim-dap.nvim' },
+    { 'nvim-telescope/telescope-dap.nvim' },
     {
         'mfussenegger/nvim-dap',
         dependenvies = {
@@ -46,6 +47,8 @@ return {
                 require('dap.ext.vscode').load_launchjs('./launch.json')
                 require("dapui").toggle()
             end)
+
+            require('telescope').load_extension('dap')
         end
     }
 }
