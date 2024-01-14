@@ -1,5 +1,4 @@
 return {
-    { 'mbbill/undotree' },
     -- { 'tpope/vim-fugitive' }, -- git client
     { 'airblade/vim-gitgutter' },
 
