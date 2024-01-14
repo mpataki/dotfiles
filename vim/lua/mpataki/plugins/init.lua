@@ -30,9 +30,6 @@ return {
     { 'L3MON4D3/LuaSnip' },
 
     { 'mfussenegger/nvim-jdtls' },
-    { 'mfussenegger/nvim-dap' },
-    { 'rcarriga/nvim-dap-ui' },
-    { 'jay-babu/mason-nvim-dap.nvim' },
 
     {
         "nvim-neo-tree/neo-tree.nvim",
