@@ -11,7 +11,6 @@ return {
     { 'mbbill/undotree' },
     -- { 'tpope/vim-fugitive' }, -- git client
     { 'airblade/vim-gitgutter' },
-    { 'numToStr/Comment.nvim' },
 
     -- LSP-zero:
     {

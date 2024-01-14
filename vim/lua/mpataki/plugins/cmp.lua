@@ -1,5 +1,4 @@
 local config = function()
-    print("called!!")
     local cmp = require("cmp")
 
     cmp.setup({
@@ -75,7 +74,7 @@ end
 return {
     {
         'hrsh7th/nvim-cmp',
-        event = "InsertEnter",
+        lazy = false,
         dependencies = {
             "hrsh7th/cmp-nvim-lsp",
             "hrsh7th/cmp-buffer",
