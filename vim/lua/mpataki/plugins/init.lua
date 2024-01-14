@@ -1,9 +1,4 @@
 return {
-    {
-        'nvim-telescope/telescope.nvim',
-        tag = '0.1.4',
-        dependencies = { 'nvim-lua/plenary.nvim' },
-    },
     { 'mbbill/undotree' },
     -- { 'tpope/vim-fugitive' }, -- git client
     { 'airblade/vim-gitgutter' },
