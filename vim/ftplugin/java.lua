@@ -206,15 +206,15 @@ local function runGradleTests(debug)
     extractTestFilterFromLsp(co)
 end
 
-function RunGradleTests()
+function GradleRunTests()
     runGradleTests(false)
 end
 
-function DebugGradleTests()
+function GradleDebugTests()
     runGradleTests(true)
 end
 
--- TODO: this feels too project specific.
+-- TODO: this should go into a boot-specific module
 function RunBoot()
     startTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun')
 end
@@ -223,14 +223,30 @@ function DebugBoot()
     startTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun --debug-jvm')
 end
 
-vim.api.nvim_create_user_command('RunGradleTests', RunGradleTests, {})
-vim.api.nvim_create_user_command('DebugGradleTests', DebugGradleTests, {})
+function GradleBuild()
+    startTerm('./gradlew clean build -xtest')
+end
+
+-- default debugger attachment
+require('dap').configurations.java = {
+    {
+        type = "java",
+        request = "attach",
+        hostName = "127.0.0.1",
+        port = "5005"
+    }
+}
+
+vim.api.nvim_create_user_command('GradleRun', GradleBuild, {})
+vim.api.nvim_create_user_command('GradleRunTests', GradleRunTests, {})
+vim.api.nvim_create_user_command('DebugGradleTests', GradleDebugTests, {})
 vim.api.nvim_create_user_command('RunBoot', RunBoot, {})
 vim.api.nvim_create_user_command('DebugBoot', DebugBoot, {})
 vim.api.nvim_create_user_command('RestartTerm', RestartTerm, {})
 
-vim.keymap.set('n', '<Leader>gt', RunGradleTests)
-vim.keymap.set('n', '<Leader>gT', DebugGradleTests)
+vim.keymap.set('n', '<Leader>gb', GradleBuild)
+vim.keymap.set('n', '<Leader>gt', GradleRunTests)
+vim.keymap.set('n', '<Leader>gT', GradleDebugTests)
 vim.keymap.set('n', '<Leader>gr', RunBoot)
 vim.keymap.set('n', '<Leader>gR', DebugBoot)
 vim.keymap.set({'n','t'}, '<Leader>r', RestartTerm)

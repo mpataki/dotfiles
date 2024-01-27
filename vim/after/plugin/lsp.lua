@@ -52,7 +52,6 @@ require('mason-lspconfig').setup({
         'marksman', -- markdown
         'clangd',
         -- 'jdtls', -- I'll roll this one manually to get more control.. java..
-        -- 'bufls',
     },
     handlers = {
         lsp.default_setup,
