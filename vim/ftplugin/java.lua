@@ -1,6 +1,3 @@
-
--- TODO: setup formatter
-
 local home = os.getenv('HOME')
 local root_dir = require('jdtls.setup').find_root({'gradlew', '.git'})
 local workspace_folder = home .. "/.local/share/eclipse/" .. vim.fn.fnamemodify(root_dir, ":p:h:t")
