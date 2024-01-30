@@ -74,11 +74,18 @@ local config = {
     on_attach = function(client, bufnr)
         client.server_capabilities.semanticTokensProvider = nil
 
-        require('jdtls').setup_dap({ hotcodereplace = 'auto' })
+        -- note that jdtls is taking over the gq command, which usually drives formatprg, and I don't know how to make it stop...
+        -- Here I'm basically rebuilding it so I can git <leader>f for full-file formatting
+        vim.api.nvim_create_user_command('FormatBuffer', function()
+            vim.cmd('execute "%!' .. vim.bo.formatprg .. '"')
+        end, {})
+        vim.keymap.set('n', '<leader>f', ':FormatBuffer<CR>', { noremap = true, silent = true })
+
+        -- require('jdtls').setup_dap({ hotcodereplace = 'auto' })
 
         vim.api.nvim_buf_set_keymap(0, 'n', 'gi', '<cmd>lua require("jdtls").organize_imports()<CR>', {noremap=true, silent=true})
-        vim.api.nvim_buf_set_keymap(0, 'n', '<leader>tc', '<cmd>lua require("jdtls").test_class()<CR>', {noremap=true, silent=true})
-        vim.api.nvim_buf_set_keymap(0, 'n', '<leader>tm', '<cmd>lua require("jdtls").test_nearest_method()<CR>', {noremap=true, silent=true})
+        -- vim.api.nvim_buf_set_keymap(0, 'n', '<leader>tc', '<cmd>lua require("jdtls").test_class()<CR>', {noremap=true, silent=true})
+        -- vim.api.nvim_buf_set_keymap(0, 'n', '<leader>tm', '<cmd>lua require("jdtls").test_nearest_method()<CR>', {noremap=true, silent=true})
         vim.api.nvim_buf_set_keymap(0, 'n', '<leader>js', '<cmd>lua require("jdtls").jshell()<CR>', {noremap=true, silent=true})
     end
 }
