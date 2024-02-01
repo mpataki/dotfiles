@@ -79,7 +79,7 @@ local config = {
         vim.api.nvim_create_user_command('FormatBuffer', function()
             vim.cmd('execute "%!' .. vim.bo.formatprg .. '"')
         end, {})
-        vim.keymap.set('n', '<leader>f', ':FormatBuffer<CR>', { noremap = true, silent = true })
+        vim.keymap.set('n', 'gf', ':FormatBuffer<CR>', { noremap = true, silent = true })
 
         -- require('jdtls').setup_dap({ hotcodereplace = 'auto' })
 

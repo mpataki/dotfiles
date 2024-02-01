@@ -2,7 +2,7 @@
 vim.api.nvim_create_autocmd("FileType", {
     pattern = "java",
     callback = function()
-        vim.bo.formatprg = os.getenv('HOME') .. '/.local/share/nvim/mason/packages/google-java-format/google-java-format -'
+        vim.bo.formatprg = os.getenv('HOME') .. '/.local/share/nvim/mason/bin/google-java-format -'
     end
 })
 
