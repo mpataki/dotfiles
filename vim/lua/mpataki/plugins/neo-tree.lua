@@ -14,6 +14,7 @@ return {
             }
         })
 
-        vim.keymap.set('n', '<Leader>t', '<cmd>:Neotree position=current<CR>')
+        vim.keymap.set('n', '<Leader>t', '<cmd>:Neotree<CR>')
+        -- vim.keymap.set('n', '<Leader>t', '<cmd>:Neotree position=current<CR>')
     end
 }
