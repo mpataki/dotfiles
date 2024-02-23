@@ -9,6 +9,7 @@ function setup_java() {
     brew install openjdk@11
     brew install openjdk@17
     brew install openjdk@19
+    brew install openjdk@21
 
     jenv add /opt/homebrew/Cellar/openjdk@11/*/
     jenv add /opt/homebrew/Cellar/openjdk@17/*/
