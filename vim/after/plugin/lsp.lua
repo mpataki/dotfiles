@@ -62,6 +62,7 @@ require('mason-nvim-dap').setup({
     ensure_installed = {
         'javadbg',
         'javatest',
+        'js-debug-adapter'
     },
 })
 
