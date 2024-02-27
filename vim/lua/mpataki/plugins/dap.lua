@@ -4,7 +4,7 @@ return {
     { 'nvim-telescope/telescope-dap.nvim' },
     {
         'mfussenegger/nvim-dap',
-        dependenvies = {
+        dependencies = {
         },
         config = function()
             require('dapui').setup()
@@ -12,9 +12,9 @@ return {
             vim.fn.sign_define('DapBreakpoint', {text='•', texthl='red', linehl='', numhl=''})
 
             vim.keymap.set('n', '<F5>', function() require('dap').continue() end)
-            vim.keymap.set('n', '<F10>', function() require('dap').step_over() end)
-            vim.keymap.set('n', '<F11>', function() require('dap').step_into() end)
-            vim.keymap.set('n', '<F12>', function() require('dap').step_out() end)
+            vim.keymap.set('n', '<F6>', function() require('dap').step_out() end)
+            vim.keymap.set('n', '<F7>', function() require('dap').step_into() end)
+            vim.keymap.set('n', '<F8>', function() require('dap').step_over() end)
             vim.keymap.set('n', '<Leader>b', function() require('dap').toggle_breakpoint() end)
             vim.keymap.set('n', '<Leader>B', function() require('dap').set_breakpoint() end)
             vim.keymap.set('n', '<Leader>lp', function() require('dap').set_breakpoint(nil, nil, vim.fn.input('Log point message: ')) end)
@@ -52,6 +52,38 @@ return {
             end)
 
             require('telescope').load_extension('dap')
+
+            local dap = require('dap')
+
+            dap.adapters['pwa-node'] = {
+                type = 'server',
+                host = '::1',
+                port = 8123,
+                executable = {
+                    command = os.getenv('HOME') .. '/.local/share/nvim/mason/bin/js-debug-adapter',
+                }
+            }
+
+            for _, language in ipairs { 'typescript', 'javascript' } do
+                dap.configurations[language] = {
+                    {
+                        type = 'pwa-node',
+                        request = 'launch',
+                        name = 'Launch File',
+                        program = "${file}",
+                        cmd = "${workspaceFolder}",
+                        runtimeExecutable = 'node',
+                    },
+                    { -- this is too project specific. Let's get launch configs going.
+                        name = "Launch via npm",
+                        type = "pwa-node",
+                        request = "launch",
+                        cwd = "${workspaceFolder}",
+                        runtimeExecutable = "npm",
+                        runtimeArgs = {"run-script", "dev"},
+                    },
+                }
+            end
         end
     }
 }

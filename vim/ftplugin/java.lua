@@ -75,7 +75,7 @@ local config = {
         client.server_capabilities.semanticTokensProvider = nil
 
         -- note that jdtls is taking over the gq command, which usually drives formatprg, and I don't know how to make it stop...
-        -- Here I'm basically rebuilding it so I can git <leader>f for full-file formatting
+        -- Here I'm basically rebuilding it so I can get full-file formatting
         vim.api.nvim_create_user_command('FormatBuffer', function()
             vim.cmd('execute "%!' .. vim.bo.formatprg .. '"')
         end, {})
@@ -194,7 +194,7 @@ end
 -- run (or debug) gradle tests by method or class
 local function runGradleTests(debug)
     local co = coroutine.create(function(test_filter)
-        local command = './gradlew test --rerun'
+        local command = './gradlew test --rerun --info'
 
         if test_filter ~= nil and test_filter ~= "" then
             command = command .. " --tests '" .. test_filter .. "'"
@@ -228,7 +228,7 @@ function DebugBoot()
 end
 
 function GradleBuild()
-    startTerm('./gradlew clean build -xtest')
+    startTerm('./gradlew clean build')
 end
 
 -- default debugger attachment
