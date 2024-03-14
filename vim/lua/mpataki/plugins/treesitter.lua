@@ -7,6 +7,7 @@ return {
                 'javascript',
                 'typescript',
                 'java',
+                'groovy',
                 'python',
                 'c',
                 'lua',
@@ -19,7 +20,8 @@ return {
                 'terraform',
                 'dockerfile',
                 'xml',
-                'cpp'
+                'cpp',
+                'markdown'
             },
 
             -- Install parsers synchronously (only applied to `ensure_installed`)
