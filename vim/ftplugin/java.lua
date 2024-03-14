@@ -151,46 +151,6 @@ local function extractTestFilterFromLsp(co)
     end)
 end
 
-local function startTerm(command)
-    vim.cmd('tabedit term://' .. command)
-
-    -- set the command in a buf var so we can easily restart it
-    local bufnr = vim.api.nvim_get_current_buf()
-    vim.api.nvim_buf_set_var(bufnr, 'terminal_command', command)
-end
-
-local function sendSigtermToTerminal(bufnr)
-    -- Ensure the buffer is a valid terminal
-    if vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_get_option(bufnr, 'buftype') == 'terminal' then
-        -- Get the job ID
-        local job_id = vim.api.nvim_buf_get_var(bufnr, 'terminal_job_id')
-
-        if job_id then
-            -- Send SIGTERM to the job
-            vim.fn.jobstop(job_id)
-        else
-            print("No job ID found for buffer " .. bufnr)
-        end
-    else
-        print("Buffer " .. bufnr .. " is not a terminal")
-    end
-end
-
-function RestartTerm()
-    if vim.bo.buftype == 'terminal' then
-        local bufnr = vim.api.nvim_get_current_buf()
-        local command = vim.api.nvim_buf_get_var(bufnr, 'terminal_command')
-
-        -- kill any running process
-        sendSigtermToTerminal(bufnr)
-
-        -- Close the current terminal buffer
-        vim.api.nvim_buf_delete(0, { force = true })
-
-        startTerm(command)
-    end
-end
-
 -- run (or debug) gradle tests by method or class
 local function runGradleTests(debug)
     local co = coroutine.create(function(test_filter)
@@ -204,7 +164,7 @@ local function runGradleTests(debug)
             command = command .. ' --debug-jvm'
         end
 
-        startTerm(command)
+        StartTerm(command)
     end)
 
     extractTestFilterFromLsp(co)
@@ -220,15 +180,15 @@ end
 
 -- TODO: this should go into a boot-specific module
 function RunBoot()
-    startTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun')
+    StartTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun')
 end
 
 function DebugBoot()
-    startTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun --debug-jvm')
+    StartTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun --debug-jvm')
 end
 
 function GradleBuild()
-    startTerm('./gradlew clean build')
+    StartTerm('./gradlew clean build')
 end
 
 -- default debugger attachment
@@ -246,12 +206,10 @@ vim.api.nvim_create_user_command('GradleRunTests', GradleRunTests, {})
 vim.api.nvim_create_user_command('DebugGradleTests', GradleDebugTests, {})
 vim.api.nvim_create_user_command('RunBoot', RunBoot, {})
 vim.api.nvim_create_user_command('DebugBoot', DebugBoot, {})
-vim.api.nvim_create_user_command('RestartTerm', RestartTerm, {})
 
 vim.keymap.set('n', '<Leader>gb', GradleBuild)
 vim.keymap.set('n', '<Leader>gt', GradleRunTests)
 vim.keymap.set('n', '<Leader>gT', GradleDebugTests)
 vim.keymap.set('n', '<Leader>gr', RunBoot)
 vim.keymap.set('n', '<Leader>gR', DebugBoot)
-vim.keymap.set({'n','t'}, '<Leader>r', RestartTerm)
 
