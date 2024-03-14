@@ -40,6 +40,14 @@ function RestartTerm()
     end
 end
 
+vim.api.nvim_create_user_command(
+    'Term',
+    function(opts)
+        StartTerm(opts.args)
+    end,
+    {nargs = '*'}
+)
+
 vim.api.nvim_create_user_command('RestartTerm', RestartTerm, {})
 
 vim.keymap.set({'n','t'}, '<Leader>r', RestartTerm)
