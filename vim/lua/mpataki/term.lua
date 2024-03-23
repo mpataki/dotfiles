@@ -1,10 +1,10 @@
 -- Sets up some nvim term mode utilities
 
-function StartTerm(command, inNewTab)
-    if inNewTab then
-        vim.cmd('tabedit term://' .. command)
-    else
+function StartTerm(command, inCurrentPane)
+    if inCurrentPane then
         vim.cmd('terminal ' .. command)
+    else
+        vim.cmd('tabedit term://' .. command)
     end
 
     -- set the command in a buf var so we can more easily restart it
@@ -37,14 +37,14 @@ function RestartTerm()
         -- kill any running process
         sendSigtermToTerminal(bufnr)
 
-        StartTerm(command, false)
+        StartTerm(command, true)
     end
 end
 
 vim.api.nvim_create_user_command(
     'Term',
     function(opts)
-        StartTerm(opts.args, true)
+        StartTerm(opts.args)
     end,
     {nargs = '*'}
 )
