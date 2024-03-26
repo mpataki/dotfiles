@@ -1,5 +1,5 @@
 return {
-    -- { 'tpope/vim-fugitive' }, -- git client
+    -- { 'tpope/vim-fugitive' },
     { 'airblade/vim-gitgutter' },
 
     -- LSP-zero:
@@ -20,10 +20,4 @@ return {
     { 'L3MON4D3/LuaSnip' },
 
     { 'mfussenegger/nvim-jdtls' },
-
-    -- colorschemes
-    -- { 'srcery-colors/srcery-vim', lazy=true, priority=1000 },
-    { 'kabbamine/yowish.vim', lazy=true, priority=1000 },
-    -- { 'srcery-colors/srcery-vim', lazy=true, priority=1000 },
-    -- { 'embark-theme/vim', lazy=true, priority=1000 },
 }
