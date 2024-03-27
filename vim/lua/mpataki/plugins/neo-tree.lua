@@ -13,7 +13,7 @@ return {
                 hijack_netrw_behavior = "open_current"
             },
             window = {
-                width = 55,
+                width = 50,
             }
         })
 
