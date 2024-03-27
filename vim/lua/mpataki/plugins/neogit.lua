@@ -8,7 +8,6 @@ return {
   lazy = false,
   priority = 1,
   config = function ()
-      print("loading neogit")
       local neogit = require("neogit")
 
       neogit.setup {
