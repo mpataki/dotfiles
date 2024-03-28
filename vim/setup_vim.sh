@@ -12,12 +12,7 @@ function setup_vim(){
   check_and_link_file `pwd`/vim/after/ $HOME/.config/nvim
   check_and_link_file `pwd`/vim/ftplugin/ $HOME/.config/nvim
 
-  # language servers
-  #   note: most most of these to mason
-  install_package lua-language-server
-  install_package eslint
-  install_package bash-language-server
-  install_package yaml-language-server
+  # would be nice to get this workin via Mason
   install_package jdtls
 
   # for java features
