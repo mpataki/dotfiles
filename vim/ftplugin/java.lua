@@ -87,6 +87,12 @@ local config = {
         -- vim.api.nvim_buf_set_keymap(0, 'n', '<leader>tc', '<cmd>lua require("jdtls").test_class()<CR>', {noremap=true, silent=true})
         -- vim.api.nvim_buf_set_keymap(0, 'n', '<leader>tm', '<cmd>lua require("jdtls").test_nearest_method()<CR>', {noremap=true, silent=true})
         vim.api.nvim_buf_set_keymap(0, 'n', '<leader>js', '<cmd>lua require("jdtls").jshell()<CR>', {noremap=true, silent=true})
+
+        print("setting tab width")
+        -- align on google's formatter
+        vim.opt_local.tabstop = 2
+        vim.opt_local.softtabstop = 2
+        vim.opt_local.shiftwidth = 2
     end
 }
 
@@ -180,11 +186,11 @@ end
 
 -- TODO: this should go into a boot-specific module
 function RunBoot()
-    StartTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun')
+    StartTerm('SPRING_PROFILES_ACTIVE=local ./gradlew bootRun')
 end
 
 function DebugBoot()
-    StartTerm('SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun --debug-jvm')
+    StartTerm('SPRING_PROFILES_ACTIVE=local ./gradlew bootRun --debug-jvm')
 end
 
 function GradleBuild()
@@ -212,4 +218,5 @@ vim.keymap.set('n', '<Leader>gt', GradleRunTests)
 vim.keymap.set('n', '<Leader>gT', GradleDebugTests)
 vim.keymap.set('n', '<Leader>gr', RunBoot)
 vim.keymap.set('n', '<Leader>gR', DebugBoot)
+
 
