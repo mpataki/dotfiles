@@ -10,7 +10,16 @@ return {
     config = function()
         require("neo-tree").setup({
             filesystem = {
-                hijack_netrw_behavior = "open_current"
+                hijack_netrw_behavior = "open_current",
+                follow_current_file = {
+                    enabled = true,
+                    leave_dirs_open = false,
+                },
+                filtered_items = {
+                    always_show = {
+                        ".github"
+                    },
+                }
             },
             window = {
                 width = 50,
