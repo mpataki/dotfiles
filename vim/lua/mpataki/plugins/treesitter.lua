@@ -21,7 +21,7 @@ return {
                 'dockerfile',
                 'xml',
                 'cpp',
-                'markdown'
+                'markdown',
             },
 
             -- Install parsers synchronously (only applied to `ensure_installed`)
