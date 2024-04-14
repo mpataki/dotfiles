@@ -10,16 +10,16 @@ return {
         config = function()
             require('dapui').setup()
 
-            vim.fn.sign_define('DapBreakpoint', {text='•', texthl='red', linehl='', numhl=''})
+            vim.fn.sign_define('DapBreakpoint', {text='⚈', texthl='', linehl='', numhl=''})
+            vim.fn.sign_define('DapStopped', {text = '→', texthl = '', linehl = 'Search', numhl = ''})
 
-            vim.keymap.set('n', '<F5>', function() require('dap').continue() end)
-            vim.keymap.set('n', '<F6>', function() require('dap').step_out() end)
-            vim.keymap.set('n', '<F7>', function() require('dap').step_into() end)
-            vim.keymap.set('n', '<F8>', function() require('dap').step_over() end)
-            vim.keymap.set('n', '<Leader>b', function() require('dap').toggle_breakpoint() end)
-            vim.keymap.set('n', '<Leader>B', function() require('dap').set_breakpoint() end)
-            vim.keymap.set('n', '<Leader>lp', function() require('dap').set_breakpoint(nil, nil, vim.fn.input('Log point message: ')) end)
+            vim.keymap.set('n', '<Leader>dc', function() require('dap').continue() end)
+            vim.keymap.set('n', '<Leader>do', function() require('dap').step_out() end)
+            vim.keymap.set('n', '<Leader>di', function() require('dap').step_into() end)
+            vim.keymap.set('n', '<Leader>dO', function() require('dap').step_over() end)
+            vim.keymap.set('n', '<Leader>db', function() require('dap').toggle_breakpoint() end)
             vim.keymap.set('n', '<Leader>dl', function() require('dap').run_last() end)
+            vim.keymap.set('n', '<Leader>lp', function() require('dap').set_breakpoint(nil, nil, vim.fn.input('Log point message: ')) end)
 
             vim.keymap.set({'n', 'v'}, '<Leader>dh', function()
                 require('dap.ui.widgets').hover()
@@ -39,17 +39,12 @@ return {
                 widgets.centered_float(widgets.scopes)
             end)
 
-            vim.keymap.set('n', '<Leader>dc', function()
+            vim.keymap.set('n', '<Leader>dr', function()
                 require('dap').repl.open()
             end)
 
             vim.keymap.set({'n', 'v'}, '<Leader>du', function()
                 require("dapui").toggle()
-            end)
-
-            vim.keymap.set({'n', 'v'}, '<Leader>dl', function()
-                -- require('jdtls.dap').setup_dap_main_class_configs()
-                require('dap.ext.vscode').load_launchjs('./launch.json')
             end)
 
             require('telescope').load_extension('dap')
@@ -86,5 +81,11 @@ return {
                 }
             end
         end
-    }
+    },
+    {
+        'theHamsta/nvim-dap-virtual-text',
+        config = function ()
+            require("nvim-dap-virtual-text").setup()
+        end
+    },
 }
