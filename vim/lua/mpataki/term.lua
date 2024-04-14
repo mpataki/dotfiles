@@ -37,6 +37,8 @@ function RestartTerm()
         -- kill any running process
         sendSigtermToTerminal(bufnr)
 
+        vim.api.nvim_buf_delete(bufnr, { force = true })
+
         StartTerm(command, true)
     end
 end
