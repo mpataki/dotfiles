@@ -11,6 +11,7 @@ function setup_git() {
   fi
 
   install_package diff-so-fancy
+  install_package git-lfs
 
   check_and_link_file `pwd`/git/gitconfig $HOME/.gitconfig
   check_and_link_file `pwd`/git/gitignore $HOME/.gitignore

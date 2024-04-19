@@ -33,6 +33,7 @@ fi
 . go/setup_go.sh
 . java/setup_java.sh
 . python/setup_python.sh
+. node/setup_node.sh
 . misc_tools/setup_misc_tools.sh
 
 print_with_color $GREEN "Done."
