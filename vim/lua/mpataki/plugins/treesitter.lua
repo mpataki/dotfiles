@@ -22,6 +22,7 @@ return {
                 'xml',
                 'cpp',
                 'markdown',
+                'sql',
             },
 
             -- Install parsers synchronously (only applied to `ensure_installed`)
