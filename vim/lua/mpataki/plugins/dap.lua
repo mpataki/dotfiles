@@ -1,11 +1,11 @@
 return {
-    { 'rcarriga/nvim-dap-ui' },
     { 'jay-babu/mason-nvim-dap.nvim' },
     { 'nvim-telescope/telescope-dap.nvim' },
     {
         'mfussenegger/nvim-dap',
         dependencies = {
             'nvim-neotest/nvim-nio',
+            'rcarriga/nvim-dap-ui',
         },
         config = function()
             require('dapui').setup()
@@ -52,15 +52,22 @@ return {
             local dap = require('dap')
 
             dap.adapters['pwa-node'] = {
-                type = 'server',
-                host = '::1',
-                port = 8123,
+                type = "server",
+                host = "localhost",
+                port = "${port}",
                 executable = {
-                    command = os.getenv('HOME') .. '/.local/share/nvim/mason/bin/js-debug-adapter',
+                    command = "js-debug-adapter", -- As I'm using mason, this will be in the path
+                    args = {"${port}"},
                 }
             }
 
-            for _, language in ipairs { 'typescript', 'javascript' } do
+            dap.adapters['chrome'] = {
+                type = 'executable',
+                command = 'node',
+                args = {os.getenv('HOME') .. '/.local/share/nvim/mason/packages/chrome-debug-adapter/out/src/chromeDebug.js'}
+            }
+
+            for _, language in ipairs { 'typescript', 'javascript', 'typescriptreact', 'javascriptreact' } do
                 dap.configurations[language] = {
                     {
                         type = 'pwa-node',
@@ -68,16 +75,35 @@ return {
                         name = 'Launch File',
                         program = "${file}",
                         cmd = "${workspaceFolder}",
-                        runtimeExecutable = 'node',
+                        -- runtimeExecutable = 'node',
+                        -- sourceMaps = true,
                     },
-                    { -- this is too project specific. Let's get launch configs going.
-                        name = "Launch via npm",
+                    {
+                        name = "Attach node debugger by process",
                         type = "pwa-node",
-                        request = "launch",
+                        request = "attach",
+                        processId = require("dap.utils").pick_process,
                         cwd = "${workspaceFolder}",
-                        runtimeExecutable = "npm",
-                        runtimeArgs = {"run-script", "dev"},
+                        -- sourceMaps = true,
                     },
+                    {
+                        name = "Attach node debugger by port",
+                        type = "pwa-node",
+                        request = "attach",
+                        port = 9229,
+                        cwd = "${workspaceFolder}",
+                        -- sourceMaps = true,
+                    },
+                    {
+                        name = "Attach Chrome Debugger",
+                        type = "chrome",
+                        request = "attach",
+                        sourceMaps = true,
+                        cwd = vim.fn.getcwd(),
+                        protocol = "inspector",
+                        webRoot = "${workspaceFolder}",
+                        port = 9229,
+                    }
                 }
             end
         end
