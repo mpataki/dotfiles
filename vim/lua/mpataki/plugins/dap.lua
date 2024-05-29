@@ -14,7 +14,7 @@ return {
             vim.fn.sign_define('DapStopped', {text = '→', texthl = '', linehl = 'Search', numhl = ''})
 
             vim.keymap.set('n', '<Leader>dc', function() require('dap').continue() end)
-            vim.keymap.set('n', '<Leader>do', function() require('dap').step_out() end)
+            -- vim.keymap.set('n', '<Leader>do', function() require('dap').step_out() end)
             vim.keymap.set('n', '<Leader>di', function() require('dap').step_into() end)
             vim.keymap.set('n', '<Leader>dO', function() require('dap').step_over() end)
             vim.keymap.set('n', '<Leader>db', function() require('dap').toggle_breakpoint() end)

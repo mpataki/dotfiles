@@ -1,5 +1,5 @@
 
--- greatest remap ever
+-- paste without losing what's in the yank buffer
 vim.keymap.set("x", "<leader>p", [["_dP]])
 
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
@@ -19,3 +19,12 @@ vim.keymap.set("n", "<leader>f", vim.lsp.buf.format)
 -- terminal 
 vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')
 
+-- split resizing
+vim.keymap.set("n", "<M-h>", "<c-w>5<")
+vim.keymap.set("n", "<M-l>", "<c-w>5>")
+vim.keymap.set("n", "<M-k>", "<C-w>+")
+vim.keymap.set("n", "<M-j>", "<C-w>-")
+
+-- next and previous buffers
+vim.keymap.set("n", '<leader>n', "<cmd>:bnext<CR>")
+vim.keymap.set("n", '<leader>p', "<cmd>:bprevious<CR>")
