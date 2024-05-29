@@ -20,9 +20,6 @@ function setup_zsh(){
     install_package tt-hack-nerd
   fi
 
-  # oh-my-zshell
-  sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
   if [ -e $HOME/.zshrc ]; then
     print_with_color $YELLOW "$HOME/.zshrc already exists. Do you want to override it? (yes/no)"
     read yn
