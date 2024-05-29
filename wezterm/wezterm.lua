@@ -8,6 +8,13 @@ config.colors = {
     background = '#000000'
 }
 
+config.window_padding = {
+  left = 2,
+  right = 2,
+  top = 25,
+  bottom = 0,
+}
+
 config.font = wezterm.font 'Hack Nerd Font Mono'
 
 config.hide_tab_bar_if_only_one_tab = true
