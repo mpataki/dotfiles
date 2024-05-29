@@ -28,6 +28,7 @@ fi
 . zsh/setup_zsh.sh
 . git/setup_git.sh
 . tmux/setup_tmux.sh
+. wezterm/setup_wezterm.sh
 . vim/setup_vim.sh
 . rust/setup_rust.sh
 . go/setup_go.sh
