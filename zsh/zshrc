@@ -57,6 +57,11 @@ eval "$(starship init zsh)"
 #  eval "$(pyenv virtualenv-init -)"
 #fi
 
+if [[ `which jenv` ]]; then
+    export PATH="$HOME/.jenv/bin:$PATH"
+    eval "$(jenv init -)"
+fi
+
 if [ -d $HOME/.cargo ]; then
     source "$HOME/.cargo/env"                                                                  │
 fi
