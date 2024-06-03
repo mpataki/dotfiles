@@ -10,6 +10,7 @@ function StartTerm(command, inCurrentPane)
     -- set the command in a buf var so we can more easily restart it
     local bufnr = vim.api.nvim_get_current_buf()
     vim.api.nvim_buf_set_var(bufnr, 'terminal_command', command)
+    vim.api.nvim_command('normal! G')
 end
 
 local function sendSigtermToTerminal(bufnr)
