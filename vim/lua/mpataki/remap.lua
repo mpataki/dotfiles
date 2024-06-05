@@ -28,3 +28,9 @@ vim.keymap.set("n", "<M-j>", "<C-w>-")
 -- next and previous buffers
 vim.keymap.set("n", '<leader>n', "<cmd>:bnext<CR>")
 vim.keymap.set("n", '<leader>p', "<cmd>:bprevious<CR>")
+
+-- quickfix
+vim.keymap.set("n", "<leader>qo", "<cmd>:copen<CR>")
+vim.keymap.set("n", "<leader>qc", "<cmd>:cclose<CR>")
+vim.keymap.set("n", "<leader>qn", "<cmd>:cnext<CR>")
+vim.keymap.set("n", "<leader>qp", "<cmd>:cprev<CR>")
