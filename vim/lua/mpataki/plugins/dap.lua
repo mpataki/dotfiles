@@ -14,11 +14,15 @@ return {
             vim.fn.sign_define('DapStopped', {text = '→', texthl = '', linehl = 'Search', numhl = ''})
 
             vim.keymap.set('n', '<Leader>dc', function() require('dap').continue() end)
-            -- vim.keymap.set('n', '<Leader>do', function() require('dap').step_out() end)
+            -- vim.keymap.set('n', '<Leader>dO', function() require('dap').step_out() end)
             vim.keymap.set('n', '<Leader>di', function() require('dap').step_into() end)
-            vim.keymap.set('n', '<Leader>dO', function() require('dap').step_over() end)
+            vim.keymap.set('n', '<Leader>do', function() require('dap').step_over() end)
             vim.keymap.set('n', '<Leader>db', function() require('dap').toggle_breakpoint() end)
-            vim.keymap.set('n', '<Leader>dl', function() require('dap').run_last() end)
+            vim.keymap.set('n', '<Leader>dr', function() require('dap').run_last() end)
+            vim.keymap.set('n', '<Leader>dt', function() require('dap').terminate() end)
+            vim.keymap.set('n', '<Leader>dk', function() require('dap').up() end)
+            vim.keymap.set('n', '<Leader>dj', function() require('dap').down() end)
+            vim.keymap.set('n', '<Leader>df', function() require('dap').focus_frame() end)
             vim.keymap.set('n', '<Leader>lp', function() require('dap').set_breakpoint(nil, nil, vim.fn.input('Log point message: ')) end)
 
             vim.keymap.set({'n', 'v'}, '<Leader>dh', function()
