@@ -44,10 +44,10 @@ return {
                     }),
 
                     ['<Down>'] = cmp.mapping(
-                    cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Select }), { 'i' }
+                        cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Select }), { 'i' }
                     ),
                     ['<Up>'] = cmp.mapping(
-                    cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Select }), { 'i' }
+                        cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Select }), { 'i' }
                     ),
 
                     ['<C-n>'] = cmp.mapping({

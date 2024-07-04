@@ -2,6 +2,9 @@ local home = os.getenv('HOME')
 local root_dir = require('jdtls.setup').find_root({'gradlew', '.git'})
 local workspace_folder = home .. "/.local/share/eclipse/" .. vim.fn.fnamemodify(root_dir, ":p:h:t")
 
+-- used to print tables like print(inspect(my_table))
+-- local inspect = require('vim.inspect')
+
 local cmd = {
     vim.fn.glob("/opt/homebrew/Cellar/openjdk/21.*/bin/java", true),
 
@@ -88,7 +91,6 @@ local config = {
         -- vim.api.nvim_buf_set_keymap(0, 'n', '<leader>tm', '<cmd>lua require("jdtls").test_nearest_method()<CR>', {noremap=true, silent=true})
         vim.api.nvim_buf_set_keymap(0, 'n', '<leader>js', '<cmd>lua require("jdtls").jshell()<CR>', {noremap=true, silent=true})
 
-        print("setting tab width")
         -- align on google's formatter
         vim.opt_local.tabstop = 2
         vim.opt_local.softtabstop = 2
@@ -202,6 +204,7 @@ require('dap').configurations.java = {
     {
         type = "java",
         request = "attach",
+        name = "Debug (attach) - Remote",
         hostName = "127.0.0.1",
         port = "5005"
     }
@@ -218,5 +221,4 @@ vim.keymap.set('n', '<Leader>gt', GradleRunTests)
 vim.keymap.set('n', '<Leader>gT', GradleDebugTests)
 vim.keymap.set('n', '<Leader>gr', RunBoot)
 vim.keymap.set('n', '<Leader>gR', DebugBoot)
-
 
