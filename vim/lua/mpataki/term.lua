@@ -55,6 +55,7 @@ function RestartTerm()
     end
 end
 
+-- Term default (Tab Window)
 vim.api.nvim_create_user_command(
     'Term',
     function(opts)
@@ -63,6 +64,7 @@ vim.api.nvim_create_user_command(
     {nargs = '*'}
 )
 
+-- Term Veritical Split
 vim.api.nvim_create_user_command(
     'Termv',
     function(opts)
@@ -71,10 +73,20 @@ vim.api.nvim_create_user_command(
     {nargs = '*'}
 )
 
+-- Term Horizonal Split
 vim.api.nvim_create_user_command(
     'Termh',
     function(opts)
         StartTerm(opts.args, TermOpenModes.HORIZONTAL_SPLIT)
+    end,
+    {nargs = '*'}
+)
+
+-- Term Current Window
+vim.api.nvim_create_user_command(
+    'Termc',
+    function(opts)
+        StartTerm(opts.args, TermOpenModes.CURRENT_WINDOW)
     end,
     {nargs = '*'}
 )
