@@ -35,3 +35,4 @@ vim.keymap.set("n", "<leader>qc", "<cmd>:cclose<CR>")
 vim.keymap.set("n", "<leader>qq", "<cmd>:cclose<CR>")
 vim.keymap.set("n", "<leader>qn", "<cmd>:cnext<CR>")
 vim.keymap.set("n", "<leader>qp", "<cmd>:cprev<CR>")
+

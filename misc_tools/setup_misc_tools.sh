@@ -42,6 +42,7 @@ function setup_misc_tools() {
   install_package ctop
   install_package node
   install_package tree
+  install_package 1password-cli
 }
 
 print_with_color $YELLOW 'Setup misc. tools? (yes/no)'
