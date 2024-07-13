@@ -1,9 +1,20 @@
 -- Sets up some nvim term mode utilities
 
-function StartTerm(command, inCurrentPane)
-    if inCurrentPane then
+local TermOpenModes = {
+    TAB = 1,
+    CURRENT_WINDOW = 2,
+    VERTICAL_SPLIT = 3,
+    HORIZONTAL_SPLIT = 4,
+}
+
+function StartTerm(command, openMode)
+    if openMode == TermOpenModes.CURRENT_WINDOW then
         vim.cmd('terminal ' .. command)
-    else
+    elseif openMode == TermOpenModes.HORIZONTAL_SPLIT then
+        vim.cmd('horizontal belowright split term://' .. command)
+    elseif openMode == TermOpenModes.VERTICAL_SPLIT then
+        vim.cmd('vertical rightbelow split term://' .. command)
+    else -- TAB
         vim.cmd('tabedit term://' .. command)
     end
 
@@ -38,7 +49,7 @@ function RestartTerm()
         -- kill any running process
         sendSigtermToTerminal(bufnr)
 
-        StartTerm(command, true)
+        StartTerm(command, TermOpenModes.CURRENT_WINDOW)
 
         vim.api.nvim_buf_delete(bufnr, { force = true })
     end
@@ -47,7 +58,23 @@ end
 vim.api.nvim_create_user_command(
     'Term',
     function(opts)
-        StartTerm(opts.args)
+        StartTerm(opts.args, TermOpenModes.TAB)
+    end,
+    {nargs = '*'}
+)
+
+vim.api.nvim_create_user_command(
+    'Termv',
+    function(opts)
+        StartTerm(opts.args, TermOpenModes.VERTICAL_SPLIT)
+    end,
+    {nargs = '*'}
+)
+
+vim.api.nvim_create_user_command(
+    'Termh',
+    function(opts)
+        StartTerm(opts.args, TermOpenModes.HORIZONTAL_SPLIT)
     end,
     {nargs = '*'}
 )
