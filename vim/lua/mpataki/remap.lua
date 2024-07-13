@@ -36,3 +36,6 @@ vim.keymap.set("n", "<leader>qq", "<cmd>:cclose<CR>")
 vim.keymap.set("n", "<leader>qn", "<cmd>:cnext<CR>")
 vim.keymap.set("n", "<leader>qp", "<cmd>:cprev<CR>")
 
+vim.keymap.set("n", "<leader>w", "<cmd>:w<CR>")
+vim.keymap.set("n", "<leader>sv", "<cmd>vsplit<CR><C-w>l");
+vim.keymap.set("n", "<leader>sh", "<cmd>split<CR><C-w>j");
