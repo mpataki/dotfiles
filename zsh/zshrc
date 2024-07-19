@@ -23,6 +23,12 @@ fi
 
 eval "$(starship init zsh)"
 
+## fzf
+source <(fzf --zsh)
+
+## atuin
+eval "$(atuin init zsh --disable-up-arrow)"
+
 # if [[ `which gh` ]]; then
 #   eval "$(gh completion -s zsh)"
 #

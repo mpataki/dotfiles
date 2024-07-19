@@ -12,6 +12,7 @@ function setup_zsh(){
   install_package starship # prompt
 
   check_and_link_file `pwd`/zsh/starship.toml $HOME/.config/starship.toml
+  check_and_link_file `pwd`/zsh/atuin-config.toml $HOME/.config/atuin/config.toml
 
   if is_mac; then
     brew tap homebrew/cask-fonts
