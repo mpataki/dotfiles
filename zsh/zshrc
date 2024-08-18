@@ -24,6 +24,8 @@ fi
 eval "$(starship init zsh)"
 
 ## fzf
+# Open in tmux popup if on tmux, otherwise use --height mode
+export FZF_DEFAULT_OPTS='--height 40% --tmux bottom,40% --layout reverse --border top'
 source <(fzf --zsh)
 
 ## atuin
@@ -78,10 +80,10 @@ eval $(ssh-agent) > /dev/null # thanks, I hate it.
 # ssh-add ~/.ssh/jcto-platform.pem &> /dev/null
 # ssh-add ~/.ssh/uken-platform.pem &> /dev/null
 
-function k8s-syncdna-config() {
-    echo 'using SYNC-DNA k8s config'
-    export KUBECONFIG=~/.kube/config-syncdna
-}
+# function k8s-syncdna-config() {
+#     echo 'using SYNC-DNA k8s config'
+#     export KUBECONFIG=~/.kube/config-syncdna
+# }
 
 # function k8s-mindjolt-config() {
 #     echo 'using MINDJOLT k8s config'
