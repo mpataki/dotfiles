@@ -1,6 +1,13 @@
 return {
     { 'jay-babu/mason-nvim-dap.nvim' },
     { 'nvim-telescope/telescope-dap.nvim' },
+    -- { -- TODO: try this guy out
+    --     'stevearc/overseer.nvim',
+    --     opts = {},
+    --     config = function()
+    --         require('overseer').setup()
+    --     end
+    -- },
     {
         'mfussenegger/nvim-dap',
         dependencies = {
@@ -110,6 +117,27 @@ return {
                     }
                 }
             end
+
+            -- C++
+            -- This configuration is project specific. The next step is to get 
+            -- launch configs working so we can store these in the project.
+            dap.configurations.cpp = {
+                {
+                    name = "launch debug mediaserver",
+                    type = "codelldb",
+                    request = "launch",
+                    program = "${workspaceFolder}/build-macos-11.1-arm64/bin/sdna-mediaserver",
+                },
+            }
+
+            dap.adapters['codelldb'] = {
+                type = "server",
+                port = "${port}",
+                executable = {
+                    command = os.getenv('HOME') .. "/.local/share/nvim/mason/bin/codelldb",
+                    args = { "--port", "${port}" },
+                },
+            }
         end
     },
     {

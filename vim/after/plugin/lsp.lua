@@ -49,7 +49,7 @@ require('mason-lspconfig').setup({
         'yamlls',
         'gradle_ls',
         'marksman', -- markdown
-        'clangd',
+        -- 'clangd', -- Let's use the system clangd
         -- 'jdtls', -- I'll roll this one manually to get more control.. java..
     },
     handlers = {
@@ -62,7 +62,8 @@ require('mason-nvim-dap').setup({
     ensure_installed = {
         'javadbg',
         'javatest',
-        'js-debug-adapter'
+        'js-debug-adapter',
+        'codelldb',
     },
 })
 
