@@ -29,6 +29,10 @@ vim.keymap.set("n", "<M-j>", "<C-w>-")
 vim.keymap.set("n", '<leader>n', "<cmd>:bnext<CR>")
 vim.keymap.set("n", '<leader>p', "<cmd>:bprevious<CR>")
 
+-- next and previous jump
+vim.keymap.set("n", '<c-o>', "<c-o>zz");
+vim.keymap.set("n", '<c-i>', "<c-i>zz");
+
 -- quickfix
 vim.keymap.set("n", "<leader>qo", "<cmd>:copen<CR>")
 vim.keymap.set("n", "<leader>qc", "<cmd>:cclose<CR>")
