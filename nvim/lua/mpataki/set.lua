@@ -40,5 +40,11 @@ vim.g.netrw_preview = 1
 -- vim.g.netrw_browse_split = 4
 
 vim.opt.cursorline = true
-vim.api.nvim_set_hl(0, "CursorLine", { bg = "#101010" })
+vim.api.nvim_set_hl(0, "CursorLine", { bg = "#020202" })
 
+-- Define custom highlight groups for active and inactive splits
+vim.api.nvim_set_hl(0, 'ActiveSplit', { bg = '#000000' })
+vim.api.nvim_set_hl(0, 'InactiveSplit', { bg = '#151515' })
+
+-- Apply the winhighlight to the current window
+vim.wo.winhighlight = 'Normal:ActiveSplit,NormalNC:InactiveSplit'

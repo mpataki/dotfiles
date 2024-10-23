@@ -2,6 +2,8 @@ local wezterm = require 'wezterm'
 
 local config = {}
 
+config.term = 'wezterm'
+
 config.color_scheme = 'Brewer (base16)'
 
 config.colors = {
