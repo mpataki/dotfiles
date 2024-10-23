@@ -48,10 +48,10 @@ eval "$(atuin init zsh --disable-up-arrow)"
 # fi
 
 # rbenv
-if [[ `which rbenv` ]]; then
-    export PATH="$HOME/.rbenv/bin:$PATH"
-    eval "$(rbenv init - zsh)"
-fi
+# if [[ `which rbenv` ]]; then
+#     export PATH="$HOME/.rbenv/bin:$PATH"
+#     eval "$(rbenv init - zsh)"
+# fi
 
 # these are so friggin slow... let's not and find something better
 # pyenv
@@ -77,23 +77,6 @@ fi
 
 # ssh-agent
 eval $(ssh-agent) > /dev/null # thanks, I hate it.
-# ssh-add ~/.ssh/jcto-platform.pem &> /dev/null
-# ssh-add ~/.ssh/uken-platform.pem &> /dev/null
-
-# function k8s-syncdna-config() {
-#     echo 'using SYNC-DNA k8s config'
-#     export KUBECONFIG=~/.kube/config-syncdna
-# }
-
-# function k8s-mindjolt-config() {
-#     echo 'using MINDJOLT k8s config'
-#     export KUBECONFIG=~/.kube/config-mindjolt
-# }
-
-# function k8s-mindjolt-sandbox-config() {
-#     echo 'using MINDJOLT SANDBOX k8s config'
-#     export KUBECONFIG=~/.kube/config-mindjolt-sandbox
-# }
 
 . $SCRIPT_DIR/../shell/aliases.sh
 . $SCRIPT_DIR/../shell/environment.sh

@@ -5,4 +5,3 @@ vim.api.nvim_create_autocmd("FileType", {
         vim.bo.formatprg = os.getenv('HOME') .. '/.local/share/nvim/mason/bin/google-java-format -'
     end
 })
-

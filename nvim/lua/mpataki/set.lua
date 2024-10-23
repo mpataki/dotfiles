@@ -40,4 +40,5 @@ vim.g.netrw_preview = 1
 -- vim.g.netrw_browse_split = 4
 
 vim.opt.cursorline = true
-vim.api.nvim_set_hl(0, "CursorLine", { bg = "#141414" })
+vim.api.nvim_set_hl(0, "CursorLine", { bg = "#101010" })
+
