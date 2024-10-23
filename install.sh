@@ -29,7 +29,7 @@ fi
 . git/setup_git.sh
 . tmux/setup_tmux.sh
 . wezterm/setup_wezterm.sh
-. vim/setup_vim.sh
+. nvim/setup_nvim.sh
 . rust/setup_rust.sh
 . go/setup_go.sh
 . java/setup_java.sh

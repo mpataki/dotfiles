@@ -22,6 +22,7 @@ return {
                 'xml',
                 'cpp',
                 'markdown',
+                "markdown_inline",
                 'sql',
             },
 

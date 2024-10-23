@@ -43,7 +43,7 @@ require('mason-lspconfig').setup({
     ensure_installed = {
         'lua_ls',
         'rust_analyzer',
-        'tsserver',
+        'ts_ls',
         'eslint',
         'bashls',
         'yamlls',
