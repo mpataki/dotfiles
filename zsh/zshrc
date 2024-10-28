@@ -78,6 +78,8 @@ fi
 # ssh-agent
 eval $(ssh-agent) > /dev/null # thanks, I hate it.
 
+export PATH="$HOME/bin:$PATH"
+
 . $SCRIPT_DIR/../shell/aliases.sh
 . $SCRIPT_DIR/../shell/environment.sh
 
