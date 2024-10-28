@@ -26,21 +26,21 @@ vim.keymap.set("n", "<M-k>", "<C-w>+")
 vim.keymap.set("n", "<M-j>", "<C-w>-")
 
 -- next and previous buffers
-vim.keymap.set("n", '<leader>n', "<cmd>:bnext<CR>")
-vim.keymap.set("n", '<leader>p', "<cmd>:bprevious<CR>")
+vim.keymap.set("n", '<leader>n', ":bnext<CR>")
+vim.keymap.set("n", '<leader>p', ":bprevious<CR>")
 
 -- next and previous jump
 vim.keymap.set("n", '<c-o>', "<c-o>zz");
 vim.keymap.set("n", '<c-i>', "<c-i>zz");
 
 -- quickfix
-vim.keymap.set("n", "<leader>qo", "<cmd>:copen<CR>")
-vim.keymap.set("n", "<leader>qc", "<cmd>:cclose<CR>")
-vim.keymap.set("n", "<leader>qq", "<cmd>:cclose<CR>")
-vim.keymap.set("n", "<leader>qn", "<cmd>:cnext<CR>")
-vim.keymap.set("n", "<leader>qp", "<cmd>:cprev<CR>")
+vim.keymap.set("n", "<leader>qo", ":copen<CR>")
+vim.keymap.set("n", "<leader>qc", ":cclose<CR>")
+vim.keymap.set("n", "<leader>qq", ":cclose<CR>")
+vim.keymap.set("n", "<leader>qn", ":cnext<CR>")
+vim.keymap.set("n", "<leader>qp", ":cprev<CR>")
 
-vim.keymap.set("n", "<leader>w", "<cmd>:w<CR>")
-vim.keymap.set("n", "<leader>q", "<cmd>:q<CR>")
-vim.keymap.set("n", "<leader>sv", "<cmd>vsplit<CR><C-w>l");
-vim.keymap.set("n", "<leader>sh", "<cmd>split<CR><C-w>j");
+vim.keymap.set("n", "<leader>q", ":w<CR>", { nowait = true, silent = true })
+vim.keymap.set("n", "<leader>q", ":q<CR>", { nowait = true, silent = true })
+vim.keymap.set("n", "<leader>sv", ":vsplit<CR><C-w>l");
+vim.keymap.set("n", "<leader>sh", ":split<CR><C-w>j");
