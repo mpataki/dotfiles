@@ -77,7 +77,7 @@ local config = {
     on_attach = function(client, bufnr)
         client.server_capabilities.semanticTokensProvider = nil
 
-        -- note that jdtls is taking over the gq command, which usually drives formatprg, and I don't know how to make it stop...
+        -- note that jdtls is taking over the gq command, which usually drives formating, and I don't know how to make it stop...
         -- Here I'm basically rebuilding it so I can get full-file formatting
         vim.api.nvim_create_user_command('FormatBuffer', function()
             vim.cmd('execute "%!' .. vim.bo.formatprg .. '"')
@@ -210,7 +210,7 @@ require('dap').configurations.java = {
     }
 }
 
-vim.api.nvim_create_user_command('GradleRun', GradleBuild, {})
+vim.api.nvim_create_user_command('GradleBuild', GradleBuild, {})
 vim.api.nvim_create_user_command('GradleRunTests', GradleRunTests, {})
 vim.api.nvim_create_user_command('DebugGradleTests', GradleDebugTests, {})
 vim.api.nvim_create_user_command('RunBoot', RunBoot, {})
