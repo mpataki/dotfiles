@@ -159,6 +159,10 @@ local function extractTestFilterFromLsp(co)
     end)
 end
 
+local function executeViaVimux(command)
+    vim.cmd("VimuxRunCommand \"" .. command .. "\"")
+end
+
 -- run (or debug) gradle tests by method or class
 local function runGradleTests(debug)
     local co = coroutine.create(function(test_filter)
@@ -172,7 +176,8 @@ local function runGradleTests(debug)
             command = command .. ' --debug-jvm'
         end
 
-        StartTerm(command)
+        -- StartTerm(command)
+        executeViaVimux(command)
     end)
 
     extractTestFilterFromLsp(co)
@@ -188,15 +193,21 @@ end
 
 -- TODO: this should go into a boot-specific module
 function RunBoot()
-    StartTerm('SPRING_PROFILES_ACTIVE=local ./gradlew bootRun')
+    local command = 'SPRING_PROFILES_ACTIVE=local ./gradlew bootRun'
+    -- StartTerm(command)
+    executeViaVimux(command)
 end
 
 function DebugBoot()
-    StartTerm('SPRING_PROFILES_ACTIVE=local ./gradlew bootRun --debug-jvm')
+    local command = 'SPRING_PROFILES_ACTIVE=local ./gradlew bootRun --debug-jvm'
+    -- StartTerm(command)
+    executeViaVimux(command)
 end
 
 function GradleBuild()
-    StartTerm('./gradlew clean build')
+    local command = './gradlew clean build'
+    -- StartTerm(command)
+    executeViaVimux(command)
 end
 
 -- default debugger attachment

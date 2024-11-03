@@ -40,7 +40,7 @@ vim.keymap.set("n", "<leader>qq", ":cclose<CR>")
 vim.keymap.set("n", "<leader>qn", ":cnext<CR>")
 vim.keymap.set("n", "<leader>qp", ":cprev<CR>")
 
-vim.keymap.set("n", "<leader>q", ":w<CR>", { nowait = true, silent = true })
+vim.keymap.set("n", "<leader>w", ":w<CR>", { nowait = true, silent = true })
 vim.keymap.set("n", "<leader>q", ":q<CR>", { nowait = true, silent = true })
 vim.keymap.set("n", "<leader>sv", ":vsplit<CR><C-w>l");
 vim.keymap.set("n", "<leader>sh", ":split<CR><C-w>j");
