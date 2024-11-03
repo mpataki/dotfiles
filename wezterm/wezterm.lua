@@ -13,7 +13,7 @@ config.colors = {
 config.window_padding = {
   left = 2,
   right = 2,
-  top = 25,
+  top = 30,
   bottom = 0,
 }
 

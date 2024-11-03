@@ -52,4 +52,4 @@ vim.api.nvim_set_hl(0, 'ActiveSplit', { bg = '#000000' })
 vim.api.nvim_set_hl(0, 'InactiveSplit', { bg = '#151515' })
 
 -- Apply the winhighlight to the current window
-vim.wo.winhighlight = 'Normal:ActiveSplit,NormalNC:InactiveSplit'
+-- vim.wo.winhighlight = 'Normal:ActiveSplit,NormalNC:InactiveSplit'
