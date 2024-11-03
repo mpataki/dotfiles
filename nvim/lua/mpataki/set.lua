@@ -12,6 +12,8 @@ vim.opt.expandtab = true
 
 vim.opt.smartindent = true
 
+vim.opt.conceallevel = 2
+
 vim.opt.wrap = false
 
 vim.opt.swapfile = false
@@ -21,6 +23,9 @@ vim.opt.undofile = true
 
 vim.opt.hlsearch = false
 vim.opt.incsearch = true
+
+vim.opt.wildmode = { 'longest:full', 'full' }
+vim.opt.wildmenu = true
 
 vim.opt.termguicolors = true
 
