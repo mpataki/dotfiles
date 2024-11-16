@@ -3,6 +3,7 @@ return {
     init = function()
         vim.g.VimuxOrientation = "h"
         vim.g.VimuxHeight = "38%"
+        vim.g.VimuxOpenExtraArgs = "-b" -- for "before", referring to the new pane position relative to the current one (so, on the left)
 
         vim.keymap.set('n', '<leader>tp', ':VimuxPromptCommand<CR>', { noremap = true, silent = true })
         vim.keymap.set('n', '<leader>tl', ':VimuxRunLastCommand<CR>', { noremap = true, silent = true })
