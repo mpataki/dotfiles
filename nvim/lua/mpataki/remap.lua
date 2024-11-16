@@ -1,4 +1,3 @@
-
 -- paste without losing what's in the yank buffer
 vim.keymap.set("x", "<leader>p", [["_dP]])
 
@@ -11,12 +10,12 @@ vim.keymap.set("n", "n", "nzzzv")
 vim.keymap.set("n", "N", "Nzzzv")
 
 -- copy to mac clipboard
-vim.keymap.set({"n", "v"}, "<leader>y", '"+y')
+vim.keymap.set({ "n", "v" }, "<leader>y", '"+y')
 vim.keymap.set("n", "<leader>Y", '"+Y')
 
 vim.keymap.set("n", "<leader>f", vim.lsp.buf.format)
 
--- terminal 
+-- terminal
 vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')
 
 -- split resizing
