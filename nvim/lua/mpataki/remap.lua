@@ -33,11 +33,11 @@ vim.keymap.set("n", '<c-o>', "<c-o>zz");
 vim.keymap.set("n", '<c-i>', "<c-i>zz");
 
 -- quickfix
-vim.keymap.set("n", "<leader>qo", ":copen<CR>")
-vim.keymap.set("n", "<leader>qc", ":cclose<CR>")
-vim.keymap.set("n", "<leader>qq", ":cclose<CR>")
-vim.keymap.set("n", "<leader>qn", ":cnext<CR>")
-vim.keymap.set("n", "<leader>qp", ":cprev<CR>")
+vim.keymap.set("n", "qo", ":copen<CR>")
+vim.keymap.set("n", "qc", ":cclose<CR>")
+vim.keymap.set("n", "qq", ":cclose<CR>")
+vim.keymap.set("n", "qn", ":cnext<CR>")
+vim.keymap.set("n", "qp", ":cprev<CR>")
 
 vim.keymap.set("n", "<leader>w", ":w<CR>", { nowait = true, silent = true })
 vim.keymap.set("n", "<leader>q", ":q<CR>", { nowait = true, silent = true })
