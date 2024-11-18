@@ -15,8 +15,7 @@ function setup_zsh(){
   check_and_link_file `pwd`/zsh/atuin-config.toml $HOME/.config/atuin/config.toml
 
   if is_mac; then
-    brew tap homebrew/cask-fonts
-    brew install --cask font-hack-nerd-font 
+    brew install font-hack-nerd-font
   else
     install_package tt-hack-nerd
   fi
