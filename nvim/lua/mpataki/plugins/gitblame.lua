@@ -4,5 +4,7 @@ return {
         require('gitblame').setup({
             enabled = false, -- off until toggled on
         })
+
+        vim.keymap.set('n', '<Leader>gl', ':GitBlameCopyFileURL<CR>')
     end,
 }
