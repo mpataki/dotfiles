@@ -15,6 +15,7 @@ if is_mac; then
 
   print_with_color $GREEN 'Updating Homebrew'
   brew update
+  . aerospace/setup_aerospace.sh
 else # linux
   . yay/setup_yay.sh
   . snap/setup_snap.sh
