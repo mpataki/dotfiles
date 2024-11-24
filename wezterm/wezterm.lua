@@ -4,6 +4,8 @@ local config = {}
 
 -- config.term = 'wezterm'
 
+config.window_decorations = 'RESIZE'
+
 config.color_scheme = 'Brewer (base16)'
 
 config.colors = {
