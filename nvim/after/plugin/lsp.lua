@@ -49,6 +49,7 @@ require('mason-lspconfig').setup({
         'yamlls',
         'gradle_ls',
         'marksman', -- markdown
+        'gopls',
         -- 'clangd', -- Let's use the system clangd
         -- 'jdtls', -- I'll roll this one manually to get more control.. java..
     },
@@ -64,6 +65,7 @@ require('mason-nvim-dap').setup({
         'javatest',
         'js-debug-adapter',
         'codelldb',
+        'delve',
     },
 })
 
