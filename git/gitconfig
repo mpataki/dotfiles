@@ -2,6 +2,7 @@
   excludesfile = ~/.gitignore
   editor = vim
   pager = "diff-so-fancy | less --tabs=4 -RFX"
+  sshCommand = ssh -i ~/.ssh/id_ed25519.pub
 [color]
   ui = always
 [color "diff"]
@@ -54,8 +55,6 @@
   name = Mat Pataki
   email = matpataki@gmail.com
   signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDDVtwFM7SGxzVLvG3SFe30ZWoFpEnK5s8qpcytTfgX
-[core]
-  sshCommand = ssh -i ~/.ssh/id_ed25519.pub
 [includeIf "gitdir:~/code/jc/"]
   path = ~/.gitconfig.jc
 [filter "lfs"]
