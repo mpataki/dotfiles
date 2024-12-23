@@ -104,14 +104,6 @@ return {
         },
       },
     },
-    {
-      -- Make sure to set this up properly if you have lazy=true
-      'MeanderingProgrammer/render-markdown.nvim',
-      opts = {
-        file_types = { "markdown", "Avante" },
-      },
-      ft = { "markdown", "Avante" },
-    },
   },
   init = function ()
      -- views can only be fully collapsed with the global statusline
