@@ -23,6 +23,12 @@ return {
             },
             window = {
                 width = 50,
+            },
+            default_component_configs = {
+                created = { enabled = false },
+                last_modified = { enabled = false },
+                file_size = { enabled = false },
+                type = { enabled = false },
             }
         })
 

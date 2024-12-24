@@ -16,7 +16,6 @@ return {
 
         vim.cmd.colorscheme("catppuccin")
 
-
         -- require("tokyonight").setup({
         --     style = 'night',
         --     transparent = true,
