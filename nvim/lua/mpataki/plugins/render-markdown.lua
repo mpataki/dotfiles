@@ -1,9 +1,7 @@
 return {
     {
         'MeanderingProgrammer/render-markdown.nvim',
-        dependencies = { 'nvim-treesitter/nvim-treesitter', 'echasnovski/mini.nvim' }, -- if you use the mini.nvim suite
-        -- dependencies = { 'nvim-treesitter/nvim-treesitter', 'echasnovski/mini.icons' }, -- if you use standalone mini plugins
-        -- dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' }, -- if you prefer nvim-web-devicons
+        dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' }, -- if you prefer nvim-web-devicons
         ---@module 'render-markdown'
         ---@type render.md.UserConfig
         opts = {
@@ -35,8 +33,8 @@ return {
                 },
                 custom = {
                     todo = { raw = '[-]', rendered = '󰥔', highlight = 'RenderMarkdownTodo', scope_highlight = nil },
-                    star = { raw = '[*]', rendered = '⭐︎', highlight = 'RenderMarkdownStar', scope_highlight = nil },
-                    bang = { raw = '[!]', rendered = '❗', highlight = 'RenderMarkdownBang', scope_highlight = nil },
+                    star = { raw = '[*]', rendered = '󰓎', highlight = 'RenderMarkdownStar', scope_highlight = nil },
+                    bang = { raw = '[!]', rendered = '', highlight = 'RenderMarkdownBang', scope_highlight = nil },
                     bangbang = { raw = '[!!]', rendered = '‼️', highlight = 'RenderMarkdownBangBang', scope_highlight = nil },
                     rightarrow = { raw = '[>]', rendered = '▶︎', highlight = 'RenderMarkdownRightArrow', scope_highlight = nil }
                 },
