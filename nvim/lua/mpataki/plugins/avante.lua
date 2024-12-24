@@ -110,5 +110,15 @@ return {
     vim.opt.laststatus = 3
 
     require('avante_lib').load();
+
+    -- Avante-specific conflict highlights
+    vim.api.nvim_set_hl(0, 'AvanteConflictCurrent', { bg = '#1f3a1f', bold = true })      -- Current changes (green)
+    vim.api.nvim_set_hl(0, 'AvanteConflictIncoming', { bg = '#3a1f1f', bold = true })     -- Incoming changes (red)
+    vim.api.nvim_set_hl(0, 'AvanteConflictAncestor', { bg = '#3a1f3a', bold = true })     -- Base version (purple)
+
+    -- Labels for conflict sections (slightly darker versions)
+    vim.api.nvim_set_hl(0, 'AvanteConflictCurrentLabel', { bg = '#2d4a2d', bold = true })  -- Darker green
+    vim.api.nvim_set_hl(0, 'AvanteConflictIncomingLabel', { bg = '#4a2d2d', bold = true }) -- Darker red
+    vim.api.nvim_set_hl(0, 'AvanteConflictAncestorLabel', { bg = '#4a2d4a', bold = true }) -- Darker purple
   end
 }
