@@ -23,9 +23,18 @@ return {
                   path = vim.fn.expand("~") .. "/obsidian-notes-vault",
               },
           },
+
+          -- Optional, if you keep notes in a specific subdirectory of your vault.
+          notes_subdir = "inbox",
+
+          -- Where to put new notes. Valid options are
+          --  * "current_dir" - put new notes in same directory as the current buffer.
+          --  * "notes_subdir" - put new notes in the default notes subdirectory.
+          new_notes_location = "notes_subdir",
+
           daily_notes = {
               -- Optional, if you keep daily notes in a separate directory.
-              folder = "dailies",
+              folder = "resources/dailies",
               -- Optional, if you want to change the date format for the ID of daily notes.
               date_format = "%Y-%m-%d",
               -- Optional, if you want to change the date format of the default alias of daily notes.
@@ -53,6 +62,7 @@ return {
       vim.keymap.set('n', '<leader>or', ':ObsidianRename<CR>', { silent = true })
       vim.keymap.set('n', '<leader>ot', ':ObsidianToggleCheckbox<CR>', { expr = true, silent = true })
       vim.keymap.set('n', '<leader>od', ':ObsidianDailies<CR>', { silent = true })
+      vim.keymap.set('n', '<leader>on', ':ObsidianNew<CR>', { })
 
       -- Create an autocommand group for Obsidian auto-commit
       local obsidian_autocommit = vim.api.nvim_create_augroup('ObsidianAutoCommit', { clear = true })
