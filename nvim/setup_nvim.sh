@@ -5,6 +5,7 @@ function setup_nvim(){
   install_package neovim
   install_package ripgrep
   install_package fd # telescope uses this to filesystem searching
+  install_package luarocks # lua package manager
   
   mkdir -p $HOME/.config/nvim
   check_and_link_file `pwd`/nvim/init.lua $HOME/.config/nvim/init.lua
