@@ -44,25 +44,31 @@ return {
               -- Optional, if you want to automatically insert a template from your template directory like 'daily.md'
               template = nil
           },
+
+          -- Optional, by default when you use `:ObsidianFollowLink` on a link to an external
+          -- URL it will be ignored but you can customize this behavior here.
+          ---@param url string
+          follow_url_func = function(url)
+              -- Open the URL in the default web browser.
+              vim.fn.jobstart({"open", url})  -- Mac OS
+              -- vim.fn.jobstart({"xdg-open", url})  -- linux
+              -- vim.cmd(':silent exec "!start ' .. url .. '"') -- Windows
+              -- vim.ui.open(url) -- need Neovim 0.10.0+
+          end,
       })
 
-      -- gd passthrough
-      vim.keymap.set("n", "gd", function()
-          if require("obsidian").util.cursor_on_markdown_link() then
-              return "<cmd>ObsidianFollowLink<CR>"
-          else
-              return "gd"
-          end
-      end, { noremap = false, expr = true })
-
+      vim.keymap.set('n', '<leader>on', ':ObsidianNew<CR>', { })
+      vim.keymap.set('n', '<leader>ot', ':ObsidianTags<CR>', { })
+      vim.keymap.set('n', '<leader>ol', ':ObsidianLinks<CR>', { silent = true })
+      vim.keymap.set('v', '<leader>of', ':ObsidianLinkNew<CR>', { })
       vim.keymap.set('n', '<leader>os', ':ObsidianSearch<CR>', { noremap = true, silent = true })
       vim.keymap.set('n', '<leader>oj', ':ObsidianToday<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>ol', ':ObsidianTomorrow<CR>', { silent = true })
+      vim.keymap.set('n', '<leader>ok', ':ObsidianTomorrow<CR>', { silent = true })
       vim.keymap.set('n', '<leader>oh', ':ObsidianYesterday<CR>', { silent = true })
       vim.keymap.set('n', '<leader>or', ':ObsidianRename<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>ot', ':ObsidianToggleCheckbox<CR>', { expr = true, silent = true })
+      vim.keymap.set('n', '<leader>oc', ':ObsidianToggleCheckbox<CR>', { expr = true, silent = true })
       vim.keymap.set('n', '<leader>od', ':ObsidianDailies<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>on', ':ObsidianNew<CR>', { })
+      vim.keymap.set('n', '<leader>od', ':ObsidianDailies<CR>', { silent = true })
 
       -- Create an autocommand group for Obsidian auto-commit
       local obsidian_autocommit = vim.api.nvim_create_augroup('ObsidianAutoCommit', { clear = true })
@@ -79,7 +85,7 @@ return {
               local relative_path = string.sub(file, #vault_path + 2)
 
               -- Run git commands
-              vim.fn.system(string.format('cd %s && git add "%s" && git commit -m "Auto-commit: %s" && git push', 
+              vim.fn.system(string.format('cd %s && git add "%s" && git commit -m "Auto-commit: %s" && git push',
               vault_path,
               relative_path,
               relative_path
