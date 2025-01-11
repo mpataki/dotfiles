@@ -10,7 +10,7 @@ after-login-command = []
 after-startup-command = []
 
 # Start AeroSpace at login
-start-at-login = false
+start-at-login = true
 
 # Normalizations. See: https://nikitabobko.github.io/AeroSpace/guide#normalization
 enable-normalization-flatten-containers = true
@@ -19,7 +19,7 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 # See: https://nikitabobko.github.io/AeroSpace/guide#layouts
 # The 'accordion-padding' specifies the size of accordion padding
 # You can set 0 to disable the padding feature
-accordion-padding = 30
+accordion-padding = 60
 
 # Possible values: tiles|accordion
 default-root-container-layout = 'tiles'
@@ -39,7 +39,7 @@ on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 # You can effectively turn off macOS "Hide application" (cmd-h) feature by toggling this flag
 # Useful if you don't use this macOS feature, but accidentally hit cmd-h or cmd-alt-h key
 # Also see: https://nikitabobko.github.io/AeroSpace/goodness#disable-hide-app
-automatically-unhide-macos-hidden-apps = true
+automatically-unhide-macos-hidden-apps = false
 
 [[on-window-detected]]
 if.app-name-regex-substring = 'signal'
@@ -55,6 +55,10 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-name-regex-substring = 'Docker Desktop'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'Podman Desktop'
 run = 'layout floating'
 
 # Possible values: (qwerty|dvorak)
@@ -132,25 +136,27 @@ alt-right = 'join-with right'
 alt-minus = 'resize smart -50'
 alt-equal = 'resize smart +50'
 
+alt-enter = 'fullscreen'
+
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
-alt-1 = 'workspace 1'
-alt-2 = 'workspace 2'
-alt-3 = 'workspace 3'
-alt-4 = 'workspace 4'
-alt-5 = 'workspace 5'
-alt-6 = 'workspace 6'
-alt-7 = 'workspace 7'
-alt-8 = 'workspace 8'
-alt-9 = 'workspace 9'
-alt-keypad1 = 'workspace 1'
-alt-keypad2 = 'workspace 2'
-alt-keypad3 = 'workspace 3'
-alt-keypad4 = 'workspace 4'
-alt-keypad5 = 'workspace 5'
-alt-keypad6 = 'workspace 6'
-alt-keypad7 = 'workspace 7'
-alt-keypad8 = 'workspace 8'
-alt-keypad9 = 'workspace 9'
+# alt-1 = 'workspace 1'
+# alt-2 = 'workspace 2'
+# alt-3 = 'workspace 3'
+# alt-4 = 'workspace 4'
+# alt-5 = 'workspace 5'
+# alt-6 = 'workspace 6'
+# alt-7 = 'workspace 7'
+# alt-8 = 'workspace 8'
+# alt-9 = 'workspace 9'
+# alt-keypad1 = 'workspace 1'
+# alt-keypad2 = 'workspace 2'
+# alt-keypad3 = 'workspace 3'
+# alt-keypad4 = 'workspace 4'
+# alt-keypad5 = 'workspace 5'
+# alt-keypad6 = 'workspace 6'
+# alt-keypad7 = 'workspace 7'
+# alt-keypad8 = 'workspace 8'
+# alt-keypad9 = 'workspace 9'
 # alt-a = 'workspace A' # In your config, you can drop workspace bindings that you don't need
 # alt-b = 'workspace B'
 # alt-c = 'workspace C'
@@ -175,24 +181,24 @@ alt-keypad9 = 'workspace 9'
 # alt-z = 'workspace Z'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
-alt-shift-1 = 'move-node-to-workspace 1 --focus-follows-window'
-alt-shift-2 = 'move-node-to-workspace 2 --focus-follows-window'
-alt-shift-3 = 'move-node-to-workspace 3 --focus-follows-window'
-alt-shift-4 = 'move-node-to-workspace 4 --focus-follows-window'
-alt-shift-5 = 'move-node-to-workspace 5 --focus-follows-window'
-alt-shift-6 = 'move-node-to-workspace 6 --focus-follows-window'
-alt-shift-7 = 'move-node-to-workspace 7 --focus-follows-window'
-alt-shift-8 = 'move-node-to-workspace 8 --focus-follows-window'
-alt-shift-9 = 'move-node-to-workspace 9 --focus-follows-window'
-alt-shift-keypad1 = 'move-node-to-workspace 1 --focus-follows-window'
-alt-shift-keypad2 = 'move-node-to-workspace 2 --focus-follows-window'
-alt-shift-keypad3 = 'move-node-to-workspace 3 --focus-follows-window'
-alt-shift-keypad4 = 'move-node-to-workspace 4 --focus-follows-window'
-alt-shift-keypad5 = 'move-node-to-workspace 5 --focus-follows-window'
-alt-shift-keypad6 = 'move-node-to-workspace 6 --focus-follows-window'
-alt-shift-keypad7 = 'move-node-to-workspace 7 --focus-follows-window'
-alt-shift-keypad8 = 'move-node-to-workspace 8 --focus-follows-window'
-alt-shift-keypad9 = 'move-node-to-workspace 9 --focus-follows-window'
+# alt-shift-1 = 'move-node-to-workspace 1 --focus-follows-window'
+# alt-shift-2 = 'move-node-to-workspace 2 --focus-follows-window'
+# alt-shift-3 = 'move-node-to-workspace 3 --focus-follows-window'
+# alt-shift-4 = 'move-node-to-workspace 4 --focus-follows-window'
+# alt-shift-5 = 'move-node-to-workspace 5 --focus-follows-window'
+# alt-shift-6 = 'move-node-to-workspace 6 --focus-follows-window'
+# alt-shift-7 = 'move-node-to-workspace 7 --focus-follows-window'
+# alt-shift-8 = 'move-node-to-workspace 8 --focus-follows-window'
+# alt-shift-9 = 'move-node-to-workspace 9 --focus-follows-window'
+# alt-shift-keypad1 = 'move-node-to-workspace 1 --focus-follows-window'
+# alt-shift-keypad2 = 'move-node-to-workspace 2 --focus-follows-window'
+# alt-shift-keypad3 = 'move-node-to-workspace 3 --focus-follows-window'
+# alt-shift-keypad4 = 'move-node-to-workspace 4 --focus-follows-window'
+# alt-shift-keypad5 = 'move-node-to-workspace 5 --focus-follows-window'
+# alt-shift-keypad6 = 'move-node-to-workspace 6 --focus-follows-window'
+# alt-shift-keypad7 = 'move-node-to-workspace 7 --focus-follows-window'
+# alt-shift-keypad8 = 'move-node-to-workspace 8 --focus-follows-window'
+# alt-shift-keypad9 = 'move-node-to-workspace 9 --focus-follows-window'
 # alt-shift-a = 'move-node-to-workspace A'
 # alt-shift-b = 'move-node-to-workspace B'
 # alt-shift-c = 'move-node-to-workspace C'
