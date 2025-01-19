@@ -19,10 +19,10 @@ vim.keymap.set("n", "<leader>f", vim.lsp.buf.format)
 vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')
 
 -- split resizing
-vim.keymap.set("n", "<MC-h>", "<c-w>5<")
-vim.keymap.set("n", "<MC-l>", "<c-w>5>")
-vim.keymap.set("n", "<MC-k>", "<C-w>+")
-vim.keymap.set("n", "<MC-j>", "<C-w>-")
+vim.keymap.set("n", "<c-w><", "<c-w>10<")
+vim.keymap.set("n", "<c-w>>", "<c-w>10>")
+vim.keymap.set("n", "<c-w>+", "<C-w>2+")
+vim.keymap.set("n", "<c-w>-", "<C-w>2-")
 
 -- next and previous buffers
 vim.keymap.set("n", '<leader>n', ":bnext<CR>")
@@ -41,5 +41,5 @@ vim.keymap.set("n", "<leader>cp", ":cprev<CR>")
 
 vim.keymap.set("n", "<leader>w", ":w<CR>", { nowait = true, silent = true })
 vim.keymap.set("n", "<leader>q", ":q<CR>", { nowait = true, silent = true })
-vim.keymap.set("n", "<leader>sv", ":vsplit<CR><C-w>l");
-vim.keymap.set("n", "<leader>sh", ":split<CR><C-w>j");
+vim.keymap.set("n", "<leader>s\\", ":vsplit<CR><C-w>l");
+vim.keymap.set("n", "<leader>s-", ":split<CR><C-w>j");

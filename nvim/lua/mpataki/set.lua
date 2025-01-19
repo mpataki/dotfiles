@@ -12,7 +12,7 @@ vim.opt.expandtab = true
 
 vim.opt.smartindent = true
 
-vim.opt.conceallevel = 0
+vim.opt.conceallevel = 1
 vim.opt.laststatus = 3
 
 vim.opt.wrap = false
