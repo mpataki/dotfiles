@@ -12,16 +12,35 @@ return {
 
         telescope.setup({
             defaults = {
+                layout_strategy = 'vertical',
+                layout_config = {
+                    vertical = {
+                        preview_cutoff = 10,
+                        preview_height = 0.5,
+                        width = 0.95,
+                        height = 0.95,
+                    },
+                },
                 mappings = {
                     i = {
                         ["<esc>"] = actions.close
                     }
                 },
             },
+            pickers = {
+                find_files = {
+                    theme = "ivy",
+                },
+                buffers = {
+                    theme = "ivy",
+                },
+                live_grep = {
+                    theme = "ivy",
+                },
+            },
             extensions = {
                 ['ui-select'] = {
-                    require('telescope.themes').get_dropdown({
-                    })
+                    require('telescope.themes').get_dropdown({})
                 }
             }
         })
