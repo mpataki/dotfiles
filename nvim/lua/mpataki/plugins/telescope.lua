@@ -29,13 +29,16 @@ return {
             },
             pickers = {
                 find_files = {
-                    theme = "ivy",
+                    path_display = {"smart"},
+                    layout_strategy = "vertical",
                 },
                 buffers = {
-                    theme = "ivy",
+                    path_display = {"smart"},
+                    layout_strategy = "vertical",
                 },
                 live_grep = {
-                    theme = "ivy",
+                    path_display = {"smart"},
+                    layout_strategy = "vertical",
                 },
             },
             extensions = {
