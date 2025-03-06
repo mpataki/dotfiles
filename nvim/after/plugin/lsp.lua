@@ -11,6 +11,23 @@ lsp.configure('lua_ls', {
     }
 })
 
+lsp.configure('gopls', {
+    capabilities = require('cmp_nvim_lsp').default_capabilities(),
+    root_dir = require('lspconfig.util').root_pattern('go.work', 'go.mod', '.git'),
+    settings = {
+        gopls = {
+            analyses = {
+                unusedparams = true,
+            },
+            staticcheck = true,
+            gofumpt = true,
+            usePlaceholders = true,
+            completeUnimported = true,
+            expandWorkspaceToModule = true,
+        },
+    },
+})
+
 lsp.on_attach(function(client, bufnr)
     local mapper = function(mode, key, result)
         vim.api.nvim_buf_set_keymap(0, mode, key, result, {noremap=true, silent=true})
