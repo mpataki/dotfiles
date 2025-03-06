@@ -158,7 +158,7 @@ alt-enter = 'fullscreen'
 alt-q = 'workspace 1'
 alt-w = 'workspace 2'
 alt-e = 'workspace 3'
-# alt-4 = 'workspace 4'
+alt-d = 'workspace 4'
 # alt-5 = 'workspace 5'
 # alt-6 = 'workspace 6'
 # alt-7 = 'workspace 7'
@@ -197,10 +197,10 @@ alt-e = 'workspace 3'
 # alt-z = 'workspace Z'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
-alt-shift-q = 'move-node-to-workspace 1 --focus-follows-window'
-alt-shift-w = 'move-node-to-workspace 2 --focus-follows-window'
-alt-shift-e = 'move-node-to-workspace 3 --focus-follows-window'
-# alt-shift-4 = 'move-node-to-workspace 4 --focus-follows-window'
+alt-ctrl-q = 'move-node-to-workspace 1 --focus-follows-window'
+alt-ctrl-w = 'move-node-to-workspace 2 --focus-follows-window'
+alt-ctrl-e = 'move-node-to-workspace 3 --focus-follows-window'
+alt-ctrl-d = 'move-node-to-workspace 4 --focus-follows-window'
 # alt-shift-5 = 'move-node-to-workspace 5 --focus-follows-window'
 # alt-shift-6 = 'move-node-to-workspace 6 --focus-follows-window'
 # alt-shift-7 = 'move-node-to-workspace 7 --focus-follows-window'
@@ -249,9 +249,10 @@ alt-shift-tab = 'move-workspace-to-monitor --wrap-around next'
 alt-shift-semicolon = 'mode service'
 
 [workspace-to-monitor-force-assignment]
-1 = 1
-2 = 'LS32R75'
-3 = 'S22R35x'
+1 = 'Built-in'
+2 = 'RD320U'
+3 = 'SDQHD'
+4 = 'SDQHD'
 
 # 'service' binding mode declaration.
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
