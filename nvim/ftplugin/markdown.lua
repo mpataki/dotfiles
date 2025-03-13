@@ -2,7 +2,7 @@ vim.opt_local.spell = true
 vim.opt_local.spelllang = 'en_ca,en_gb'
 
 -- Simple spell suggestion popup
-vim.keymap.set('n', '<leader>zs', function()
+vim.keymap.set('n', '<leader>z', function()
   local word = vim.fn.expand('<cword>')
   local suggestions = vim.fn.spellsuggest(word, 10)
   
