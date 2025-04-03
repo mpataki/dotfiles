@@ -210,6 +210,12 @@ function GradleBuild()
     executeViaVimux(command)
 end
 
+function GradleCompileJava()
+    local command = './gradlew compileJava && ./gradlew compileTestJava'
+    -- StartTerm(command)
+    executeViaVimux(command)
+end
+
 -- default debugger attachment
 require('dap').configurations.java = {
     {
@@ -226,10 +232,12 @@ vim.api.nvim_create_user_command('GradleRunTests', GradleRunTests, {})
 vim.api.nvim_create_user_command('DebugGradleTests', GradleDebugTests, {})
 vim.api.nvim_create_user_command('RunBoot', RunBoot, {})
 vim.api.nvim_create_user_command('DebugBoot', DebugBoot, {})
+vim.api.nvim_create_user_command('GradleCompileJava', GradleCompileJava, {})
 
 vim.keymap.set('n', '<Leader>gb', GradleBuild)
 vim.keymap.set('n', '<Leader>gt', GradleRunTests)
 vim.keymap.set('n', '<Leader>gT', GradleDebugTests)
 vim.keymap.set('n', '<Leader>gr', RunBoot)
 vim.keymap.set('n', '<Leader>gR', DebugBoot)
+vim.keymap.set('n', '<Leader>gc', GradleCompileJava)
 
