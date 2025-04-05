@@ -32,6 +32,17 @@ config.keys = {
           wezterm.open_with(sel)
       end)
   },
+  {
+      key = 'z',
+      mods = 'CTRL|SHIFT|OPT',
+      action = wezterm.action.ActivateWindow(0),
+  },
+
+  {
+      key = 'x',
+      mods = 'CTRL|SHIFT|OPT',
+      action = wezterm.action.ActivateWindow(1),
+  },
 }
 
 return config
