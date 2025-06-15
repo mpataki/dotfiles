@@ -75,6 +75,11 @@ local config = {
         }
     },
     on_attach = function(client, bufnr)
+        -- First set up the common LSP keybindings
+        if _G.setup_lsp_keybindings then
+            _G.setup_lsp_keybindings(bufnr)
+        end
+
         client.server_capabilities.semanticTokensProvider = nil
 
         -- note that jdtls is taking over the gq command, which usually drives formating, and I don't know how to make it stop...
@@ -86,6 +91,7 @@ local config = {
 
         -- require('jdtls').setup_dap({ hotcodereplace = 'auto' })
 
+        -- Java-specific keybinding: override 'gi' for organize imports
         vim.api.nvim_buf_set_keymap(0, 'n', 'gi', '<cmd>lua require("jdtls").organize_imports()<CR>', {noremap=true, silent=true})
         -- vim.api.nvim_buf_set_keymap(0, 'n', '<leader>tc', '<cmd>lua require("jdtls").test_class()<CR>', {noremap=true, silent=true})
         -- vim.api.nvim_buf_set_keymap(0, 'n', '<leader>tm', '<cmd>lua require("jdtls").test_nearest_method()<CR>', {noremap=true, silent=true})
