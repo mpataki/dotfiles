@@ -1,4 +1,3 @@
-local lspconfig = require('lspconfig')
 local mason = require('mason')
 local mason_lspconfig = require('mason-lspconfig')
 
@@ -53,9 +52,12 @@ mason_lspconfig.setup({
     },
 })
 
--- Configure individual LSP servers
+-- Configure individual LSP servers using native vim.lsp.config
 -- lua_ls
-lspconfig.lua_ls.setup({
+vim.lsp.config('lua_ls', {
+    cmd = { 'lua-language-server' },
+    filetypes = { 'lua' },
+    root_markers = { '.luarc.json', '.luarocks', '.git' },
     on_attach = on_attach,
     capabilities = capabilities,
     settings = {
@@ -68,10 +70,12 @@ lspconfig.lua_ls.setup({
 })
 
 -- gopls
-lspconfig.gopls.setup({
+vim.lsp.config('gopls', {
+    cmd = { 'gopls' },
+    filetypes = { 'go', 'gomod', 'gowork', 'gotmpl' },
+    root_markers = { 'go.work', 'go.mod', '.git' },
     on_attach = on_attach,
     capabilities = capabilities,
-    root_dir = lspconfig.util.root_pattern('go.work', 'go.mod', '.git'),
     settings = {
         gopls = {
             analyses = {
@@ -87,7 +91,10 @@ lspconfig.gopls.setup({
 })
 
 -- pylsp
-lspconfig.pylsp.setup({
+vim.lsp.config('pylsp', {
+    cmd = { 'pylsp' },
+    filetypes = { 'python' },
+    root_markers = { 'pyproject.toml', 'setup.py', 'setup.cfg', 'requirements.txt', '.git' },
     on_attach = on_attach,
     capabilities = capabilities,
     settings = {
@@ -103,8 +110,74 @@ lspconfig.pylsp.setup({
     }
 })
 
--- Setup servers that don't have custom configuration
+-- rust_analyzer
+vim.lsp.config('rust_analyzer', {
+    cmd = { 'rust-analyzer' },
+    filetypes = { 'rust' },
+    root_markers = { 'Cargo.toml', '.git' },
+    on_attach = on_attach,
+    capabilities = capabilities,
+})
+
+-- ts_ls (TypeScript Language Server)
+vim.lsp.config('ts_ls', {
+    cmd = { 'typescript-language-server', '--stdio' },
+    filetypes = { 'javascript', 'javascriptreact', 'javascript.jsx', 'typescript', 'typescriptreact', 'typescript.tsx' },
+    root_markers = { 'package.json', 'tsconfig.json', 'jsconfig.json', '.git' },
+    on_attach = on_attach,
+    capabilities = capabilities,
+})
+
+-- eslint
+vim.lsp.config('eslint', {
+    cmd = { 'vscode-eslint-language-server', '--stdio' },
+    filetypes = { 'javascript', 'javascriptreact', 'javascript.jsx', 'typescript', 'typescriptreact', 'typescript.tsx', 'vue', 'svelte', 'astro' },
+    root_markers = { '.eslintrc', '.eslintrc.js', '.eslintrc.cjs', '.eslintrc.yaml', '.eslintrc.yml', '.eslintrc.json', 'package.json', '.git' },
+    on_attach = on_attach,
+    capabilities = capabilities,
+})
+
+-- bashls
+vim.lsp.config('bashls', {
+    cmd = { 'bash-language-server', 'start' },
+    filetypes = { 'sh', 'bash' },
+    root_markers = { '.git' },
+    on_attach = on_attach,
+    capabilities = capabilities,
+})
+
+-- yamlls
+vim.lsp.config('yamlls', {
+    cmd = { 'yaml-language-server', '--stdio' },
+    filetypes = { 'yaml', 'yaml.docker-compose', 'yaml.gitlab' },
+    root_markers = { '.git' },
+    on_attach = on_attach,
+    capabilities = capabilities,
+})
+
+-- gradle_ls
+vim.lsp.config('gradle_ls', {
+    cmd = { 'gradle-language-server' },
+    filetypes = { 'gradle', 'gradle.kotlin' },
+    root_markers = { 'settings.gradle', 'settings.gradle.kts', '.git' },
+    on_attach = on_attach,
+    capabilities = capabilities,
+})
+
+-- marksman
+vim.lsp.config('marksman', {
+    cmd = { 'marksman', 'server' },
+    filetypes = { 'markdown', 'markdown.mdx' },
+    root_markers = { '.marksman.toml', '.git' },
+    on_attach = on_attach,
+    capabilities = capabilities,
+})
+
+-- Enable all configured servers
 local servers = {
+    'lua_ls',
+    'gopls',
+    'pylsp',
     'rust_analyzer',
     'ts_ls',
     'eslint',
@@ -115,10 +188,7 @@ local servers = {
 }
 
 for _, server in ipairs(servers) do
-    lspconfig[server].setup({
-        on_attach = on_attach,
-        capabilities = capabilities,
-    })
+    vim.lsp.enable(server)
 end
 
 -- Setup Mason DAP
