@@ -29,6 +29,73 @@ end
 -- Export the function globally so it can be used by ftplugin files
 _G.setup_lsp_keybindings = setup_lsp_keybindings
 
+-- Native diagnostic keymaps (alternative to trouble.nvim)
+-- These provide workspace-wide and buffer-specific diagnostic views
+-- Usage: <leader>x followed by q/l/e/w/d/D
+-- Quickfix list navigation: :cnext, :cprev, :copen, :cclose (or ]q, [q with vim-unimpaired)
+-- Location list navigation: :lnext, :lprev, :lopen, :lclose (or ]l, [l with vim-unimpaired)
+vim.keymap.set('n', '<leader>xq', function()
+    vim.diagnostic.setqflist({ title = "Workspace Diagnostics" })
+end, { desc = "Show all workspace diagnostics in quickfix" })
+
+vim.keymap.set('n', '<leader>xl', function()
+    vim.diagnostic.setloclist({ title = "Buffer Diagnostics" })
+end, { desc = "Show buffer diagnostics in location list" })
+
+-- Filtered diagnostic views
+vim.keymap.set('n', '<leader>xe', function()
+    vim.diagnostic.setqflist({
+        severity = vim.diagnostic.severity.ERROR,
+        title = "Workspace Errors"
+    })
+end, { desc = "Show only errors (workspace)" })
+
+vim.keymap.set('n', '<leader>xw', function()
+    vim.diagnostic.setqflist({
+        severity = { min = vim.diagnostic.severity.WARN },
+        title = "Workspace Warnings+"
+    })
+end, { desc = "Show warnings and errors (workspace)" })
+
+-- Additional useful diagnostic keymaps
+vim.keymap.set('n', '<leader>xd', vim.diagnostic.disable, { desc = "Disable diagnostics" })
+vim.keymap.set('n', '<leader>xD', vim.diagnostic.enable, { desc = "Enable diagnostics" })
+
+-- Quickfix and location list navigation helpers
+vim.keymap.set('n', ']q', vim.cmd.cnext, { desc = "Next quickfix item" })
+vim.keymap.set('n', '[q', vim.cmd.cprev, { desc = "Previous quickfix item" })
+vim.keymap.set('n', ']l', vim.cmd.lnext, { desc = "Next location list item" })
+vim.keymap.set('n', '[l', vim.cmd.lprev, { desc = "Previous location list item" })
+
+-- Toggle quickfix and location list
+vim.keymap.set('n', '<leader>qo', function()
+    local qf_exists = false
+    for _, win in pairs(vim.fn.getwininfo()) do
+        if win["quickfix"] == 1 then
+            qf_exists = true
+        end
+    end
+    if qf_exists then
+        vim.cmd.cclose()
+    else
+        vim.cmd.copen()
+    end
+end, { desc = "Toggle quickfix list" })
+
+vim.keymap.set('n', '<leader>lo', function()
+    local loc_exists = false
+    for _, win in pairs(vim.fn.getwininfo()) do
+        if win["loclist"] == 1 then
+            loc_exists = true
+        end
+    end
+    if loc_exists then
+        vim.cmd.lclose()
+    else
+        vim.cmd.lopen()
+    end
+end, { desc = "Toggle location list" })
+
 -- Common on_attach function
 local on_attach = function(client, bufnr)
     setup_lsp_keybindings(bufnr)

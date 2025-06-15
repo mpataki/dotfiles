@@ -32,14 +32,6 @@ vim.keymap.set("n", '<leader>p', ":bprevious<CR>")
 vim.keymap.set("n", '<c-o>', "<c-o>zz");
 vim.keymap.set("n", '<c-i>', "<c-i>zz");
 
--- quickfix
-vim.keymap.set("n", "<leader>co", ":copen<CR>")
-vim.keymap.set("n", "<leader>cc", ":cclose<CR>")
-vim.keymap.set("n", "<leader>cq", ":cclose<CR>")
-vim.keymap.set("n", "<leader>cn", ":cnext<CR>")
-vim.keymap.set("n", "<leader>cp", ":cprev<CR>")
-
 vim.keymap.set("n", "<leader>w", ":w<CR>", { nowait = true, silent = true })
-vim.keymap.set("n", "<leader>q", ":q<CR>", { nowait = true, silent = true })
 vim.keymap.set("n", "<leader>s\\", ":vsplit<CR><C-w>l");
 vim.keymap.set("n", "<leader>s-", ":split<CR><C-w>j");
