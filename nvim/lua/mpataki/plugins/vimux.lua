@@ -22,6 +22,21 @@ return {
           if !exists('g:VimuxTargetSetup')
             let g:VimuxTargetSetup = 1
             
+            " Helper function to check if runner exists
+            function! s:hasRunner(index)
+              let runnerType = VimuxOption('VimuxRunnerType')
+              return match(VimuxTmux('list-'.runnerType."s -F '#{".runnerType."_id}'"), a:index)
+            endfunction
+            
+            " Helper function to exit copy mode
+            function! s:exitCopyMode()
+              try
+                call VimuxTmux('copy-mode -q -t '.g:VimuxRunnerIndex)
+              catch
+                " Ignore if not in copy mode
+              endtry
+            endfunction
+            
             " Store the original VimuxRunCommand implementation
             function! s:VimuxRunCommandOrig(command, ...)
               " Original VimuxRunCommand logic
