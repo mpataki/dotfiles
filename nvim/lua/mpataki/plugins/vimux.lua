@@ -11,6 +11,13 @@ return {
         vim.keymap.set('n', '<leader>tx', ':VimuxInterruptRunner<CR>', { noremap = true, silent = true })
         vim.keymap.set('n', '<leader>tz', ':VimuxZoomRunner<CR>', { noremap = true, silent = true })
         vim.keymap.set('n', '<leader>tk', ':VimuxClearTerminalScreen<CR>', { noremap = true, silent = true })
+        vim.keymap.set('n', '<leader>tm', function()
+            if vim.g.VimuxCustomTarget == 'mark' then
+                vim.cmd('VimuxTarget clear')
+            else
+                vim.cmd('VimuxTarget mark')
+            end
+        end, { noremap = true, silent = true, desc = 'Toggle Vimux marked pane targeting' })
     end,
     config = function()
         -- Store the custom target mode for this Neovim session
