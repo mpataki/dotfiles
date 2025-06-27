@@ -45,6 +45,28 @@ return {
               template = nil
           },
 
+          -- Selective UI features for Obsidian-specific syntax
+          ui = {
+              enable = true,
+              update_debounce = 200,
+              -- Disable checkboxes and bullets (handled by render-markdown.nvim)
+              checkboxes = {},
+              bullets = {},
+              -- Enable only Obsidian-specific features
+              external_link_icon = { char = "", hl_group = "ObsidianExtLinkIcon" },
+              reference_text = { hl_group = "ObsidianRefText" },
+              highlight_text = { hl_group = "ObsidianHighlightText" },
+              tags = { hl_group = "ObsidianTag" },
+              block_ids = { hl_group = "ObsidianBlockID" },
+              hl_groups = {
+                  ObsidianTag = { fg = "#89ddff", italic = true },
+                  ObsidianRefText = { underline = true },
+                  ObsidianHighlightText = { bg = "#75662e" },
+                  ObsidianBlockID = { fg = "#89ddff", italic = true },
+                  ObsidianExtLinkIcon = { fg = "#c792ea" },
+              },
+          },
+
           -- Optional, by default when you use `:ObsidianFollowLink` on a link to an external
           -- URL it will be ignored but you can customize this behavior here.
           ---@param url string

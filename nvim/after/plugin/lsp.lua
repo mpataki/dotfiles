@@ -200,7 +200,11 @@ vim.lsp.config('eslint', {
     cmd = { 'vscode-eslint-language-server', '--stdio' },
     filetypes = { 'javascript', 'javascriptreact', 'javascript.jsx', 'typescript', 'typescriptreact', 'typescript.tsx', 'vue', 'svelte', 'astro' },
     root_markers = { '.eslintrc', '.eslintrc.js', '.eslintrc.cjs', '.eslintrc.yaml', '.eslintrc.yml', '.eslintrc.json', 'package.json', '.git' },
-    on_attach = on_attach,
+    on_attach = function(client, bufnr)
+        -- Disable ESLint diagnostics to avoid path errors
+        client.server_capabilities.diagnosticProvider = false
+        on_attach(client, bufnr)
+    end,
     capabilities = capabilities,
 })
 
