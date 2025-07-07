@@ -15,6 +15,32 @@ alias gcp='git cherry-pick'
 alias gpr='git pull-request'
 alias gb='git brach --all --verbose'
 
+gwt() {
+    local branch="$1"
+    local worktree_path="${2:-../$1}"
+    
+    # Ensure git is available
+    if ! command -v git &> /dev/null; then
+        echo "Error: git command not found" >&2
+        return 1
+    fi
+    
+    if ! git show-ref --verify --quiet "refs/heads/$branch"; then
+        git worktree add -b "$branch" "$worktree_path"
+    else
+        git worktree add "$worktree_path" "$branch"
+    fi
+    
+    echo "Worktree created at $worktree_path"
+    echo "Switching to $worktree_path"
+    cd $worktree_path
+}
+
+gwt-rm() {
+    local worktree_path="${1:-../$(basename $(pwd))}"
+    git worktree remove "$worktree_path"
+}
+
 # tmux
 alias ta='tmux attach -t'
 alias tad='tmux attach -d -t'
