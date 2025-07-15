@@ -270,11 +270,33 @@ local servers = {
     'yamlls',
     'gradle_ls',
     'marksman',
+    'clangd',
 }
 
 for _, server in ipairs(servers) do
     vim.lsp.enable(server)
 end
+
+-- LSP utility commands
+vim.api.nvim_create_user_command('LspInfo', function()
+  local clients = vim.lsp.get_clients()
+  if #clients == 0 then
+    print("No LSP clients attached")
+    return
+  end
+  for _, client in ipairs(clients) do
+    print(string.format("%s: %s", client.name, client.is_stopped() and "stopped" or "running"))
+  end
+end, {})
+
+vim.api.nvim_create_user_command('LspLog', function()
+  vim.cmd('edit ' .. vim.lsp.log.get_filename())
+end, {})
+
+vim.api.nvim_create_user_command('LspRestart', function()
+  vim.lsp.stop_client(vim.lsp.get_clients())
+  vim.cmd('edit')
+end, {})
 
 -- Setup Mason DAP
 require('mason-nvim-dap').setup({
