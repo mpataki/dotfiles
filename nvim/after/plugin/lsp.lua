@@ -244,9 +244,9 @@ vim.lsp.config('marksman', {
     capabilities = capabilities,
 })
 
--- clangd (using system installation)
+-- clangd (using LLVM 19 from Homebrew)
 vim.lsp.config('clangd', {
-    cmd = { 'clangd', '--background-index', '--clang-tidy', '--header-insertion=iwyu', '--completion-style=detailed', '--function-arg-placeholders', '--fallback-style=llvm' },
+    cmd = { '/opt/homebrew/opt/llvm@19/bin/clangd', '--background-index', '--clang-tidy', '--header-insertion=iwyu', '--completion-style=detailed', '--header-insertion=never', '--function-arg-placeholders', '--pretty', '--fallback-style=llvm' },
     filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' },
     root_markers = { '.clangd', '.clang-tidy', '.clang-format', 'compile_commands.json', 'compile_flags.txt', 'configure.ac', '.git' },
     on_attach = on_attach,

@@ -60,6 +60,23 @@ return {
                     -- Instead of true it can also be a list of languages
                     additional_vim_regex_highlighting = false,
                 },
+
+            -- Enable incremental selection based on tree-sitter
+            incremental_selection = {
+                enable = true,
+                keymaps = {
+                    init_selection = "<leader>ss",
+                    node_incremental = "<leader>si",
+                    scope_incremental = "<leader>sc",
+                    node_decremental = "<leader>sd",
+                },
+            },
+
+            -- Enable indentation based on tree-sitter
+            indent = {
+                enable = true,
+                disable = { "python" }, -- Python indentation can be problematic
+            },
             }
         end
     }
