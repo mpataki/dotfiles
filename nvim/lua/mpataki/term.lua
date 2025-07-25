@@ -93,4 +93,4 @@ vim.api.nvim_create_user_command(
 
 vim.api.nvim_create_user_command('RestartTerm', RestartTerm, {})
 
-vim.keymap.set({'n','t'}, '<Leader>r', RestartTerm)
+--vim.keymap.set({'n','t'}, '<Leader>r', RestartTerm)
