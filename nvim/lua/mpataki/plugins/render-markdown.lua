@@ -85,9 +85,9 @@ return {
                     scope_highlight = nil,
                 },
                 custom = {
-                    todo = { raw = '[-]', rendered = '󰥔', highlight = 'RenderMarkdownTodo', scope_highlight = nil },
+                    todo = { raw = '[TODO]', rendered = '󰥔', highlight = 'RenderMarkdownTodo', scope_highlight = nil },
                     inprogress = { raw = '[~]', rendered = '󰡖', highlight = 'RenderMarkdownInProgress', scope_highlight = nil },
-                    cancelled = { raw = '[_]', rendered = '󰩺', highlight = 'RenderMarkdownCancelled', scope_highlight = nil },
+                    cancelled = { raw = '[-]', rendered = '󰅖', highlight = 'RenderMarkdownCancelled', scope_highlight = 'RenderMarkdownCancelledScope' },
                     forwarded = { raw = '[>]', rendered = '󰒊', highlight = 'RenderMarkdownForwarded', scope_highlight = nil },
                     scheduled = { raw = '[<]', rendered = '󰃰', highlight = 'RenderMarkdownScheduled', scope_highlight = nil },
                     question = { raw = '[?]', rendered = '󰞋', highlight = 'RenderMarkdownQuestion', scope_highlight = nil },
@@ -187,5 +187,12 @@ return {
             },
         },
         ft = { "markdown" },
+        config = function(_, opts)
+            require('render-markdown').setup(opts)
+
+            -- Set up custom highlight groups for cancelled TODOs
+            vim.api.nvim_set_hl(0, 'RenderMarkdownCancelled', { fg = '#6c6c6c', strikethrough = true })
+            vim.api.nvim_set_hl(0, 'RenderMarkdownCancelledScope', { fg = '#6c6c6c', strikethrough = true })
+        end,
     }
 }
