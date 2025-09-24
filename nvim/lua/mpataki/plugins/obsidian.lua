@@ -45,6 +45,13 @@ return {
               template = nil
           },
 
+          templates = {
+              folder = "resources/templates",
+              date_format = "%Y-%m-%d",
+              time_format = "%H:%M",
+              substitutions = {}
+          },
+
           -- Selective UI features for Obsidian-specific syntax
           ui = {
               enable = true,
