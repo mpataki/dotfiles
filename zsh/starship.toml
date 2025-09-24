@@ -90,3 +90,15 @@ $character"""
 # $java\
 # $gradle\
 # $buf\
+
+# Directory configuration - simpler approach
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+format = "[$path]($style) "
+style = "cyan bold"
+
+# Show just the branch name, not the full path
+[git_branch]
+format = "on [$symbol$branch]($style) "
+style = "bold purple"

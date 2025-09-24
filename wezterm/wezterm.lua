@@ -30,14 +30,14 @@ config.keys = {
       action = wezterm.action_callback(function(window, pane)
           local sel = window:get_selection_text_for_pane(pane)
           wezterm.open_with(sel)
-      end)
+      end),
   },
+  {key="Enter", mods="SHIFT", action=wezterm.action{SendString="\x1b\r"}},
   {
       key = 'z',
       mods = 'CTRL|SHIFT|OPT',
       action = wezterm.action.ActivateWindow(0),
   },
-
   {
       key = 'x',
       mods = 'CTRL|SHIFT|OPT',
