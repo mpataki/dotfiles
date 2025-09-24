@@ -251,8 +251,8 @@ alt-shift-semicolon = 'mode service'
 [workspace-to-monitor-force-assignment]
 1 = 'Built-in'
 2 = 'RD320U'
+# 2 = 'MQ16AHE'
 3 = 'SDQHD'
-4 = 'SDQHD'
 
 # 'service' binding mode declaration.
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
