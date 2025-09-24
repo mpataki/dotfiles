@@ -80,7 +80,7 @@ return {
                     scope_highlight = nil,
                 },
                 checked = {
-                    icon = '󰱒',
+                    icon = '󰄬',
                     highlight = 'RenderMarkdownChecked',
                     scope_highlight = nil,
                 },
@@ -88,7 +88,7 @@ return {
                     todo = { raw = '[TODO]', rendered = '󰥔', highlight = 'RenderMarkdownTodo', scope_highlight = nil },
                     inprogress = { raw = '[~]', rendered = '󰡖', highlight = 'RenderMarkdownInProgress', scope_highlight = nil },
                     cancelled = { raw = '[-]', rendered = '󰅖', highlight = 'RenderMarkdownCancelled', scope_highlight = 'RenderMarkdownCancelledScope' },
-                    forwarded = { raw = '[>]', rendered = '󰒊', highlight = 'RenderMarkdownForwarded', scope_highlight = nil },
+                    forwarded = { raw = '[>]', rendered = '󰁕', highlight = 'RenderMarkdownForwarded', scope_highlight = 'RenderMarkdownForwardedScope' },
                     scheduled = { raw = '[<]', rendered = '󰃰', highlight = 'RenderMarkdownScheduled', scope_highlight = nil },
                     question = { raw = '[?]', rendered = '󰞋', highlight = 'RenderMarkdownQuestion', scope_highlight = nil },
                     important = { raw = '[!]', rendered = '󰀨', highlight = 'RenderMarkdownImportant', scope_highlight = nil },
@@ -193,6 +193,10 @@ return {
             -- Set up custom highlight groups for cancelled TODOs
             vim.api.nvim_set_hl(0, 'RenderMarkdownCancelled', { fg = '#6c6c6c', strikethrough = true })
             vim.api.nvim_set_hl(0, 'RenderMarkdownCancelledScope', { fg = '#6c6c6c', strikethrough = true })
+
+            -- Set up custom highlight groups for forwarded TODOs
+            vim.api.nvim_set_hl(0, 'RenderMarkdownForwarded', { fg = '#ffab02', bold = true })
+            vim.api.nvim_set_hl(0, 'RenderMarkdownForwardedScope', { fg = '#d19a66', italic = true })
         end,
     }
 }
