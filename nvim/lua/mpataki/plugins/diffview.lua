@@ -7,7 +7,15 @@ return {
     local diffview = require('diffview')
 
     diffview.setup({
-      -- Default configuration
+      view = {
+        default = {
+          layout = "diff2_vertical",
+          winbar_info = true,
+        },
+        merge_tool = {
+          layout = "diff3_vertical",
+        },
+      },
     })
 
     -- Set up keymaps
