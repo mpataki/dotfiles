@@ -37,5 +37,6 @@ fi
 . python/setup_python.sh
 . node/setup_node.sh
 . misc_tools/setup_misc_tools.sh
+. claude/setup_claude.sh
 
 print_with_color $GREEN "Done."
