@@ -28,6 +28,9 @@
 ## enable or disable automatic update checks
 update_check = true
 
+## store commands that failed (exited with non-zero status)
+store_failed = false
+
 ## address of the sync server
 # sync_address = "https://api.atuin.sh"
 
