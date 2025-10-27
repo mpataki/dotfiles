@@ -36,7 +36,7 @@ return {
               -- Optional, if you keep daily notes in a separate directory.
               folder = "resources/dailies",
               -- Optional, if you want to change the date format for the ID of daily notes.
-              date_format = "%Y-%m-%d",
+              date_format = "%Y-%m-%d-daily",
               -- Optional, if you want to change the date format of the default alias of daily notes.
               alias_format = "%B %-d, %Y",
               -- Optional, default tags to add to each new daily note created.
@@ -97,29 +97,28 @@ return {
       vim.keymap.set('n', '<leader>or', ':ObsidianRename<CR>', { silent = true })
       vim.keymap.set('n', '<leader>oc', ':ObsidianToggleCheckbox<CR>', { expr = true, silent = true })
       vim.keymap.set('n', '<leader>od', ':ObsidianDailies<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>od', ':ObsidianDailies<CR>', { silent = true })
 
       -- Create an autocommand group for Obsidian auto-commit
       local obsidian_autocommit = vim.api.nvim_create_augroup('ObsidianAutoCommit', { clear = true })
 
       -- Create the autocommand for auto-committing on save
-      vim.api.nvim_create_autocmd('BufWritePost', {
-          group = obsidian_autocommit,
-          pattern = vim.fn.expand("~") .. "/obsidian-notes-vault/**",
-          callback = function()
-              local file = vim.fn.expand('%:p')
-              local vault_path = vim.fn.expand("~") .. "/obsidian-notes-vault"
-
-              -- Get the relative path for the commit message
-              local relative_path = string.sub(file, #vault_path + 2)
-
-              -- Run git commands
-              vim.fn.system(string.format('cd %s && git add "%s" && git commit -m "Auto-commit: %s" && git push',
-              vault_path,
-              relative_path,
-              relative_path
-              ))
-          end,
-      })
+  --     vim.api.nvim_create_autocmd('BufWritePost', {
+  --         group = obsidian_autocommit,
+  --         pattern = vim.fn.expand("~") .. "/obsidian-notes-vault/**",
+  --         callback = function()
+  --             local file = vim.fn.expand('%:p')
+  --             local vault_path = vim.fn.expand("~") .. "/obsidian-notes-vault"
+  --
+  --             -- Get the relative path for the commit message
+  --             local relative_path = string.sub(file, #vault_path + 2)
+  --
+  --             -- Run git commands
+  --             vim.fn.system(string.format('cd %s && git add "%s" && git commit -m "Auto-commit: %s" && git push',
+  --             vault_path,
+  --             relative_path,
+  --             relative_path
+  --             ))
+  --         end,
+  --     })
   end
 }

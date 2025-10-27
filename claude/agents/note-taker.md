@@ -34,7 +34,7 @@ This is your working directory. All file paths, searches, and operations are rel
 ### Note Creation
 - Always add unique ID in frontmatter: `id: kebab-case-name`
 - Use ID-based links: `[[note-id]]` not path-based links
-- Add relevant tags for cross-cutting themes
+- **After creating or meaningfully modifying notes, use `/tag <filepath>`** to generate and apply discovery-focused tags
 - **Always add link to new notes from today's daily note** (in "Notes Created Today" section or similar)
 
 ### Organization
