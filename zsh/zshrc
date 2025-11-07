@@ -50,11 +50,16 @@ eval "$(atuin init zsh --disable-up-arrow)"
 #   }
 # fi
 
-# rbenv
-# if [[ `which rbenv` ]]; then
-#     export PATH="$HOME/.rbenv/bin:$PATH"
-#     eval "$(rbenv init - zsh)"
-# fi
+# asdf
+if [[ `uname | grep Darwin` ]]; then
+  if [ -f /opt/homebrew/opt/asdf/libexec/asdf.sh ]; then
+    . /opt/homebrew/opt/asdf/libexec/asdf.sh
+  fi
+else
+  if [ -f "$HOME/.asdf/asdf.sh" ]; then
+    . "$HOME/.asdf/asdf.sh"
+  fi
+fi
 
 # these are so friggin slow... let's not and find something better
 # pyenv

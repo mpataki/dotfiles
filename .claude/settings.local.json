@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(grep:*)",
+      "Bash(source:*)",
+      "Bash(gwt test-branch:*)",
+      "Bash(ls:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Read(//Users/mat/obsidian-notes-vault/dailies/**)",
+      "Bash(cat:*)",
+      "Read(//Users/mat/.claude/**)"
+    ],
+    "deny": []
+  },
+  "enabledMcpjsonServers": [
+    "lsp",
+    "filesystem",
+    "macos-screen"
+  ]
+}

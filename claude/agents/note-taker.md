@@ -71,7 +71,6 @@ This is your working directory. All file paths, searches, and operations are rel
 - Commit immediately after file changes
 - Batch related changes into logical commits
 - Use descriptive commit messages
-- Include Claude attribution for transparency
 - Always push at end of sessions
 
 ### Content Linking

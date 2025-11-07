@@ -114,6 +114,7 @@ mason_lspconfig.setup({
         'marksman', -- markdown
         'gopls',
         'pylsp',
+        -- 'ruby_lsp', -- Installed as gem via asdf, not via Mason
         -- 'clangd', -- Let's use the system clangd
         -- 'jdtls', -- I'll roll this one manually to get more control.. java..
     },
@@ -244,6 +245,18 @@ vim.lsp.config('marksman', {
     capabilities = capabilities,
 })
 
+-- ruby_lsp (installed as gem via asdf, not via Mason)
+vim.lsp.config('ruby_lsp', {
+    cmd = { vim.fn.expand('~/.asdf/shims/ruby-lsp') },
+    filetypes = { 'ruby', 'rakefile' },
+    root_markers = { 'Gemfile', '.git' },
+    on_attach = on_attach,
+    capabilities = capabilities,
+    init_options = {
+        formatter = 'auto',
+    },
+})
+
 -- clangd (using LLVM 19 from Homebrew)
 vim.lsp.config('clangd', {
     cmd = { '/opt/homebrew/opt/llvm@19/bin/clangd', '--background-index', '--clang-tidy', '--header-insertion=iwyu', '--completion-style=detailed', '--header-insertion=never', '--function-arg-placeholders', '--pretty', '--fallback-style=llvm' },
@@ -270,12 +283,22 @@ local servers = {
     'yamlls',
     'gradle_ls',
     'marksman',
+    'ruby_lsp',
     'clangd',
 }
 
 for _, server in ipairs(servers) do
     vim.lsp.enable(server)
 end
+
+-- Ruby format on save (only works when project has formatter in Gemfile)
+vim.api.nvim_create_autocmd("BufWritePre", {
+    pattern = "*.rb",
+    callback = function()
+        -- Use pcall to silently fail if no formatter available
+        pcall(vim.lsp.buf.format, { timeout_ms = 2000 })
+    end,
+})
 
 -- LSP utility commands
 vim.api.nvim_create_user_command('LspInfo', function()

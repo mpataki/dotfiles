@@ -35,6 +35,7 @@ fi
 . go/setup_go.sh
 . java/setup_java.sh
 . python/setup_python.sh
+. ruby/setup_ruby.sh
 . node/setup_node.sh
 . misc_tools/setup_misc_tools.sh
 . claude/setup_claude.sh
