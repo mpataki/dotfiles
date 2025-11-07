@@ -4,6 +4,7 @@
 function setup_claude() {
   check_and_link_file `pwd`/claude-config/agents/ $HOME/.claude/agents
   check_and_link_file `pwd`/claude-config/skills/ $HOME/.claude/skills
+  check_and_link_file `pwd`/claude-config/commands/ $HOME/.claude/commands
   check_and_link_file `pwd`/claude-config/CLAUDE.md $HOME/.claude/CLAUDE.md
   check_and_link_file `pwd`/claude-config/settings.json $HOME/.claude/settings.json
 }
