@@ -32,15 +32,15 @@ return {
                 position = 'overlay',
                 icons = { '󰲡 ', '󰲣 ', '󰲥 ', '󰲧 ', '󰲩 ', '󰲫 ' },
                 signs = { '󰫎 ' },
-                width = 'full',
+                width = 'block',
                 left_margin = 0,
                 left_pad = 0,
                 right_pad = 0,
                 min_width = 0,
                 border = false,
                 border_prefix = false,
-                above = '▄',
-                below = '▀',
+                above = '',
+                below = '',
                 backgrounds = {
                     'RenderMarkdownH1Bg',
                     'RenderMarkdownH2Bg',
@@ -199,6 +199,14 @@ return {
             -- Set up custom highlight groups for forwarded TODOs
             vim.api.nvim_set_hl(0, 'RenderMarkdownForwarded', { fg = '#ffab02', bold = true })
             vim.api.nvim_set_hl(0, 'RenderMarkdownForwardedScope', { fg = '#d19a66', italic = true })
+
+            -- Set up gradient colors for headers (cyan -> blue -> purple -> magenta)
+            vim.api.nvim_set_hl(0, 'RenderMarkdownH1', { fg = '#61afef', bold = true })  -- Bright blue
+            vim.api.nvim_set_hl(0, 'RenderMarkdownH2', { fg = '#7c9cef', bold = true })  -- Blue-purple
+            vim.api.nvim_set_hl(0, 'RenderMarkdownH3', { fg = '#9589e8', bold = true })  -- Purple
+            vim.api.nvim_set_hl(0, 'RenderMarkdownH4', { fg = '#b577d1', bold = true })  -- Purple-magenta
+            vim.api.nvim_set_hl(0, 'RenderMarkdownH5', { fg = '#c678dd', bold = true })  -- Magenta
+            vim.api.nvim_set_hl(0, 'RenderMarkdownH6', { fg = '#d08dc8', bold = true })  -- Light magenta
         end,
     }
 }
