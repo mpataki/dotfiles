@@ -17,7 +17,11 @@ return {
     vim.api.nvim_set_hl(0, 'NotificationWarning', { fg = '#FFA500', bg = '#000000', italic = true })
     vim.api.nvim_set_hl(0, 'NotificationError', { fg = '#ff2f2f', bg = '#000000', italic = true })
 
-    end,
+    vim.keymap.set('n', '<leader>D', function()
+      vim.cmd('tabnew')
+      vim.cmd('DBUI')
+    end, { desc = 'Open DBUI in new tab' })
+  end,
   config = function ()
     local function db_completion()
         require("cmp").setup.buffer { sources = { { name = "vim-dadbod-completion" } } }

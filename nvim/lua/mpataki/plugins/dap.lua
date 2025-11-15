@@ -15,7 +15,19 @@ return {
             'rcarriga/nvim-dap-ui',
         },
         config = function()
-            require('dapui').setup()
+            local dap, dapui = require('dap'), require('dapui')
+            dapui.setup()
+
+            -- Auto-open/close DAP UI
+            dap.listeners.after.event_initialized["dapui_config"] = function()
+                dapui.open()
+            end
+            dap.listeners.before.event_terminated["dapui_config"] = function()
+                dapui.close()
+            end
+            dap.listeners.before.event_exited["dapui_config"] = function()
+                dapui.close()
+            end
 
             vim.fn.sign_define('DapBreakpoint', {text='⚈', texthl='', linehl='', numhl=''})
             vim.fn.sign_define('DapStopped', {text = '→', texthl = '', linehl = 'Search', numhl = ''})
@@ -55,12 +67,16 @@ return {
             end)
 
             vim.keymap.set({'n', 'v'}, '<Leader>du', function()
-                require("dapui").toggle()
+                dapui.toggle()
             end)
 
             require('telescope').load_extension('dap')
 
-            local dap = require('dap')
+            -- Load project-specific launch.json configurations
+            require('dap.ext.vscode').load_launchjs(nil, {
+                ['pwa-node'] = {'javascript', 'typescript', 'javascriptreact', 'typescriptreact'},
+                ['pwa-chrome'] = {'javascript', 'typescript', 'javascriptreact', 'typescriptreact'},
+            })
 
             dap.adapters['pwa-node'] = {
                 type = "server",
@@ -72,10 +88,14 @@ return {
                 }
             }
 
-            dap.adapters['chrome'] = {
-                type = 'executable',
-                command = 'node',
-                args = {os.getenv('HOME') .. '/.local/share/nvim/mason/packages/chrome-debug-adapter/out/src/chromeDebug.js'}
+            dap.adapters['pwa-chrome'] = {
+                type = "server",
+                host = "localhost",
+                port = "${port}",
+                executable = {
+                    command = "js-debug-adapter",
+                    args = {"${port}"},
+                }
             }
 
             for _, language in ipairs { 'typescript', 'javascript', 'typescriptreact', 'javascriptreact' } do
@@ -85,9 +105,8 @@ return {
                         request = 'launch',
                         name = 'Launch File',
                         program = "${file}",
-                        cmd = "${workspaceFolder}",
-                        -- runtimeExecutable = 'node',
-                        -- sourceMaps = true,
+                        cwd = "${workspaceFolder}",
+                        sourceMaps = true,
                     },
                     {
                         name = "Attach node debugger by process",
@@ -95,7 +114,7 @@ return {
                         request = "attach",
                         processId = require("dap.utils").pick_process,
                         cwd = "${workspaceFolder}",
-                        -- sourceMaps = true,
+                        sourceMaps = true,
                     },
                     {
                         name = "Attach node debugger by port",
@@ -103,11 +122,11 @@ return {
                         request = "attach",
                         port = 9229,
                         cwd = "${workspaceFolder}",
-                        -- sourceMaps = true,
+                        sourceMaps = true,
                     },
                     {
                         name = "Attach Chrome Debugger",
-                        type = "chrome",
+                        type = "pwa-chrome",
                         request = "attach",
                         sourceMaps = true,
                         cwd = vim.fn.getcwd(),

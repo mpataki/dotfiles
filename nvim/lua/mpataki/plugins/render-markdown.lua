@@ -118,16 +118,12 @@ return {
             },
             pipe_table = {
                 enabled = true,
-                preset = 'heavy',
+                preset = 'none',
                 style = 'full',
                 cell = 'padded',
                 padding = 1,
                 min_width = 0,
-                border = {
-                    '┏', '┳', '┓', '┣', '╋', '┫', '┗', '┻', '┛',
-                    '┃', '┃', '┃',
-                },
-                alignment_indicator = '━',
+                alignment_indicator = '─',
                 head = 'RenderMarkdownTableHead',
                 row = 'RenderMarkdownTableRow',
                 filler = 'RenderMarkdownTableFill',
