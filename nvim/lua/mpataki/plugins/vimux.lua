@@ -1,140 +1,106 @@
 return {
-    "preservim/vimux",
-    init = function()
-        vim.g.VimuxOrientation = "h"
-        vim.g.VimuxHeight = "38%"
-        vim.g.VimuxOpenExtraArgs = "-b" -- for "before", referring to the new pane position relative to the current one (so, on the left)
+  "preservim/vimux",
+  init = function()
+    vim.g.VimuxOrientation = "h"
+    vim.g.VimuxHeight = "38%"
+    vim.g.VimuxOpenExtraArgs = "-b" -- for "before", referring to the new pane position relative to the current one (so, on the left)
+  end,
+  config = function()
+    -- Mode tracking: 'vimux' (managed runner) or 'marked' (target marked pane)
+    local targetMode = 'vimux'
+    local lastMarkedCommand = nil
 
-        vim.keymap.set('n', '<leader>tp', ':VimuxPromptCommand<CR>', { noremap = true, silent = true })
-        vim.keymap.set('n', '<leader>tl', ':VimuxRunLastCommand<CR>', { noremap = true, silent = true })
-        vim.keymap.set('n', '<leader>tq', ':VimuxCloseRunner<CR>', { noremap = true, silent = true })
-        vim.keymap.set('n', '<leader>tx', ':VimuxInterruptRunner<CR>', { noremap = true, silent = true })
-        vim.keymap.set('n', '<leader>tz', ':VimuxZoomRunner<CR>', { noremap = true, silent = true })
-        vim.keymap.set('n', '<leader>tk', ':VimuxClearTerminalScreen<CR>', { noremap = true, silent = true })
-        vim.keymap.set('n', '<leader>tm', function()
-            if vim.g.VimuxCustomTarget == 'mark' then
-                vim.cmd('VimuxTarget clear')
-            else
-                vim.cmd('VimuxTarget mark')
-            end
-        end, { noremap = true, silent = true, desc = 'Toggle Vimux marked pane targeting' })
-    end,
-    config = function()
-        -- Store the custom target mode for this Neovim session
-        vim.g.VimuxCustomTarget = nil
-        
-        -- Setup the cross-session targeting by overriding VimuxRunCommand
-        vim.cmd([[
-          " Save original function and override VimuxRunCommand for marked pane support
-          if !exists('g:VimuxTargetSetup')
-            let g:VimuxTargetSetup = 1
-            
-            " Helper function to check if runner exists
-            function! s:hasRunner(index)
-              let runnerType = VimuxOption('VimuxRunnerType')
-              return match(VimuxTmux('list-'.runnerType."s -F '#{".runnerType."_id}'"), a:index)
-            endfunction
-            
-            " Helper function to exit copy mode
-            function! s:exitCopyMode()
-              try
-                call VimuxTmux('copy-mode -q -t '.g:VimuxRunnerIndex)
-              catch
-                " Ignore if not in copy mode
-              endtry
-            endfunction
-            
-            " Store the original VimuxRunCommand implementation
-            function! s:VimuxRunCommandOrig(command, ...)
-              " Original VimuxRunCommand logic
-              if !exists('g:VimuxRunnerIndex') || s:hasRunner(g:VimuxRunnerIndex) ==# -1
-                call VimuxOpenRunner()
-              endif
-              let l:autoreturn = 1
-              if exists('a:1')
-                let l:autoreturn = a:1
-              endif
-              let l:resetSequence = VimuxOption('VimuxResetSequence')
-              let g:VimuxLastCommand = a:command
-
-              call s:exitCopyMode()
-              call VimuxSendKeys(l:resetSequence)
-              call VimuxSendText(a:command)
-              if l:autoreturn ==# 1
-                call VimuxSendKeys('Enter')
-              endif
-            endfunction
-            
-            " New VimuxRunCommand with marked pane support
-            function! VimuxRunCommand(command, ...)
-              " Check if we should use marked pane
-              if exists('g:VimuxCustomTarget') && g:VimuxCustomTarget == 'mark'
-                " Get the marked pane ID
-                let marked_pane = system('tmux list-panes -a -F "#{pane_id} #{?pane_marked,MARKED,}" | grep MARKED | cut -d" " -f1 | tr -d "\n"')
-                
-                if marked_pane != ''
-                  " Set the marked pane as runner - this bypasses hasRunner check
-                  let g:VimuxRunnerIndex = marked_pane
-                  
-                  " Execute command directly on marked pane
-                  let l:autoreturn = 1
-                  if exists('a:1')
-                    let l:autoreturn = a:1
-                  endif
-                  let l:resetSequence = VimuxOption('VimuxResetSequence')
-                  let g:VimuxLastCommand = a:command
-
-                  " Exit copy mode and send command
-                  try
-                    call VimuxTmux('copy-mode -q -t '.g:VimuxRunnerIndex)
-                  catch
-                    " Ignore if not in copy mode
-                  endtry
-                  call VimuxSendKeys(l:resetSequence)
-                  call VimuxSendText(a:command)
-                  if l:autoreturn ==# 1
-                    call VimuxSendKeys('Enter')
-                  endif
-                  return
-                else
-                  echo "No marked pane found. Use 'prefix + m' in tmux to mark a pane."
-                  return
-                endif
-              endif
-              
-              " Default behavior - use original logic
-              call call('s:VimuxRunCommandOrig', [a:command] + a:000)
-            endfunction
-          endif
-        ]])
-        
-        -- Create the VimuxTarget command
-        vim.api.nvim_create_user_command('VimuxTarget', function(opts)
-          local target = opts.args
-          if target == '' then
-            if vim.g.VimuxCustomTarget then
-              print("Current target: " .. (vim.g.VimuxCustomTarget == 'mark' and 'marked pane' or vim.g.VimuxCustomTarget))
-            else
-              print("Using default Vimux behavior")
-            end
-          elseif target == 'mark' then
-            vim.g.VimuxCustomTarget = 'mark'
-            -- Clear any existing runner index to force re-evaluation
-            vim.g.VimuxRunnerIndex = vim.NIL
-            print("Vimux will now target the marked pane (use 'prefix + m' in tmux to mark)")
-          elseif target == 'clear' then
-            vim.g.VimuxCustomTarget = vim.NIL
-            vim.g.VimuxRunnerIndex = vim.NIL
-            print("Vimux target cleared - using default behavior")
-          else
-            print("Usage: :VimuxTarget [mark|clear]")
-          end
-        end, {
-          nargs = '?',
-          complete = function()
-            return { 'mark', 'clear' }
-          end,
-          desc = "Set Vimux to target marked pane or clear custom targeting"
-        })
+    -- Marked pane helpers
+    local function getMarkedPane()
+      local result = vim.fn.system('tmux list-panes -a -F "#{pane_id} #{?pane_marked,MARKED,}" | grep MARKED | cut -d" " -f1 | tr -d "\n"')
+      return result ~= '' and result or nil
     end
+
+    local function sendToMarked(cmd, enter)
+      local pane = getMarkedPane()
+      if not pane then
+        print("No marked pane found. Use 'prefix + m' in tmux to mark a pane.")
+        return false
+      end
+
+      -- Send command directly to marked pane via tmux
+      vim.fn.system(string.format("tmux send-keys -t %s -X cancel", pane)) -- Exit copy mode
+      vim.fn.system(string.format("tmux send-keys -t %s -l %s", vim.fn.shellescape(pane), vim.fn.shellescape(cmd)))
+      if enter then
+        vim.fn.system(string.format("tmux send-keys -t %s Enter", vim.fn.shellescape(pane)))
+      end
+
+      lastMarkedCommand = cmd
+      return true
+    end
+
+    -- Mode-aware command wrappers
+    local function promptCommand()
+      local cmd = vim.fn.input('Command? ')
+      if cmd == '' then return end
+
+      if targetMode == 'marked' then
+        sendToMarked(cmd, true)
+      else
+        vim.cmd(string.format('VimuxRunCommand "%s"', cmd:gsub('"', '\\"')))
+      end
+    end
+
+    local function runLastCommand()
+      if targetMode == 'marked' then
+        if lastMarkedCommand then
+          sendToMarked(lastMarkedCommand, true)
+        else
+          print("No previous command in marked pane mode")
+        end
+      else
+        vim.cmd('VimuxRunLastCommand')
+      end
+    end
+
+    local function interruptRunner()
+      if targetMode == 'marked' then
+        local pane = getMarkedPane()
+        if pane then
+          vim.fn.system(string.format("tmux send-keys -t %s C-c", vim.fn.shellescape(pane)))
+        end
+      else
+        vim.cmd('VimuxInterruptRunner')
+      end
+    end
+
+    local function clearTerminal()
+      if targetMode == 'marked' then
+        sendToMarked('clear', true)
+      else
+        vim.cmd('VimuxClearTerminalScreen')
+      end
+    end
+
+    local function toggleMode()
+      if targetMode == 'marked' then
+        targetMode = 'vimux'
+        print("Target: Vimux managed runner")
+      else
+        local pane = getMarkedPane()
+        if pane then
+          targetMode = 'marked'
+          print("Target: marked pane " .. pane)
+        else
+          print("No marked pane found. Use 'prefix + m' in tmux to mark a pane.")
+        end
+      end
+    end
+
+    -- Keybindings (mode-aware)
+    vim.keymap.set('n', '<leader>tp', promptCommand, { desc = 'Prompt for command' })
+    vim.keymap.set('n', '<leader>tl', runLastCommand, { desc = 'Run last command' })
+    vim.keymap.set('n', '<leader>tx', interruptRunner, { desc = 'Interrupt runner' })
+    vim.keymap.set('n', '<leader>tk', clearTerminal, { desc = 'Clear terminal' })
+    vim.keymap.set('n', '<leader>tm', toggleMode, { desc = 'Toggle target mode (Vimux/marked)' })
+
+    -- Vimux-only commands (don't make sense for marked panes)
+    vim.keymap.set('n', '<leader>tq', ':VimuxCloseRunner<CR>', { desc = 'Close Vimux runner' })
+    vim.keymap.set('n', '<leader>tz', ':VimuxZoomRunner<CR>', { desc = 'Zoom Vimux runner' })
+  end
 }
