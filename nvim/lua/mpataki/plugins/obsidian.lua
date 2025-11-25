@@ -36,7 +36,7 @@ return {
               -- Optional, if you keep daily notes in a separate directory.
               folder = "resources/dailies",
               -- Optional, if you want to change the date format for the ID of daily notes.
-              date_format = "%Y-%m-%d-daily",
+              date_format = "%Y/%m/%Y-%m-%d-daily",
               -- Optional, if you want to change the date format of the default alias of daily notes.
               alias_format = "%B %-d, %Y",
               -- Optional, default tags to add to each new daily note created.

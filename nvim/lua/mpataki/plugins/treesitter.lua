@@ -16,6 +16,7 @@ return {
                 'vimdoc',
                 'query',
                 'go',
+                'gomod',
                 'rust',
                 'proto',
                 'terraform',
