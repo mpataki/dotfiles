@@ -38,7 +38,7 @@ return {
             vim.keymap.set('n', '<Leader>do', function() require('dap').step_over() end)
             vim.keymap.set('n', '<Leader>db', function() require('dap').toggle_breakpoint() end)
             vim.keymap.set('n', '<Leader>dr', function() require('dap').run_last() end)
-            vim.keymap.set('n', '<Leader>dt', function() require('dap').terminate() end)
+            vim.keymap.set('n', '<Leader>dx', function() require('dap').terminate() end)
             vim.keymap.set('n', '<Leader>dk', function() require('dap').up() end)
             vim.keymap.set('n', '<Leader>dj', function() require('dap').down() end)
             vim.keymap.set('n', '<Leader>df', function() require('dap').focus_frame() end)
@@ -71,12 +71,6 @@ return {
             end)
 
             require('telescope').load_extension('dap')
-
-            -- Load project-specific launch.json configurations
-            require('dap.ext.vscode').load_launchjs(nil, {
-                ['pwa-node'] = {'javascript', 'typescript', 'javascriptreact', 'typescriptreact'},
-                ['pwa-chrome'] = {'javascript', 'typescript', 'javascriptreact', 'typescriptreact'},
-            })
 
             dap.adapters['pwa-node'] = {
                 type = "server",
@@ -157,6 +151,49 @@ return {
                     args = { "--port", "${port}" },
                 },
             }
+
+            -- Go
+            dap.adapters.delve = {
+                type = 'server',
+                port = '${port}',
+                executable = {
+                    command = 'dlv',
+                    args = { 'dap', '-l', '127.0.0.1:${port}' },
+                }
+            }
+
+            dap.configurations.go = {
+                {
+                    type = 'delve',
+                    name = 'Debug',
+                    request = 'launch',
+                    program = '${file}'
+                },
+                {
+                    type = 'delve',
+                    name = 'Debug test',
+                    request = 'launch',
+                    mode = 'test',
+                    program = '${file}'
+                },
+                {
+                    type = 'delve',
+                    name = 'Debug test (go.mod)',
+                    request = 'launch',
+                    mode = 'test',
+                    program = './${relativeFileDirname}'
+                },
+            }
+
+            -- Load project-specific launch.json configurations (after defaults)
+            local launch_file = vim.fn.getcwd() .. '/launch.json'
+            if vim.fn.filereadable(launch_file) == 1 then
+                require('dap.ext.vscode').load_launchjs(launch_file, {
+                    ['pwa-node'] = {'javascript', 'typescript', 'javascriptreact', 'typescriptreact'},
+                    ['pwa-chrome'] = {'javascript', 'typescript', 'javascriptreact', 'typescriptreact'},
+                    ['delve'] = {'go'},
+                })
+            end
         end
     },
     {
