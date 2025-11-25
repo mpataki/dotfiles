@@ -3,6 +3,7 @@ return {
   dependencies = {
     { 'tpope/vim-dadbod', lazy = true },
     { 'kristijanhusak/vim-dadbod-completion', ft = { 'sql', 'mysql', 'plsql' }, lazy = true },
+    { 'junegunn/vim-redis', ft = 'redis', lazy = true },
   },
   cmd = {
     'DBUI',
@@ -44,6 +45,18 @@ return {
         },
         callback = function()
             vim.schedule(db_completion)
+        end,
+    })
+
+    -- Apply Redis filetype to Redis buffers from dadbod
+    vim.api.nvim_create_autocmd("BufEnter", {
+        pattern = "*",
+        callback = function()
+            local bufname = vim.api.nvim_buf_get_name(0)
+            -- Check if this is a Redis buffer from dadbod
+            if bufname:match("redis://") or bufname:match("%.redis$") then
+                vim.bo.filetype = "redis"
+            end
         end,
     })
   end
