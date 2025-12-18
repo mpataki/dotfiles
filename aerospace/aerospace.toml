@@ -249,15 +249,15 @@ alt-shift-tab = 'move-workspace-to-monitor --wrap-around next'
 alt-shift-semicolon = 'mode service'
 
 [workspace-to-monitor-force-assignment]
-# 1 = 'RD320U'
-# 2 = 'SDQHD'
+1 = 'RD320U'
+2 = 'SDQHD'
 
 # 1 = 'Built-in'
 # 2 = 'RD320U'
 # 3 = 'SDQHD'
 
-1 = 'Built-in'
-2 = 'MQ16AHE'
+# 1 = 'Built-in'
+# 2 = 'MQ16AHE'
 
 
 # 'service' binding mode declaration.

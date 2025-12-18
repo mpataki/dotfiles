@@ -151,7 +151,7 @@ vim.lsp.config('gopls', {
             },
             staticcheck = true,
             gofumpt = true,
-            usePlaceholders = true,
+            usePlaceholders = false,
             completeUnimported = true,
             expandWorkspaceToModule = true,
         },
@@ -259,13 +259,13 @@ vim.lsp.config('ruby_lsp', {
 
 -- clangd (using LLVM 19 from Homebrew)
 vim.lsp.config('clangd', {
-    cmd = { '/opt/homebrew/opt/llvm@19/bin/clangd', '--background-index', '--clang-tidy', '--header-insertion=iwyu', '--completion-style=detailed', '--header-insertion=never', '--function-arg-placeholders', '--pretty', '--fallback-style=llvm' },
+    cmd = { '/opt/homebrew/opt/llvm@19/bin/clangd', '--background-index', '--clang-tidy', '--header-insertion=iwyu', '--completion-style=detailed', '--header-insertion=never', '--pretty', '--fallback-style=llvm' },
     filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' },
     root_markers = { '.clangd', '.clang-tidy', '.clang-format', 'compile_commands.json', 'compile_flags.txt', 'configure.ac', '.git' },
     on_attach = on_attach,
     capabilities = capabilities,
     init_options = {
-        usePlaceholders = true,
+        usePlaceholders = false,
         completeUnimported = true,
         clangdFileStatus = true,
     },
