@@ -1,6 +1,6 @@
--- full config: https://github.com/epwalsh/obsidian.nvim?tab=readme-ov-file#configuration-options
+-- full config: https://github.com/obsidian-nvim/obsidian.nvim?tab=readme-ov-file#configuration-options
 return {
-  "epwalsh/obsidian.nvim",
+  "obsidian-nvim/obsidian.nvim",
   version = "*",  -- recommended, use latest release instead of latest commit
   -- Replace the below lines with this if you only want to load obsidian.nvim for markdown files in your vault:
   -- event = {
@@ -14,9 +14,19 @@ return {
     -- Required.
     "nvim-lua/plenary.nvim",
   },
-  -- mappings = {},
   config = function ()
       require('obsidian').setup({
+          -- Disable default <CR> mapping which inserts checkboxes
+          mappings = {
+              -- Keep gf for following links
+              ["gf"] = {
+                  action = function()
+                      return require("obsidian").util.gf_passthrough()
+                  end,
+                  opts = { noremap = false, expr = true, buffer = true },
+              },
+          },
+
           workspaces = {
               {
                   name = "personal",
@@ -34,7 +44,7 @@ return {
 
           daily_notes = {
               -- Optional, if you keep daily notes in a separate directory.
-              folder = "resources/dailies",
+              folder = "03-resources/dailies",
               -- Optional, if you want to change the date format for the ID of daily notes.
               date_format = "%Y/%m/%Y-%m-%d-daily",
               -- Optional, if you want to change the date format of the default alias of daily notes.
@@ -97,9 +107,19 @@ return {
       vim.keymap.set('n', '<leader>or', ':ObsidianRename<CR>', { silent = true })
       vim.keymap.set('n', '<leader>oc', ':ObsidianToggleCheckbox<CR>', { expr = true, silent = true })
       vim.keymap.set('n', '<leader>od', ':ObsidianDailies<CR>', { silent = true })
+      -- Reload obsidian.nvim to pick up externally created files
+      vim.keymap.set('n', '<leader>oR', ':Lazy reload obsidian.nvim<CR>', { silent = true })
 
       -- Create an autocommand group for Obsidian auto-commit
       local obsidian_autocommit = vim.api.nvim_create_augroup('ObsidianAutoCommit', { clear = true })
+
+      -- Auto-check for file changes when focusing Neovim in vault
+      vim.api.nvim_create_autocmd({'FocusGained', 'BufEnter'}, {
+          pattern = vim.fn.expand("~") .. "/obsidian-notes-vault/**/*.md",
+          callback = function()
+              vim.cmd('checktime')  -- Check if files have changed on disk
+          end,
+      })
 
       -- Create the autocommand for auto-committing on save
   --     vim.api.nvim_create_autocmd('BufWritePost', {
