@@ -300,6 +300,14 @@ vim.api.nvim_create_autocmd("BufWritePre", {
     end,
 })
 
+-- Go format on save
+vim.api.nvim_create_autocmd("BufWritePre", {
+    pattern = "*.go",
+    callback = function()
+        vim.lsp.buf.format({ timeout_ms = 2000 })
+    end,
+})
+
 -- LSP utility commands
 vim.api.nvim_create_user_command('LspInfo', function()
   local clients = vim.lsp.get_clients()
