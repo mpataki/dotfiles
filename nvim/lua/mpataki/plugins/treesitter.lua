@@ -26,6 +26,7 @@ return {
                 'markdown',
                 "markdown_inline",
                 'sql',
+                'ruby',
             },
 
             -- Install parsers synchronously (only applied to `ensure_installed`)
