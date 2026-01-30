@@ -183,6 +183,13 @@ return {
                     mode = 'test',
                     program = './${relativeFileDirname}'
                 },
+                {
+                    type = 'delve',
+                    name = 'Attach to Go Process',
+                    mode = 'local',
+                    request = 'attach',
+                    processId = require('dap.utils').pick_process,
+                },
             }
 
             -- Load project-specific launch.json configurations (after defaults)
