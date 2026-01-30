@@ -44,6 +44,7 @@ function setup_misc_tools() {
   install_package tree
   install_package 1password-cli
   install_package llvm # c++ debugger
+  install_package zoxide
 }
 
 print_with_color $YELLOW 'Setup misc. tools? (yes/no)'
