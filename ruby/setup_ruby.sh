@@ -2,7 +2,7 @@
 . lib/helpers.sh
 
 # Configure Ruby versions to install
-RUBY_VERSIONS=("latest")
+RUBY_VERSIONS=("3.2.2" "3.4.7" "latest")
 DEFAULT_RUBY_VERSION="latest"
 
 # Standard gems to install for each Ruby version
@@ -118,6 +118,11 @@ function setup_ruby() {
 
   asdf set -p ruby "$default_version"
   print_with_color $GREEN "Set Ruby $default_version as global version"
+
+  # Symlink irbrc configuration
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  ln -sf "$SCRIPT_DIR/irbrc" "$HOME/.irbrc"
+  print_with_color $GREEN "Symlinked .irbrc configuration"
 
   print_with_color $GREEN 'Ruby setup complete!'
   print_with_color $BLUE "Run 'ruby --version' to verify installation"

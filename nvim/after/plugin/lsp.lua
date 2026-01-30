@@ -246,6 +246,8 @@ vim.lsp.config('marksman', {
 })
 
 -- ruby_lsp (installed as gem via asdf, not via Mason)
+-- Note: Formatting requires a formatter gem in the project's Gemfile (rubocop, standardrb, etc.)
+-- or syntax_tree installed as a system gem. Currently configured to use syntax_tree.
 vim.lsp.config('ruby_lsp', {
     cmd = { vim.fn.expand('~/.asdf/shims/ruby-lsp') },
     filetypes = { 'ruby', 'rakefile' },
@@ -253,7 +255,7 @@ vim.lsp.config('ruby_lsp', {
     on_attach = on_attach,
     capabilities = capabilities,
     init_options = {
-        formatter = 'auto',
+        formatter = 'syntax_tree',
     },
 })
 

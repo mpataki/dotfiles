@@ -14,5 +14,8 @@ unset BROWSER
 # GH CLI
 export CLICOLOR_FORCE=true
 
+# IRB/Reline completion colors for dark mode
+export RELINE_ALT_SCROLLBAR=1
+
 source $HOME/.env
 

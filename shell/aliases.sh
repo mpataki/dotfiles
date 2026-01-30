@@ -1,5 +1,8 @@
 alias e='nvim'
 
+# bundler
+alias be='bundle exec'
+
 # git
 alias g='git'
 alias gadd='git add -u && git add . && git status --short'

@@ -1,0 +1,40 @@
+# IRB Configuration - Dark mode
+# Symlink to ~/.irbrc
+
+IRB.conf[:USE_COLORIZE] = true
+IRB.conf[:USE_AUTOCOMPLETE] = true
+IRB.conf[:SAVE_HISTORY] = 10000
+IRB.conf[:HISTORY_FILE] = File.join(Dir.home, '.irb_history')
+
+# Configure completion dialog colors for dark mode (Reline 0.3.2 compatible)
+IRB.conf[:IRB_RC] = proc do
+  require 'reline'
+
+  # Monkey patch DialogRenderInfo to use dark mode colors
+  Reline::DialogRenderInfo.class_eval do
+    alias_method :original_bg_color, :bg_color
+    alias_method :original_pointer_bg_color, :pointer_bg_color
+    alias_method :original_fg_color, :fg_color
+    alias_method :original_pointer_fg_color, :pointer_fg_color
+
+    def bg_color
+      40  # black background instead of 46 (cyan)
+    end
+
+    def pointer_bg_color
+      40  # black background for selected instead of 45 (magenta)
+    end
+
+    def fg_color
+      37  # white text
+    end
+
+    def pointer_fg_color
+      96  # bright cyan for selected item
+    end
+  end
+end
+
+def reload!
+  exec($PROGRAM_NAME)
+end
