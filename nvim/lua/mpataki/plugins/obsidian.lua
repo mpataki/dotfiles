@@ -16,16 +16,18 @@ return {
   },
   config = function ()
       require('obsidian').setup({
-          -- Disable default <CR> mapping which inserts checkboxes
-          mappings = {
-              -- Keep gf for following links
-              ["gf"] = {
-                  action = function()
+          -- Use new callbacks API instead of deprecated mappings
+          callbacks = {
+              enter_note = function(note)
+                  -- Keep gf for following links
+                  vim.keymap.set("n", "gf", function()
                       return require("obsidian").util.gf_passthrough()
-                  end,
-                  opts = { noremap = false, expr = true, buffer = true },
-              },
+                  end, { noremap = false, expr = true, buffer = true })
+              end,
           },
+
+          -- Disable legacy commands (use new command names)
+          legacy_commands = false,
 
           workspaces = {
               {
@@ -62,12 +64,16 @@ return {
               substitutions = {}
           },
 
+          -- Checkbox configuration (replaces ui.checkboxes)
+          checkbox = {
+              order = { " ", "x", "~", "!", ">" },
+          },
+
           -- Selective UI features for Obsidian-specific syntax
           ui = {
               enable = true,
               update_debounce = 200,
-              -- Disable checkboxes and bullets (handled by render-markdown.nvim)
-              checkboxes = {},
+              -- Disable bullets (handled by render-markdown.nvim)
               bullets = {},
               -- Enable only Obsidian-specific features
               external_link_icon = { char = "", hl_group = "ObsidianExtLinkIcon" },
@@ -84,29 +90,21 @@ return {
               },
           },
 
-          -- Optional, by default when you use `:ObsidianFollowLink` on a link to an external
-          -- URL it will be ignored but you can customize this behavior here.
-          ---@param url string
-          follow_url_func = function(url)
-              -- Open the URL in the default web browser.
-              vim.fn.jobstart({"open", url})  -- Mac OS
-              -- vim.fn.jobstart({"xdg-open", url})  -- linux
-              -- vim.cmd(':silent exec "!start ' .. url .. '"') -- Windows
-              -- vim.ui.open(url) -- need Neovim 0.10.0+
-          end,
+          -- Note: follow_url_func is deprecated. The plugin now uses vim.ui.open by default.
+          -- See https://github.com/obsidian-nvim/obsidian.nvim/wiki/Attachment for details.
       })
 
-      vim.keymap.set('n', '<leader>on', ':ObsidianNew<CR>', { })
-      vim.keymap.set('n', '<leader>ot', ':ObsidianTags<CR>', { })
-      vim.keymap.set('n', '<leader>ol', ':ObsidianLinks<CR>', { silent = true })
-      vim.keymap.set('v', '<leader>of', ':ObsidianLinkNew<CR>', { })
-      vim.keymap.set('n', '<leader>os', ':ObsidianSearch<CR>', { noremap = true, silent = true })
-      vim.keymap.set('n', '<leader>oj', ':ObsidianToday<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>ok', ':ObsidianTomorrow<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>oh', ':ObsidianYesterday<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>or', ':ObsidianRename<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>oc', ':ObsidianToggleCheckbox<CR>', { expr = true, silent = true })
-      vim.keymap.set('n', '<leader>od', ':ObsidianDailies<CR>', { silent = true })
+      vim.keymap.set('n', '<leader>on', ':Obsidian new<CR>', { })
+      vim.keymap.set('n', '<leader>ot', ':Obsidian tags<CR>', { })
+      vim.keymap.set('n', '<leader>ol', ':Obsidian links<CR>', { silent = true })
+      vim.keymap.set('v', '<leader>of', ':Obsidian link_new<CR>', { })
+      vim.keymap.set('n', '<leader>os', ':Obsidian search<CR>', { noremap = true, silent = true })
+      vim.keymap.set('n', '<leader>oj', ':Obsidian today<CR>', { silent = true })
+      vim.keymap.set('n', '<leader>ok', ':Obsidian tomorrow<CR>', { silent = true })
+      vim.keymap.set('n', '<leader>oh', ':Obsidian yesterday<CR>', { silent = true })
+      vim.keymap.set('n', '<leader>or', ':Obsidian rename<CR>', { silent = true })
+      vim.keymap.set('n', '<leader>oc', ':Obsidian toggle_checkbox<CR>', { expr = true, silent = true })
+      vim.keymap.set('n', '<leader>od', ':Obsidian dailies<CR>', { silent = true })
       -- Reload obsidian.nvim to pick up externally created files
       vim.keymap.set('n', '<leader>oR', ':Lazy reload obsidian.nvim<CR>', { silent = true })
 
