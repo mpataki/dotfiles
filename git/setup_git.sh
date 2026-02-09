@@ -10,7 +10,7 @@ function setup_git() {
     install_package github-cli
   fi
 
-  install_package diff-so-fancy
+  install_package git-delta
   install_package git-lfs
 
   check_and_link_file `pwd`/git/gitconfig $HOME/.gitconfig
