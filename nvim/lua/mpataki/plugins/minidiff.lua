@@ -10,8 +10,8 @@ return {
             },
 
             mappings = {
-                apply = '<leader>ca',
-                reset = '<leader>cr',
+                apply = '<leader>ga',
+                reset = '<leader>gr',
                 goto_first = '[C',
                 goto_prev = '[c',
                 goto_next = ']c',
@@ -26,8 +26,8 @@ return {
             },
         })
 
-        vim.keymap.set('n', '<leader>cv', function()
+        vim.keymap.set('n', '<leader>go', function()
             diff.toggle_overlay()
-        end, { desc = 'Toggle inline diff' })
+        end, { desc = 'Toggle inline diff overlay' })
     end
 }

@@ -240,10 +240,11 @@ vim.api.nvim_create_user_command('RunBoot', RunBoot, {})
 vim.api.nvim_create_user_command('DebugBoot', DebugBoot, {})
 vim.api.nvim_create_user_command('GradleCompileJava', GradleCompileJava, {})
 
-vim.keymap.set('n', '<Leader>gb', GradleBuild)
-vim.keymap.set('n', '<Leader>gt', GradleRunTests)
-vim.keymap.set('n', '<Leader>gT', GradleDebugTests)
-vim.keymap.set('n', '<Leader>gr', RunBoot)
-vim.keymap.set('n', '<Leader>gR', DebugBoot)
-vim.keymap.set('n', '<Leader>gc', GradleCompileJava)
+-- '<leader>j for "Java", leaving <leader>g for git-related operations
+vim.keymap.set('n', '<Leader>jb', GradleBuild, { desc = 'Gradle build' })
+vim.keymap.set('n', '<Leader>jt', GradleRunTests, { desc = 'Gradle run tests' })
+vim.keymap.set('n', '<Leader>jT', GradleDebugTests, { desc = 'Gradle debug tests' })
+vim.keymap.set('n', '<Leader>jr', RunBoot, { desc = 'Run Spring Boot' })
+vim.keymap.set('n', '<Leader>jR', DebugBoot, { desc = 'Debug Spring Boot' })
+vim.keymap.set('n', '<Leader>jc', GradleCompileJava, { desc = 'Gradle compile' })
 
