@@ -38,6 +38,7 @@ function setup_misc_tools() {
   install_package tcpflow
   install_package k9s
   install_package grpcurl
+  install_package mitmproxy
   install_package 1password
   install_package ctop
   install_package node
