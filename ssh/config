@@ -5,7 +5,7 @@ Host github.com-1password
   HostName github.com
   User git
   IdentityAgent ~/.1password/agent.sock
-  IdentityFile ~/.ssh/1p-work.pub
+  IdentityFile ~/.ssh/1p-work-github.pub
   IdentitiesOnly yes
 
 Host github.com
@@ -14,3 +14,11 @@ Host github.com
   IdentityAgent ~/.1password/agent.sock
   IdentityFile ~/.ssh/1p-personal.pub
   IdentitiesOnly yes
+
+Host gitlab.1password.io
+  HostName gitlab.1password.io
+  User git
+  IdentityAgent ~/.1password/agent.sock
+  IdentityFile ~/.ssh/1p-work-gitlab.pub
+  IdentitiesOnly yes
+
