@@ -49,6 +49,8 @@ function setup_misc_tools() {
   install_package zoxide
   install_package fzf
   install_package bufbuild/buf/buf
+  install_package gnupg
+  install_package direnv
 
   if [[ -z `which atuin` ]]; then
     curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh

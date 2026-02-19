@@ -33,12 +33,13 @@ source <(fzf --zsh)
 ## atuin
 eval "$(atuin init zsh --disable-up-arrow)"
 
-
 ## zoxide
 if command -v zoxide &> /dev/null; then
   eval "$(zoxide init zsh)"
 fi
 
+## direnv
+eval "$(direnv hook zsh)"
 
 # if [[ `which gh` ]]; then
 #   eval "$(gh completion -s zsh)"
