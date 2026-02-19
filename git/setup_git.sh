@@ -15,7 +15,7 @@ function setup_git() {
 
   check_and_link_file `pwd`/git/gitconfig $HOME/.gitconfig
   check_and_link_file `pwd`/git/gitignore $HOME/.gitignore
-  check_and_link_file `pwd`/git/gitconfig.jc $HOME/.gitconfig.jc
+  check_and_link_file `pwd`/git/gitconfig.1password $HOME/.gitconfig.1password
 }
 
 print_with_color $YELLOW 'Setup Git? (y/n)'

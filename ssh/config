@@ -1,0 +1,16 @@
+Host *
+	IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+
+Host github.com-1password
+  HostName github.com
+  User git
+  IdentityAgent ~/.1password/agent.sock
+  IdentityFile ~/.ssh/1p-work.pub
+  IdentitiesOnly yes
+
+Host github.com
+  HostName github.com
+  User git
+  IdentityAgent ~/.1password/agent.sock
+  IdentityFile ~/.ssh/1p-personal.pub
+  IdentitiesOnly yes

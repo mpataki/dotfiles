@@ -2,7 +2,6 @@
   excludesfile = ~/.gitignore
   editor = vim
   pager = delta
-  sshCommand = ssh -i ~/.ssh/id_ed25519.pub
 [color]
   ui = always
 [format]
@@ -44,8 +43,8 @@
   name = Mat Pataki
   email = matpataki@gmail.com
   signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILH8m/LZhOLEOFtZ2VDsmemChw3A/He/zklcqQecKJ3z
-[includeIf "gitdir:~/code/jc/"]
-  path = ~/.gitconfig.jc
+[includeIf "gitdir:~/code/1password/"]
+  path = ~/.gitconfig.1password
 [filter "lfs"]
 	required = true
 	clean = git-lfs clean -- %f
