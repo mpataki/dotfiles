@@ -52,3 +52,5 @@
   path = ~/.gitconfig.1password
 [includeIf "gitdir:~/code/1password/gitlab"]
   path = ~/.gitconfig.1password-gitlab
+[url "ssh://git@gitlab.1password.io:2227"]
+        insteadOf = https://gitlab.1password.io
