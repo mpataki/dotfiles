@@ -24,6 +24,7 @@ function setup_misc_tools() {
     yay_sync libserdes-git
     yay_sync yajl
 
+
     print_with_color $GREEN 'Setting the locale to en_US.UTF-8'
     localectl set-locale LANG=en_US.UTF-8
   fi
@@ -34,7 +35,7 @@ function setup_misc_tools() {
   install_package jq
   install_package ansible
   install_package netcat
-  install_package packer
+  #install_package packer
   install_package tcpflow
   install_package k9s
   install_package grpcurl
@@ -46,6 +47,11 @@ function setup_misc_tools() {
   install_package 1password-cli
   install_package llvm # c++ debugger
   install_package zoxide
+  install_package fzf
+
+  if [[ -z `which atuin` ]]; then
+    curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh
+  fi
 }
 
 print_with_color $YELLOW 'Setup misc. tools? (yes/no)'
