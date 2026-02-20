@@ -115,8 +115,9 @@ function yay_sync() {
 
 function brew_install() {
   pacakge=$1
+  executable=$2
 
-  if ! [[ `brew list | grep $package` ]]; then
+  if ! [[ `brew list | grep ${executable:-$package}` ]]; then
     print_with_color $YELLOW "Package '$package' not installed. Do you want to install it? (y/n)"
 
     read yn
@@ -139,9 +140,10 @@ function is_mac() {
 
 function install_package() {
   package=$1
+  executable=$2
 
   if is_mac; then
-    brew_install $package;
+    brew_install $package $executable;
   else
     yay_sync $package;
   fi
