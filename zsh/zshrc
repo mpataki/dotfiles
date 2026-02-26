@@ -107,6 +107,9 @@ export PATH="$HOME/go/bin:$PATH"
 . $SCRIPT_DIR/../shell/aliases.sh
 . $SCRIPT_DIR/../shell/environment.sh
 
+export PATH="$GOPATH/bin:$PATH"
+export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
+
 # Uncomment the following line to use case-sensitive completion.
 # CASE_SENSITIVE="true"
 
