@@ -54,9 +54,9 @@
   path = ~/.gitconfig.1password-gitlab
 [url "ssh://git@gitlab.1password.io:2227"]
   insteadOf = https://gitlab.1password.io
-[url "git@github.com-1password:"]
-  insteadOf = git@github.com:
-[url "git@github.com-1password:"]
-  insteadOf = ssh://git@github.com/
-[url "git@github.com-1password:"]
-  insteadOf = https://github.com
+[url "git@github.com-1password:agilebits-inc/"]
+  insteadOf = git@github.com:agilebits-inc/
+[url "git@github.com-1password:agilebits-inc/"]
+  insteadOf = ssh://git@github.com/agilebits-inc/
+[url "git@github.com-1password:agilebits-inc/"]
+  insteadOf = https://github.com/agilebits-inc/
