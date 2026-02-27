@@ -54,6 +54,7 @@ function setup_misc_tools() {
   install_package go-task/tap/go-task task
   install_package mysql-client
   install_package yq
+  install_package goose
 
   if [[ -z `which atuin` ]]; then
     curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh
