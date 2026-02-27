@@ -28,7 +28,7 @@ fi
 # both
 . zsh/setup_zsh.sh
 . git/setup_git.sh
-. git/setup_ssh.sh
+. ssh/setup_ssh.sh
 . tmux/setup_tmux.sh
 . wezterm/setup_wezterm.sh
 . nvim/setup_nvim.sh
