@@ -46,6 +46,8 @@ return {
         },
         callback = function()
             vim.schedule(db_completion)
+            vim.keymap.set('n', '<leader>e', '<Plug>(DBUI_ExecuteQuery)', { buffer = true, desc = 'Execute query' })
+            vim.keymap.set('v', '<leader>e', '<Plug>(DBUI_ExecuteQuery)', { buffer = true, desc = 'Execute query' })
         end,
     })
 
