@@ -28,6 +28,7 @@ return {
         require("cmp").setup.buffer { sources = { { name = "vim-dadbod-completion" } } }
     end
 
+    vim.g.db_ui_execute_on_save = 0
     vim.g.db_ui_save_location = vim.fn.expand("~") .. "/obsidian-notes-vault/03-resources/code/db_ui"
 
     vim.api.nvim_create_autocmd("FileType", {
