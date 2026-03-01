@@ -69,26 +69,8 @@ return {
               order = { " ", "x", "~", "!", ">" },
           },
 
-          -- Selective UI features for Obsidian-specific syntax
-          ui = {
-              enable = true,
-              update_debounce = 200,
-              -- Disable bullets (handled by render-markdown.nvim)
-              bullets = {},
-              -- Enable only Obsidian-specific features
-              external_link_icon = { char = "", hl_group = "ObsidianExtLinkIcon" },
-              reference_text = { hl_group = "ObsidianRefText" },
-              highlight_text = { hl_group = "ObsidianHighlightText" },
-              tags = { hl_group = "ObsidianTag" },
-              block_ids = { hl_group = "ObsidianBlockID" },
-              hl_groups = {
-                  ObsidianTag = { fg = "#89ddff", italic = true },
-                  ObsidianRefText = { underline = true },
-                  ObsidianHighlightText = { bg = "#75662e" },
-                  ObsidianBlockID = { fg = "#89ddff", italic = true },
-                  ObsidianExtLinkIcon = { fg = "#c792ea" },
-              },
-          },
+          -- Disable obsidian UI entirely; render-markdown.nvim handles rendering
+          ui = { enable = false },
 
           -- Note: follow_url_func is deprecated. The plugin now uses vim.ui.open by default.
           -- See https://github.com/obsidian-nvim/obsidian.nvim/wiki/Attachment for details.
