@@ -36,10 +36,12 @@ _G.setup_lsp_keybindings = setup_lsp_keybindings
 -- Location list navigation: :lnext, :lprev, :lopen, :lclose (or ]l, [l with vim-unimpaired)
 vim.keymap.set('n', '<leader>xq', function()
     vim.diagnostic.setqflist({ title = "Workspace Diagnostics" })
+    vim.cmd.copen()
 end, { desc = "Show all workspace diagnostics in quickfix" })
 
 vim.keymap.set('n', '<leader>xl', function()
     vim.diagnostic.setloclist({ title = "Buffer Diagnostics" })
+    vim.cmd.lopen()
 end, { desc = "Show buffer diagnostics in location list" })
 
 -- Filtered diagnostic views
@@ -48,6 +50,7 @@ vim.keymap.set('n', '<leader>xe', function()
         severity = vim.diagnostic.severity.ERROR,
         title = "Workspace Errors"
     })
+    vim.cmd.copen()
 end, { desc = "Show only errors (workspace)" })
 
 vim.keymap.set('n', '<leader>xw', function()
@@ -55,6 +58,7 @@ vim.keymap.set('n', '<leader>xw', function()
         severity = { min = vim.diagnostic.severity.WARN },
         title = "Workspace Warnings+"
     })
+    vim.cmd.copen()
 end, { desc = "Show warnings and errors (workspace)" })
 
 -- Additional useful diagnostic keymaps
