@@ -3,6 +3,7 @@ return {
     dependencies = {
         { 'nvim-lua/plenary.nvim' },
         { 'nvim-telescope/telescope-ui-select.nvim' },
+        { 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' },
     },
     cmd = 'TSUpdate',
     config = function()
@@ -49,6 +50,7 @@ return {
         })
 
         telescope.load_extension("ui-select")
+        telescope.load_extension("fzf")
 
         -- vim.keymap.set('n', '<leader>pf', builtin.find_files, {})
         -- vim.keymap.set('n', '<C-p>', builtin.git_files, {})
