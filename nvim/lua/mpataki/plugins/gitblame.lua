@@ -6,6 +6,5 @@ return {
         })
 
         vim.keymap.set('n', '<Leader>gb', ':GitBlameToggle<CR>', { desc = 'Toggle git blame' })
-        vim.keymap.set('n', '<Leader>gl', ':GitBlameCopyFileURL<CR>', { desc = 'Copy git blame link' })
     end,
 }
