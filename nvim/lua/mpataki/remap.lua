@@ -25,8 +25,8 @@ vim.keymap.set("n", "<c-w>+", "<C-w>2+")
 vim.keymap.set("n", "<c-w>-", "<C-w>2-")
 
 -- next and previous buffers
-vim.keymap.set("n", '<leader>n', ":bnext<CR>")
-vim.keymap.set("n", '<leader>p', ":bprevious<CR>")
+vim.keymap.set("n", ']b', ":bnext<CR>")
+vim.keymap.set("n", '[b', ":bprevious<CR>")
 
 -- next and previous jump
 vim.keymap.set("n", '<c-o>', "<c-o>zz");

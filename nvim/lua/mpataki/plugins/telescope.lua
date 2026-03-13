@@ -64,5 +64,13 @@ return {
         end)
 
         vim.keymap.set('n', '<leader>ps', builtin.live_grep, {})
+        vim.keymap.set('n', '<leader>pw', builtin.grep_string, {})
+        vim.keymap.set('n', '<leader>pc', builtin.commands, {})
+        vim.keymap.set('n', '<leader>pk', builtin.keymaps, {})
+        vim.keymap.set('n', '<leader>ph', builtin.help_tags, {})
+        vim.keymap.set('n', '<leader>po', builtin.oldfiles, {})
+        vim.keymap.set('n', '<leader>pr', builtin.resume, {})
+        vim.keymap.set('n', '<leader>pd', builtin.lsp_document_symbols, {})
+        vim.keymap.set('n', '<leader>pS', builtin.lsp_workspace_symbols, {})
     end
 }
