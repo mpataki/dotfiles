@@ -56,6 +56,9 @@ alias tl='tmux list-sessions'
 alias tksv='tmux kill-server'
 alias tkss='tmux kill-session -t'
 
+# obsidian
+alias obsidian='Obsidian'
+
 # system
 alias ls='ls -G' # turn on colors
 alias pacman='sudo pacman'
