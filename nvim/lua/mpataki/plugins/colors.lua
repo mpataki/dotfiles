@@ -12,6 +12,14 @@ return {
             flavor = 'mocha',
             transparent_background = true,
             term_colors = true,
+            custom_highlights = function(colors)
+                return {
+                    DiffAdd = { bg = "#122a12" },
+                    DiffChange = { bg = "#12202a" },
+                    DiffDelete = { bg = "#2a1212" },
+                    DiffText = { bg = "#1e2a12" },
+                }
+            end,
         })
 
         vim.cmd.colorscheme("catppuccin")
