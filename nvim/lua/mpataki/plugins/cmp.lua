@@ -6,6 +6,8 @@ return {
         dependencies = {
             "hrsh7th/cmp-nvim-lsp",
             "hrsh7th/cmp-buffer",
+            "hrsh7th/cmp-cmdline",
+            "hrsh7th/cmp-path",
         --     {
         --         'windwp/nvim-autopairs',
         --         event = "InsertEnter",
@@ -95,6 +97,24 @@ return {
             vim.api.nvim_set_hl(0, 'CmpItemKindKeyword', { bg = 'NONE', fg = '#D4D4D4' })
             vim.api.nvim_set_hl(0, 'CmpItemKindProperty', { link = 'CmpItemKindKeyword' })
             vim.api.nvim_set_hl(0, 'CmpItemKindUnit', { link = 'CmpItemKindKeyword' })
+
+            -- cmdline ':' completion
+            cmp.setup.cmdline(':', {
+                mapping = cmp.mapping.preset.cmdline(),
+                sources = cmp.config.sources({
+                    { name = 'path' },
+                }, {
+                    { name = 'cmdline' },
+                }),
+            })
+
+            -- cmdline '/' and '?' completion
+            cmp.setup.cmdline({ '/', '?' }, {
+                mapping = cmp.mapping.preset.cmdline(),
+                sources = {
+                    { name = 'buffer' },
+                },
+            })
         end
     },
     {
