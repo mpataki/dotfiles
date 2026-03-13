@@ -44,6 +44,10 @@ gwt-rm() {
     git worktree remove "$worktree_path"
 }
 
+# gitlab cli (unset GITLAB_TOKEN so glab uses its own config auth;
+# GITLAB_TOKEN is an op:// ref for b5 npm registry, not a real token)
+alias glab='GITLAB_TOKEN= command glab'
+
 # tmux
 alias ta='tmux attach -t'
 alias tad='tmux attach -d -t'
