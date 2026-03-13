@@ -12,11 +12,11 @@ return {
             mappings = {
                 apply = '<leader>ga',
                 reset = '<leader>gr',
-                goto_first = '[C',
-                goto_prev = '[c',
-                goto_next = ']c',
-                goto_last = ']C',
-                textobject = 'ic',   -- "Inner Hunk" text object
+                goto_first = '[H',
+                goto_prev = '[h',
+                goto_next = ']h',
+                goto_last = ']H',
+                textobject = 'ih',
             },
 
             -- Delays (in ms) defining asynchronous processes
