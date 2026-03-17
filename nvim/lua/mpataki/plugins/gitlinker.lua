@@ -24,7 +24,13 @@ return {
     },
   },
   keys = {
-    { '<Leader>gl', '<cmd>GitLink<cr>', mode = { 'n', 'v' }, desc = 'Copy git link' },
-    { '<Leader>gL', '<cmd>GitLink!<cr>', mode = { 'n', 'v' }, desc = 'Open git link' },
+    { '<Leader>gl', function()
+      local rev = vim.trim(vim.fn.system('git rev-parse HEAD'))
+      vim.cmd('GitLink rev=' .. rev)
+    end, mode = { 'n', 'v' }, desc = 'Copy git link' },
+    { '<Leader>gL', function()
+      local rev = vim.trim(vim.fn.system('git rev-parse HEAD'))
+      vim.cmd('GitLink! rev=' .. rev)
+    end, mode = { 'n', 'v' }, desc = 'Open git link' },
   },
 }
