@@ -240,6 +240,10 @@ alt-ctrl-d = ['layout tiling', 'move-node-to-workspace 4 --focus-follows-window'
 
 alt-t = 'layout tiling floating'
 
+# Focus WezTerm in specific workspace
+ctrl-alt-shift-r = 'exec-and-forget aerospace list-windows --workspace 1 --app-bundle-id com.github.wez.wezterm | head -1 | cut -d"|" -f1 | tr -d " " | xargs aerospace focus --window-id'
+ctrl-alt-shift-t = 'exec-and-forget aerospace list-windows --workspace 2 --app-bundle-id com.github.wez.wezterm | head -1 | cut -d"|" -f1 | tr -d " " | xargs aerospace focus --window-id'
+
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
 alt-tab = 'workspace-back-and-forth'
 # See: https://nikitabobko.github.io/AeroSpace/commands#move-workspace-to-monitor
