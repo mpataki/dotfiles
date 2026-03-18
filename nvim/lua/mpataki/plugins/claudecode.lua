@@ -1,10 +1,12 @@
 return {
-  "mpataki/claudecode.nvim",
-  dependencies = {
-      -- "folke/snacks.nvim" 
-  },
+  "coder/claudecode.nvim",
   config = {
-    enable_terminal = false,
+    terminal = {
+      provider = "none",
+    },
+    diff_opts = {
+      layout = "horizontal",
+    },
   },
   keys = {
     { "<leader>c", nil, desc = "AI/Claude Code" },
