@@ -19,6 +19,12 @@ function setup_git() {
   check_and_link_file `pwd`/git/gitignore $HOME/.gitignore
   check_and_link_file `pwd`/git/gitconfig.1password $HOME/.gitconfig.1password
   check_and_link_file `pwd`/git/gitconfig.1password-gitlab $HOME/.gitconfig.1password-gitlab
+
+  install_package worktrunk
+  wt config shell install
+
+  mkdir -p $HOME/.config/worktrunk
+  check_and_link_file `pwd`/git/worktrunk-config.toml $HOME/.config/worktrunk/config.toml
 }
 
 print_with_color $YELLOW 'Setup Git? (y/n)'
