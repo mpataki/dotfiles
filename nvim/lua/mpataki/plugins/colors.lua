@@ -35,7 +35,7 @@ return {
         -- vim.api.nvim_set_hl(0, "NormalFloat", { bg = "#141414" })
 
         -- subtle dark float background for hover etc.
-        vim.cmd("highlight NormalFloat guibg=#121218")
+        vim.cmd("highlight NormalFloat guibg=NONE")
         vim.cmd("highlight FloatBorder guibg=NONE")
         vim.cmd("highlight FloatTitle guibg=NONE")
 
