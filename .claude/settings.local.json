@@ -14,9 +14,7 @@
       "WebSearch",
       "Bash(git log:*)",
       "Bash(atuin:*)",
-      "Bash(find /Users/mat.pataki/dotfiles -type f \\\\\\(-name *claude* -o -name *mcp* \\\\\\))",
-      "WebFetch(domain:docs.datadoghq.com)",
-      "WebFetch(domain:www.datadoghq.com)"
+      "Bash(git submodule:*)"
     ],
     "deny": []
   },
