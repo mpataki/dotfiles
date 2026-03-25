@@ -34,6 +34,9 @@
 # worktree-path = "~/worktrees/{{ repo }}/{{ branch | sanitize }}"
 #
 # `~` expands to the home directory. Relative paths are relative to the repository root.
+
+# Worktrees as siblings of main inside the repo container dir
+worktree-path = "{{ repo_path }}/../{{ branch | sanitize }}"
 #
 # ## LLM commit messages
 #
