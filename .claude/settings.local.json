@@ -14,7 +14,19 @@
       "WebSearch",
       "Bash(git log:*)",
       "Bash(atuin:*)",
-      "Bash(git submodule:*)"
+      "Bash(git submodule:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(wt --help)",
+      "WebFetch(domain:help.reclaim.ai)",
+      "WebFetch(domain:docs.claude.com)",
+      "Bash(gh api:*)",
+      "Bash(brew search:*)",
+      "WebFetch(domain:opencode.ai)",
+      "WebFetch(domain:www.datacamp.com)",
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(python3 -c:*)"
     ],
     "deny": []
   },
