@@ -37,7 +37,6 @@ function setup_misc_tools() {
   install_package netcat
   #install_package packer
   install_package tcpflow
-  install_package k9s
   install_package grpcurl
   install_package mitmproxy
   install_package 1password
