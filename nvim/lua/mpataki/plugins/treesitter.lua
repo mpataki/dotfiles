@@ -29,6 +29,12 @@ return {
                 'markdown_inline',
                 'sql',
                 'ruby',
+                'yaml',
+                'json',
+                'toml',
+                'bash',
+                'html',
+                'css',
             },
 
             sync_install = false,
