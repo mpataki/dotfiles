@@ -30,24 +30,25 @@ function check_and_link_file() {
   destination=$2
   use_sudo=$3
 
-    if [ -f $source_file ] && [ -e $destination ]; then
-    print_with_color $YELLOW "$destination already exists. Do you want to override it? (y/n)"
-    read yn
-    case $yn in
-      yes|Yes|YES|y|Y )
-        if [ -d "$destination" ]; then
-          rm -rf "$destination"
-        else
-          rm "$destination"
-        fi
-
-        link_file "$source_file" "$destination" $use_sudo
-        ;;
-      * ) print_with_color $GREEN 'skipping...';;
-    esac
-  else
+  if [ ! -f "$source_file" ] || [ ! -e "$destination" ]; then
     link_file "$source_file" "$destination" $use_sudo
+    return
   fi
+
+  print_with_color $YELLOW "$destination already exists. Do you want to override it? (y/n)"
+  read yn
+  case $yn in
+    yes|Yes|YES|y|Y )
+      if [ -d "$destination" ]; then
+        rm -rf "$destination"
+      else
+        rm "$destination"
+      fi
+
+      link_file "$source_file" "$destination" $use_sudo
+      ;;
+    * ) print_with_color $GREEN 'skipping...';;
+  esac
 }
 
 function git_clone() {
@@ -114,7 +115,7 @@ function yay_sync() {
 }
 
 function brew_install() {
-  pacakge=$1
+  package=$1
   executable=$2
 
   if ! [[ `brew list | grep ${executable:-$package}` ]]; then
