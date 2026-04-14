@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# klogs — tail K8s logs across 1infra environments with JSON formatting
+#
+# Usage:
+#   klogs <env> <service> [flags]
+#
+# Examples:
+#   klogs dev policies
+#   klogs pca policies --all
+#   klogs dev policies --raw
+#   klogs dev policies --dd
+#   klogs dev policies -s 1h
+
+DEFAULT_NAMESPACE="adminium"
+
+# Requires bash 4+ for associative arrays (macOS: brew install bash)
+declare -A ENV_CONTEXT=(
+  [dev]="okta@1infra-public-preview-us-02"
+  [tst]="okta@1infra-public-preview-us-02"
+  [dca]="okta@1infra-public-preview-ca-02"
+  [tca]="okta@1infra-public-preview-ca-02"
+  [deu]="okta@1infra-public-preview-eu-02"
+  [teu]="okta@1infra-public-preview-eu-02"
+  [prd]="okta@1infra-public-us-02"
+  [pca]="okta@1infra-public-ca-02"
+  [peu]="okta@1infra-public-eu-02"
+  [ent]="okta@1infra-public-us2-02"
+)
+
+usage() {
+  cat <<'EOF'
+Usage: klogs <env> <service> [flags]
+
+Environments:
+  lowers: dev, tst, dca, tca, deu, teu
+  uppers: prd, pca, peu, ent
+
+Flags:
+  --all         Tail all components (consumer, ping, etc.), not just main deployment
+  --raw         Skip JSON formatting, show raw output
+  --dd          Print Datadog logs URL before tailing
+  -s, --since   Stern --since value (e.g. 1h, 5m). Default: 10m
+  -t, --tail    Number of initial lines per pod. Default: 50
+  --no-follow   Dump recent logs and exit (don't stream)
+  -n, --ns      Override namespace (default: adminium)
+  -c, --container  Target a specific container name
+EOF
+  exit "${1:-0}"
+}
+
+# --- parse positional args ---
+
+if [[ $# -lt 2 ]]; then
+  usage 1
+fi
+
+ENV="$1"; shift
+SERVICE="$1"; shift
+
+# validate env
+if [[ -z "${ENV_CONTEXT[$ENV]+x}" ]]; then
+  echo "Unknown env: $ENV" >&2
+  echo "Valid envs: ${!ENV_CONTEXT[*]}" >&2
+  exit 1
+fi
+
+CONTEXT="${ENV_CONTEXT[$ENV]}"
+
+# --- parse flags ---
+
+ALL=false
+RAW=false
+DD=false
+SINCE="10m"
+TAIL="50"
+NO_FOLLOW=false
+NAMESPACE="$DEFAULT_NAMESPACE"
+CONTAINER=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --all)       ALL=true; shift ;;
+    --raw)       RAW=true; shift ;;
+    --dd)        DD=true; shift ;;
+    --no-follow) NO_FOLLOW=true; shift ;;
+    -s|--since)  [[ $# -ge 2 ]] || { echo "Missing value for $1" >&2; exit 1; }; SINCE="$2"; shift 2 ;;
+    -t|--tail)   [[ $# -ge 2 ]] || { echo "Missing value for $1" >&2; exit 1; }; TAIL="$2"; shift 2 ;;
+    -n|--ns)     [[ $# -ge 2 ]] || { echo "Missing value for $1" >&2; exit 1; }; NAMESPACE="$2"; shift 2 ;;
+    -c|--container) [[ $# -ge 2 ]] || { echo "Missing value for $1" >&2; exit 1; }; CONTAINER="$2"; shift 2 ;;
+    -h|--help)   usage 0 ;;
+    *)
+      echo "Unknown flag: $1" >&2
+      usage 1
+      ;;
+  esac
+done
+
+# --- datadog link ---
+
+if $DD; then
+  echo "Datadog logs: https://app.datadoghq.com/logs?query=service%3A${SERVICE}%20env%3A${ENV}" >&2
+  echo "" >&2
+fi
+
+# --- build stern command ---
+
+STERN_ARGS=()
+STERN_ARGS+=(--context "$CONTEXT")
+STERN_ARGS+=(--namespace "$NAMESPACE")
+
+if $ALL; then
+  STERN_ARGS+=(--selector "app.kubernetes.io/name=${SERVICE},tags.datadoghq.com/env=${ENV}")
+else
+  STERN_ARGS+=(--selector "app.kubernetes.io/instance=${SERVICE}-${ENV}")
+fi
+
+STERN_ARGS+=(--since "$SINCE")
+STERN_ARGS+=(--tail "$TAIL")
+STERN_ARGS+=(--output raw)
+
+if $NO_FOLLOW; then
+  STERN_ARGS+=(--no-follow)
+fi
+
+STERN_ARGS+=(--container "${CONTAINER:-$SERVICE}")
+
+# stern requires a pod query arg (regex). Use .* to match all (selector does the filtering)
+STERN_CMD=(stern ".*" "${STERN_ARGS[@]}")
+
+echo "context: $CONTEXT | namespace: $NAMESPACE | env: $ENV | service: $SERVICE" >&2
+echo "---" >&2
+
+# --- run ---
+
+if $RAW; then
+  exec "${STERN_CMD[@]}"
+else
+  "${STERN_CMD[@]}" | jq -rR --unbuffered '
+    def dim: "\u001b[2m";
+    def reset: "\u001b[0m";
+    def red: "\u001b[31m";
+    def yellow: "\u001b[33m";
+    def green: "\u001b[32m";
+    def cyan: "\u001b[36m";
+    def level_color:
+      if . == "ERROR" or . == "error" then red
+      elif . == "WARN" or . == "warn" or . == "WARNING" or . == "warning" then yellow
+      elif . == "INFO" or . == "info" then green
+      elif . == "DEBUG" or . == "debug" then dim
+      else cyan end;
+
+    . as $line |
+    try (
+      fromjson |
+      (.time | split("T")[1] | split(".")[0]) as $ts |
+      (.level // "???") as $lvl |
+      (.message // "") as $msg |
+      (.source // "") as $src |
+      ($lvl | level_color) as $clr |
+      if $src != "" then
+        "\(dim)\($ts)\(reset) \($clr)\($lvl)\(reset) \($msg)  \(dim)source=\($src)\(reset)"
+      else
+        "\(dim)\($ts)\(reset) \($clr)\($lvl)\(reset) \($msg)"
+      end
+    ) catch $line'
+fi

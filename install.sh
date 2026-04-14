@@ -39,6 +39,7 @@ fi
 . ruby/setup_ruby.sh
 . node/setup_node.sh
 . k9s/setup_k9s.sh
+. k8s/setup_k8s.sh
 . misc_tools/setup_misc_tools.sh
 . claude/setup_claude.sh
 . opencode/setup_opencode.sh

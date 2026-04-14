@@ -2,7 +2,7 @@ plugins:
   jqlogs:
     shortCut: Ctrl-J
     confirm: false
-    description: "JSON formatted logs"
+    description: "JSON formatted logs (stern)"
     scopes:
       - po
     command: bash
@@ -10,4 +10,14 @@ plugins:
     overwriteOutput: true
     args:
       - -c
-      - "kubectl logs -f $NAME --all-containers -n $NAMESPACE --context $CONTEXT | jq -rR '. as $line | try (fromjson | {time: (.time // .timestamp // \"\"), level: (.level // \"\"), msg: (.message // .fields.message // .msg // \"\"), source: (.source // .target // \"\")} | [.time, .level, .msg, .source] | map(select(. != \"\")) | join(\" | \")) catch $line'"
+      - >-
+        stern $NAME --context $CONTEXT --namespace $NAMESPACE
+        --since 10m --tail 100 --output raw --no-follow |
+        jq -rR '. as $line | try (fromjson |
+        (.time | split("T")[1] | split(".")[0]) as $ts |
+        (.level // "???") as $lvl |
+        (.message // "") as $msg |
+        (.source // "") as $src |
+        if $src != "" then "\($ts) \($lvl) \($msg)  source=\($src)"
+        else "\($ts) \($lvl) \($msg)" end
+        ) catch $line'
