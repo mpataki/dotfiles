@@ -1,3 +1,8 @@
+-- Reload buffers changed externally (AI agents, git, other editors)
+vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold" }, {
+    command = "silent! checktime",
+})
+
 -- set external formatter to the google java formatter, as installed by mason, for java files
 vim.api.nvim_create_autocmd("FileType", {
     pattern = "java",
