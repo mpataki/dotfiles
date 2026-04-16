@@ -14,6 +14,7 @@ return {
           graph_style = "unicode",
       }
 
-      vim.keymap.set('n', '<leader>gs', function() neogit.open() end, { desc = 'Neogit status' })
+      -- <leader>gs freed for telescope git status
+      -- vim.keymap.set('n', '<leader>gs', function() neogit.open() end, { desc = 'Neogit status' })
   end
 }

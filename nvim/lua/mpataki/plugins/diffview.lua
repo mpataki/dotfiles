@@ -6,7 +6,7 @@ return {
   config = function()
     local diffview = require('diffview')
 
-    local function goto_main_tab()
+    local function exit_to_file()
       local lib = require('diffview.lib')
       local view = lib.get_current_view()
       if not view then
@@ -17,15 +17,14 @@ return {
       local line = vim.fn.line('.')
       local col = vim.fn.col('.')
       local file = view:infer_cur_file()
-      if not file or not file.absolute_path then
-        vim.notify("Could not resolve file path", vim.log.levels.WARN)
-        return
-      end
 
-      vim.cmd('1tabnext')
-      vim.cmd('edit ' .. vim.fn.fnameescape(file.absolute_path))
-      vim.api.nvim_win_set_cursor(0, { line, col - 1 })
-      vim.cmd('normal! zz')
+      vim.cmd('DiffviewClose')
+
+      if file and file.absolute_path then
+        vim.cmd('edit ' .. vim.fn.fnameescape(file.absolute_path))
+        vim.api.nvim_win_set_cursor(0, { line, col - 1 })
+        vim.cmd('normal! zz')
+      end
     end
 
     diffview.setup({
@@ -40,7 +39,11 @@ return {
       },
       keymaps = {
         view = {
-          { "n", "<leader>ge", goto_main_tab, { desc = "Jump to file+line in main tab" } },
+          { "n", "<leader>ge", exit_to_file, { desc = "Exit to file at cursor" } },
+          { "n", "q", "<cmd>DiffviewClose<CR>", { desc = "Close Diffview" } },
+        },
+        file_panel = {
+          { "n", "q", "<cmd>DiffviewClose<CR>", { desc = "Close Diffview" } },
         },
       },
     })
@@ -58,6 +61,6 @@ return {
     -- Set up keymaps
     vim.keymap.set('n', '<leader>gd', '<cmd>DiffviewOpen<CR>', { noremap = true, silent = true, desc = "Open Diffview" })
     vim.keymap.set('n', '<leader>gf', '<cmd>DiffviewToggleFiles<CR>', { noremap = true, silent = true, desc = "Toggle Diffview file panel" })
-    vim.keymap.set('n', '<leader>gP', '<cmd>DiffviewPR<CR>', { noremap = true, silent = true, desc = "Diffview PR (side-by-side)" })
+    vim.keymap.set('n', '<leader>gD', '<cmd>DiffviewPR<CR>', { noremap = true, silent = true, desc = "Diffview (PR base, side-by-side)" })
   end
 }

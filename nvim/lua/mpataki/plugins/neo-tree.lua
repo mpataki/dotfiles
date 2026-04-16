@@ -33,36 +33,32 @@ return {
         })
 
         -- vim.keymap.set('n', '<Leader>t', '<cmd>:Neotree position=current<CR>')
+        vim.keymap.set('n', '<Leader>ls', ':Neotree<CR>', { desc = 'Neotree' })
 
         local pr_tree_active = false
-        vim.keymap.set('n', '<Leader>tt', function()
+        vim.keymap.set('n', '<leader>gt', function()
             vim.cmd('Neotree git_base=HEAD')
             if pr_tree_active then
                 vim.cmd('DiffReset')
                 pr_tree_active = false
             end
-        end, { desc = 'Neotree (reset to HEAD)' })
-        vim.keymap.set('n', '<leader>gt', function()
-            if pr_tree_active then
-                vim.cmd('Neotree')
-                pr_tree_active = false
+        end, { desc = 'Neotree (HEAD)' })
+        vim.keymap.set('n', '<leader>gT', function()
+            local base_branch
+            local base = vim.fn.system("git merge-base HEAD main 2>/dev/null"):gsub("%s+", "")
+            if base ~= "" then
+                base_branch = 'main'
             else
-                local base_branch
-                local base = vim.fn.system("git merge-base HEAD main 2>/dev/null"):gsub("%s+", "")
-                if base ~= "" then
-                    base_branch = 'main'
-                else
-                    base = vim.fn.system("git merge-base HEAD master 2>/dev/null"):gsub("%s+", "")
-                    base_branch = 'master'
-                end
-                if base == "" then
-                    vim.notify("Could not find merge base", vim.log.levels.ERROR)
-                    return
-                end
-                vim.cmd('Neotree git_base=' .. base)
-                print('PR diff vs ' .. base_branch)
-                pr_tree_active = true
+                base = vim.fn.system("git merge-base HEAD master 2>/dev/null"):gsub("%s+", "")
+                base_branch = 'master'
             end
-        end, { desc = 'Toggle Neotree PR diff tree' })
+            if base == "" then
+                vim.notify("Could not find merge base", vim.log.levels.ERROR)
+                return
+            end
+            vim.cmd('Neotree git_base=' .. base)
+            print('PR diff vs ' .. base_branch)
+            pr_tree_active = true
+        end, { desc = 'Neotree (PR base)' })
     end
 }
