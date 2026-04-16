@@ -3,7 +3,7 @@
   editor = vim
   pager = delta
 [color]
-  ui = always
+  ui = auto
 [format]
   pretty = %Cblue%h%Creset %Cgreen[%cr]%Creset (%an) %s
 [alias]

@@ -58,6 +58,6 @@ return {
     -- Set up keymaps
     vim.keymap.set('n', '<leader>gd', '<cmd>DiffviewOpen<CR>', { noremap = true, silent = true, desc = "Open Diffview" })
     vim.keymap.set('n', '<leader>gf', '<cmd>DiffviewToggleFiles<CR>', { noremap = true, silent = true, desc = "Toggle Diffview file panel" })
-    vim.keymap.set('n', '<leader>gp', '<cmd>DiffviewPR<CR>', { noremap = true, silent = true, desc = "Diffview against base branch (PR diff)" })
+    vim.keymap.set('n', '<leader>gP', '<cmd>DiffviewPR<CR>', { noremap = true, silent = true, desc = "Diffview PR (side-by-side)" })
   end
 }
