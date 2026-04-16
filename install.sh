@@ -43,6 +43,7 @@ fi
 . misc_tools/setup_misc_tools.sh
 . claude/setup_claude.sh
 . opencode/setup_opencode.sh
+. markdownlint/setup_markdownlint.sh
 . gws/setup_gws.sh
 . redis/setup_redis.sh
 

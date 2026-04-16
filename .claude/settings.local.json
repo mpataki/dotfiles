@@ -63,7 +63,18 @@
       "mcp__claude_ai_Atlassian_Rovo__getTransitionsForJiraIssue",
       "mcp__claude_ai_Atlassian_Rovo__getVisibleJiraProjects",
       "mcp__claude_ai_Atlassian_Rovo__getJiraProjectIssueTypesMetadata",
-      "mcp__claude_ai_Atlassian_Rovo__searchAtlassian"
+      "mcp__claude_ai_Atlassian_Rovo__searchAtlassian",
+      "mcp__datadog__search_datadog_metrics",
+      "mcp__datadog__get_datadog_metric",
+      "mcp__datadog__search_datadog_logs",
+      "mcp__datadog__search_datadog_events",
+      "mcp__datadog__get_datadog_metric_context",
+      "mcp__datadog__analyze_datadog_logs",
+      "WebFetch(domain:workspaceupdates.googleblog.com)",
+      "WebFetch(domain:support.google.com)",
+      "WebFetch(domain:developers.google.com)",
+      "Bash(gws calendar *)",
+      "Read(//Users/mat.pataki/obsidian-notes-vault/**)"
     ],
     "deny": []
   },
