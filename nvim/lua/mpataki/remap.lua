@@ -13,7 +13,7 @@ vim.keymap.set("n", "N", "Nzzzv")
 vim.keymap.set({ "n", "v" }, "<leader>y", '"+y')
 vim.keymap.set("n", "<leader>Y", '"+Y')
 
-vim.keymap.set("n", "<leader>f", vim.lsp.buf.format)
+-- <leader>f is mapped by conform.nvim (plugins/conform.lua)
 
 -- terminal
 vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')

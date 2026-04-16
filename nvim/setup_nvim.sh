@@ -14,6 +14,18 @@ function setup_nvim(){
   check_and_link_file `pwd`/nvim/after/ $HOME/.config/nvim
   check_and_link_file `pwd`/nvim/ftplugin/ $HOME/.config/nvim
 
+  # linters (used by nvim-lint)
+  install_package shellcheck
+  install_package actionlint
+  install_package hadolint
+  install_package markdownlint-cli
+  install_package zizmor
+
+  install_package golangci-lint
+
+  # formatters (used by conform.nvim)
+  install_package stylua
+
   # would be nice to get this workin via Mason
   install_package jdtls
 

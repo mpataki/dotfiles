@@ -3,7 +3,11 @@ return {
     branch = 'master',
     lazy = false,
     build = ':TSUpdate',
+    dependencies = { 'Hdoc1509/gh-actions.nvim' },
     config = function()
+        -- Register GitHub Actions expression parser before treesitter setup
+        require('gh-actions.tree-sitter').setup()
+
         require('nvim-treesitter.configs').setup {
             ensure_installed = {
                 'javascript',
@@ -35,6 +39,7 @@ return {
                 'bash',
                 'html',
                 'css',
+                'gh_actions_expressions',
             },
 
             sync_install = false,

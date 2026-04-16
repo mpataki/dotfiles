@@ -29,6 +29,19 @@ end
 -- Export the function globally so it can be used by ftplugin files
 _G.setup_lsp_keybindings = setup_lsp_keybindings
 
+-- Diagnostic display
+vim.diagnostic.config({
+    virtual_text = { source = true },
+    virtual_lines = { current_line = true },
+    float = {
+        source = true,
+        border = 'rounded',
+    },
+    underline = { severity = { min = vim.diagnostic.severity.ERROR } },
+    update_in_insert = false,
+    severity_sort = true,
+})
+
 -- Native diagnostic keymaps (alternative to trouble.nvim)
 -- These provide workspace-wide and buffer-specific diagnostic views
 -- Usage: <leader>x followed by q/l/e/w/d/D
@@ -153,7 +166,8 @@ vim.lsp.config('gopls', {
             analyses = {
                 unusedparams = true,
             },
-            staticcheck = true,
+            -- staticcheck disabled — golangci-lint handles it (with or without .golangci.yml)
+            staticcheck = false,
             gofumpt = true,
             usePlaceholders = false,
             completeUnimported = true,
@@ -222,13 +236,28 @@ vim.lsp.config('bashls', {
     capabilities = capabilities,
 })
 
--- yamlls
+-- yamlls (with SchemaStore for GitHub Actions, docker-compose, etc.)
 vim.lsp.config('yamlls', {
     cmd = { 'yaml-language-server', '--stdio' },
     filetypes = { 'yaml', 'yaml.docker-compose', 'yaml.gitlab' },
     root_markers = { '.git' },
     on_attach = on_attach,
     capabilities = capabilities,
+    settings = {
+        yaml = {
+            schemaStore = {
+                enable = false,
+                url = '',
+            },
+            -- Exclude GitHub schemas — actionlint + zizmor handle workflow validation
+            schemas = require('schemastore').yaml.schemas({
+                ignore = {
+                    'GitHub Workflow',
+                    'GitHub Action',
+                },
+            }),
+        },
+    },
 })
 
 -- gradle_ls
@@ -297,22 +326,7 @@ for _, server in ipairs(servers) do
     vim.lsp.enable(server)
 end
 
--- Ruby format on save (only works when project has formatter in Gemfile)
-vim.api.nvim_create_autocmd("BufWritePre", {
-    pattern = "*.rb",
-    callback = function()
-        -- Use pcall to silently fail if no formatter available
-        pcall(vim.lsp.buf.format, { timeout_ms = 2000 })
-    end,
-})
-
--- Go format on save
-vim.api.nvim_create_autocmd("BufWritePre", {
-    pattern = "*.go",
-    callback = function()
-        vim.lsp.buf.format({ timeout_ms = 2000 })
-    end,
-})
+-- Format-on-save handled by conform.nvim (plugins/conform.lua)
 
 -- LSP utility commands
 vim.api.nvim_create_user_command('LspInfo', function()
