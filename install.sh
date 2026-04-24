@@ -46,5 +46,6 @@ fi
 . markdownlint/setup_markdownlint.sh
 . gws/setup_gws.sh
 . redis/setup_redis.sh
+. syncthing/setup_syncthing.sh
 
 print_with_color $GREEN "Done."
