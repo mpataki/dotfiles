@@ -74,7 +74,8 @@
       "WebFetch(domain:support.google.com)",
       "WebFetch(domain:developers.google.com)",
       "Bash(gws calendar *)",
-      "Read(//Users/mat.pataki/obsidian-notes-vault/**)"
+      "Read(//Users/mat.pataki/obsidian-notes-vault/**)",
+      "mcp__notion__notion-get-users"
     ],
     "deny": []
   },
