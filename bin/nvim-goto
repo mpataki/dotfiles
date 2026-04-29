@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# nvim-goto FILE [LINE]
+#
+# Jump the nvim instance running in this project to FILE at optional LINE.
+# Project = git toplevel of cwd, falling back to cwd itself. Must match the
+# socket path computed by nvim/lua/mpataki/server.lua.
+
+set -euo pipefail
+
+if [ $# -lt 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    echo "usage: nvim-goto FILE [LINE]" >&2
+    exit 2
+fi
+
+file=$1
+line=${2:-1}
+
+if [ ! -e "$file" ]; then
+    echo "nvim-goto: file not found: $file" >&2
+    exit 1
+fi
+
+abs_file=$(cd "$(dirname -- "$file")" && printf '%s/%s' "$(pwd)" "$(basename -- "$file")")
+# Resolve symlinks so the hash matches what nvim computes via vim.fn.resolve()
+# (e.g. /tmp vs /private/tmp on macOS).
+project_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+project_root=$(cd "$project_root" && pwd -P)
+hash=$(printf '%s' "$project_root" | shasum -a 256 | cut -c1-16)
+socket="/tmp/nvim-sockets/${hash}.pipe"
+
+if [ ! -S "$socket" ]; then
+    echo "nvim-goto: no nvim listening for $project_root (looked for $socket)" >&2
+    exit 1
+fi
+
+# <C-\><C-N> drops to normal mode regardless of current mode (insert, terminal,
+# visual, etc.) before issuing :edit and the line jump.
+nvim --server "$socket" --remote-send "<C-\\><C-N>:edit ${abs_file}<CR>:${line}<CR>"
