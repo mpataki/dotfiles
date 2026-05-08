@@ -63,5 +63,3 @@ alias obsidian='Obsidian'
 alias ls='ls -G' # turn on colors
 alias pacman='sudo pacman'
 alias systemctl='sudo systemctl'
-
-alias cc='claude "read CLAUDE.md carefully. make sure you follow all of the defined rules and settings for code style, comments, testing, the development process and diagnostics like using an lsp via mcp when available."'

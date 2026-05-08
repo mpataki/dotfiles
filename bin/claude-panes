@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# List active Claude Code CLI sessions and the tmux panes they're running in.
+#
+# Reads ~/.claude/sessions/*.json (authoritative session state maintained by
+# claude itself), filters to live interactive CLI sessions, and joins each to
+# its tmux pane by walking parent pids until a known pane_pid is found.
+#
+# Output: one line per session, tab-separated columns:
+#   target  status  waiting_for  cwd  session_id  updated_at  pid
+
+set -u
+shopt -s nullglob
+
+pane_lookup=$(tmux list-panes -a -F '#{pane_pid}	#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null) || pane_lookup=""
+
+find_target() {
+  local pid="$1"
+  while [[ -n "$pid" && "$pid" -gt 1 ]]; do
+    local match
+    match=$(printf '%s\n' "$pane_lookup" | awk -v p="$pid" -F'\t' '$1==p {print $2; exit}')
+    if [[ -n "$match" ]]; then
+      printf '%s' "$match"
+      return
+    fi
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+  done
+}
+
+for f in "$HOME"/.claude/sessions/*.json; do
+  {
+    read -r pid
+    read -r status
+    read -r waiting_for
+    read -r cwd
+    read -r session_id
+    read -r updated_at
+    read -r kind
+    read -r entrypoint
+  } < <(jq -r '
+    .pid,
+    (.status // ""),
+    (.waitingFor // ""),
+    (.cwd // ""),
+    (.sessionId // ""),
+    .updatedAt,
+    (.kind // ""),
+    (.entrypoint // "")
+  ' "$f" 2>/dev/null)
+
+  [[ "$kind" == "interactive" && "$entrypoint" == "cli" ]] || continue
+  kill -0 "$pid" 2>/dev/null || continue
+
+  target=$(find_target "$pid")
+  [[ -n "$target" ]] || continue
+
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "$target" "$status" "$waiting_for" "$cwd" "$session_id" "$updated_at" "$pid"
+done

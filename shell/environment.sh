@@ -1,6 +1,8 @@
 #!/bin/bash
 
 export EDITOR=/opt/homebrew/bin/nvim
+
+export PATH="$HOME/dotfiles/bin:$PATH"
 #export GPG_TTY=$(tty)
 #export SPARK_HOME=/home/mat/code/spark-3.1.1-bin-hadoop3.2
 

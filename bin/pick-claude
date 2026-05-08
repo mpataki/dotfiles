@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# fzf picker for active Claude Code sessions.
+# Sorts waiting → busy → idle, then most-recently-updated first.
+# On selection, switches the current tmux client to that pane.
+
+set -u
+
+# Ensure sibling scripts are findable regardless of caller's PATH (e.g. tmux run-shell).
+PATH="$(cd "$(dirname "$0")" && pwd):$PATH"
+
+panes=$(claude-panes)
+if [[ -z "$panes" ]]; then
+  tmux display-message "no claude panes" 2>/dev/null || echo "no claude panes" >&2
+  exit 0
+fi
+
+# Re-shape claude-panes output for fzf:
+#   field 1 = target (hidden, used for switch + preview)
+#   field 2 = display string (status badge | waitingFor | cwd basename | target)
+display=$(printf '%s\n' "$panes" \
+  | awk -F'\t' -v OFS='\t' '
+      {
+        prio = ($2 == "waiting") ? 0 : ($2 == "busy") ? 1 : 2
+        print prio, $0
+      }
+    ' \
+  | sort -t $'\t' -k1,1n -k7,7nr \
+  | awk -F'\t' '
+      {
+        # After sort prefix: $2=target $3=status $4=waiting_for $5=cwd ... $7=updated_at $8=pid
+        target      = $2
+        status      = ($3 == "waiting") ? "WAIT" : ($3 == "busy") ? "BUSY" : "IDLE"
+        waiting_for = $4
+        cwd         = $5
+        basename    = cwd; sub(/.*\//, "", basename)
+        printf "%s\t%-4s  %-28s  %-22s  %s\n", target, status, waiting_for, basename, target
+      }
+    ')
+
+selection=$(printf '%s\n' "$display" \
+  | fzf-tmux -p 95%,85% \
+      --delimiter=$'\t' \
+      --with-nth=2 \
+      --ansi \
+      --border=rounded \
+      --preview 'tmux capture-pane -e -p -t {1} | tail -40' \
+      --preview-window 'right:55%:border-left') || exit 0
+
+target=$(printf '%s' "$selection" | cut -f1)
+[[ -n "$target" ]] && tmux switch-client -t "$target"
