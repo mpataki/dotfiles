@@ -112,6 +112,16 @@ export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
 export PATH="$GOPATH/bin:$PATH"
 export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
 
+# Obsidian Local REST API (used by Claude Code's obsidian MCP server).
+# Wraps `claude` so the Touch ID prompt fires only when launching Claude Code,
+# not on every shell. Empty key on failure is fine — the obsidian MCP fails,
+# the rest works.
+claude() {
+  local key
+  key=$(op read --account my.1password.com 'op://Private/obsidian-local-rest-api/password' 2>/dev/null)
+  OBSIDIAN_API_KEY=$key command claude "$@"
+}
+
 # Uncomment the following line to use case-sensitive completion.
 # CASE_SENSITIVE="true"
 
