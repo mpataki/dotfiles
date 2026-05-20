@@ -121,9 +121,17 @@ return {
                 if not choice then return end
 
                 if choice.checkout then
-                    local current = vim.trim(vim.fn.system("git rev-parse --abbrev-ref HEAD"))
-                    if current ~= choice.checkout then
-                        local result = vim.fn.system("git checkout " .. vim.fn.shellescape(choice.checkout) .. " 2>&1")
+                    -- Detach HEAD at the target commit instead of claiming the
+                    -- branch — avoids worktree conflicts when the branch is
+                    -- checked out elsewhere, and signals viewing mode.
+                    local current = vim.trim(vim.fn.system("git rev-parse HEAD"))
+                    local target = vim.trim(vim.fn.system("git rev-parse " .. vim.fn.shellescape(choice.checkout) .. "^0 2>/dev/null"))
+                    if vim.v.shell_error ~= 0 or target == "" then
+                        vim.notify("Could not resolve ref: " .. choice.checkout, vim.log.levels.ERROR)
+                        return
+                    end
+                    if current ~= target then
+                        local result = vim.fn.system("git checkout --detach " .. vim.fn.shellescape(choice.checkout) .. " 2>&1")
                         if vim.v.shell_error ~= 0 then
                             vim.notify("Checkout failed:\n" .. result, vim.log.levels.ERROR)
                             return
