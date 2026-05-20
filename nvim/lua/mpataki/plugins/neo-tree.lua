@@ -62,32 +62,15 @@ return {
             pr_tree_active = true
         end, { desc = 'Neotree (PR base)' })
 
-        -- PR-ladder picker — reads ladder.json from the repo's common gitdir,
-        -- walks git worktree list, and presents one entry per ladder worktree
-        -- (fat + each rung that has a worktree). Selecting an entry cds nvim
-        -- to that worktree and sets the diff base to the previous rung in the
-        -- ladder, yielding the PR-style diff for the rung. Worktree creation
-        -- is the skill's job, not the picker's.
-        local function pick_ladder_base()
-            local git_common = vim.trim(vim.fn.system("git rev-parse --git-common-dir 2>/dev/null"))
-            if git_common == "" then
-                vim.notify("Not in a git repo", vim.log.levels.WARN)
-                return
-            end
-
-            local ladder_path = git_common .. "/ladder.json"
-            if vim.fn.filereadable(ladder_path) == 0 then
-                vim.notify("No ladder state at " .. ladder_path .. " — run /pr-ladder init", vim.log.levels.WARN)
-                return
-            end
-
-            local ok, ladder = pcall(vim.fn.json_decode, vim.fn.readfile(ladder_path))
-            if not ok or type(ladder) ~= "table" or type(ladder.rungs) ~= "table" then
-                vim.notify("Invalid ladder.json", vim.log.levels.ERROR)
-                return
-            end
-
-            -- Map branch name → worktree path from `git worktree list --porcelain`.
+        -- PR-ladder picker — reads ladder state files from
+        -- <git-common-dir>/ladders/*.json, walks `git worktree list`, and
+        -- presents one entry per ladder worktree (fat + each rung). Selecting
+        -- an entry cds nvim to that worktree and sets the diff base to the
+        -- previous rung, yielding the PR-style diff. Worktree creation is
+        -- the skill's job, not the picker's. Multiple ladders coexist; the
+        -- picker auto-selects the one claiming the current branch, or
+        -- prompts when there's no unique match.
+        local function get_worktrees()
             local worktrees = {}
             local cur = {}
             local flush = function()
@@ -106,11 +89,13 @@ return {
                 end
             end
             flush()
+            return worktrees
+        end
 
+        local function show_ladder_picker(ladder, worktrees)
             local base_ref = ladder.base or "main"
             local entries = {}
 
-            -- Fat branch entry — full fat diff against ladder base.
             if ladder.fat_branch then
                 local wt = worktrees[ladder.fat_branch]
                 table.insert(entries, {
@@ -121,7 +106,6 @@ return {
                 })
             end
 
-            -- Each rung — PR diff against previous rung (or base for rung 1).
             local prev_ref = base_ref
             for i, rung in ipairs(ladder.rungs) do
                 local wt = worktrees[rung]
@@ -134,7 +118,6 @@ return {
                 prev_ref = rung
             end
 
-            -- Stay-here entry — uncommitted in current worktree only.
             table.insert(entries, {
                 label = "HEAD  (uncommitted only in current worktree)",
                 path = nil,
@@ -142,16 +125,14 @@ return {
             })
 
             vim.ui.select(entries, {
-                prompt = "Ladder view:",
+                prompt = "Ladder view (" .. (ladder.fat_branch or "?") .. "):",
                 format_item = function(e) return e.label end,
             }, function(choice)
                 if not choice then return end
-
                 if choice.path == nil and choice.base ~= "HEAD" then
                     vim.notify("No worktree for this entry — invoke /pr-ladder to set one up", vim.log.levels.WARN)
                     return
                 end
-
                 if choice.path then
                     vim.cmd('cd ' .. vim.fn.fnameescape(choice.path))
                     vim.cmd('Neotree dir=' .. vim.fn.fnameescape(choice.path) .. ' git_base=' .. choice.base)
@@ -161,6 +142,76 @@ return {
                 vim.cmd('DiffPRBase ' .. choice.base)
                 pr_tree_active = true
             end)
+        end
+
+        local function pick_ladder_base()
+            local git_common = vim.trim(vim.fn.system("git rev-parse --git-common-dir 2>/dev/null"))
+            if git_common == "" then
+                vim.notify("Not in a git repo", vim.log.levels.WARN)
+                return
+            end
+
+            local ladders_dir = git_common .. "/ladders"
+            if vim.fn.isdirectory(ladders_dir) == 0 then
+                vim.notify("No ladders directory at " .. ladders_dir .. " — run /pr-ladder init", vim.log.levels.WARN)
+                return
+            end
+
+            local files = vim.fn.glob(ladders_dir .. "/*.json", true, true)
+            if #files == 0 then
+                vim.notify("No ladder state files in " .. ladders_dir, vim.log.levels.WARN)
+                return
+            end
+
+            local ladders = {}
+            for _, file in ipairs(files) do
+                local ok, data = pcall(vim.fn.json_decode, vim.fn.readfile(file))
+                if ok and type(data) == "table" and type(data.rungs) == "table" then
+                    data._name = vim.fn.fnamemodify(file, ":t:r")
+                    table.insert(ladders, data)
+                end
+            end
+            if #ladders == 0 then
+                vim.notify("No valid ladder files in " .. ladders_dir, vim.log.levels.ERROR)
+                return
+            end
+
+            local worktrees = get_worktrees()
+
+            -- Match current branch against ladders
+            local current = vim.trim(vim.fn.system("git symbolic-ref --short HEAD 2>/dev/null"))
+            local matching = {}
+            if current ~= "" then
+                for _, l in ipairs(ladders) do
+                    if l.fat_branch == current then
+                        table.insert(matching, l)
+                    else
+                        for _, rung in ipairs(l.rungs) do
+                            if rung == current then
+                                table.insert(matching, l)
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+
+            if #matching == 1 then
+                show_ladder_picker(matching[1], worktrees)
+            else
+                local prompt = #matching == 0
+                    and "Pick a ladder (no match for current branch):"
+                    or "Pick a ladder (multiple match current branch):"
+                vim.ui.select(ladders, {
+                    prompt = prompt,
+                    format_item = function(l)
+                        return l._name .. "  — fat: " .. (l.fat_branch or "?")
+                    end,
+                }, function(ladder)
+                    if not ladder then return end
+                    show_ladder_picker(ladder, worktrees)
+                end)
+            end
         end
         vim.keymap.set('n', '<leader>gp', pick_ladder_base, { desc = 'Pick PR-ladder view (cd + diff base)' })
     end
