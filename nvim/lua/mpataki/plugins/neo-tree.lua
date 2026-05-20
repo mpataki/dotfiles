@@ -62,19 +62,20 @@ return {
             pr_tree_active = true
         end, { desc = 'Neotree (PR base)' })
 
-        -- PR-ladder picker — reads .git/ladder.json (or worktree equivalent),
-        -- offers each rung's ref as a diff base. No checkout — the working
-        -- tree (set by your current tmux window / worktree) is the right
-        -- side of the diff. To see a particular rung's PR diff, navigate to
-        -- its worktree via tmux, then pick the previous rung as the base.
+        -- PR-ladder picker — reads ladder.json from the repo's common gitdir,
+        -- walks git worktree list, and presents one entry per ladder worktree
+        -- (fat + each rung that has a worktree). Selecting an entry cds nvim
+        -- to that worktree and sets the diff base to the previous rung in the
+        -- ladder, yielding the PR-style diff for the rung. Worktree creation
+        -- is the skill's job, not the picker's.
         local function pick_ladder_base()
-            local git_dir = vim.fn.system("git rev-parse --git-dir 2>/dev/null"):gsub("%s+$", "")
-            if git_dir == "" then
+            local git_common = vim.trim(vim.fn.system("git rev-parse --git-common-dir 2>/dev/null"))
+            if git_common == "" then
                 vim.notify("Not in a git repo", vim.log.levels.WARN)
                 return
             end
 
-            local ladder_path = git_dir .. "/ladder.json"
+            local ladder_path = git_common .. "/ladder.json"
             if vim.fn.filereadable(ladder_path) == 0 then
                 vim.notify("No ladder state at " .. ladder_path .. " — run /pr-ladder init", vim.log.levels.WARN)
                 return
@@ -86,32 +87,81 @@ return {
                 return
             end
 
+            -- Map branch name → worktree path from `git worktree list --porcelain`.
+            local worktrees = {}
+            local cur = {}
+            local flush = function()
+                if cur.path and cur.branch then
+                    worktrees[cur.branch] = cur.path
+                end
+                cur = {}
+            end
+            for _, line in ipairs(vim.fn.systemlist("git worktree list --porcelain")) do
+                if line == "" then
+                    flush()
+                elseif line:sub(1, 9) == "worktree " then
+                    cur.path = line:sub(10)
+                elseif line:sub(1, 7) == "branch " then
+                    cur.branch = line:sub(8):gsub("^refs/heads/", "")
+                end
+            end
+            flush()
+
+            local base_ref = ladder.base or "main"
             local entries = {}
-            table.insert(entries, {
-                label = (ladder.base or "main") .. "  (ladder base)",
-                base = ladder.base or "main",
-            })
-            for i, rung in ipairs(ladder.rungs) do
+
+            -- Fat branch entry — full fat diff against ladder base.
+            if ladder.fat_branch then
+                local wt = worktrees[ladder.fat_branch]
                 table.insert(entries, {
-                    label = rung .. "  (rung " .. i .. ")",
-                    base = rung,
+                    label = "fat: " .. ladder.fat_branch ..
+                        (wt and ("  vs " .. base_ref) or "  [no worktree]"),
+                    path = wt,
+                    base = base_ref,
                 })
             end
+
+            -- Each rung — PR diff against previous rung (or base for rung 1).
+            local prev_ref = base_ref
+            for i, rung in ipairs(ladder.rungs) do
+                local wt = worktrees[rung]
+                table.insert(entries, {
+                    label = "rung " .. i .. ": " .. rung ..
+                        (wt and ("  vs " .. prev_ref) or "  [no worktree]"),
+                    path = wt,
+                    base = prev_ref,
+                })
+                prev_ref = rung
+            end
+
+            -- Stay-here entry — uncommitted in current worktree only.
             table.insert(entries, {
-                label = "HEAD  (uncommitted only)",
+                label = "HEAD  (uncommitted only in current worktree)",
+                path = nil,
                 base = "HEAD",
             })
 
             vim.ui.select(entries, {
-                prompt = "Ladder diff base:",
+                prompt = "Ladder view:",
                 format_item = function(e) return e.label end,
             }, function(choice)
                 if not choice then return end
-                vim.cmd('Neotree git_base=' .. choice.base)
+
+                if choice.path == nil and choice.base ~= "HEAD" then
+                    vim.notify("No worktree for this entry — invoke /pr-ladder to set one up", vim.log.levels.WARN)
+                    return
+                end
+
+                if choice.path then
+                    vim.cmd('cd ' .. vim.fn.fnameescape(choice.path))
+                    vim.cmd('Neotree dir=' .. vim.fn.fnameescape(choice.path) .. ' git_base=' .. choice.base)
+                else
+                    vim.cmd('Neotree git_base=' .. choice.base)
+                end
                 vim.cmd('DiffPRBase ' .. choice.base)
                 pr_tree_active = true
             end)
         end
-        vim.keymap.set('n', '<leader>gp', pick_ladder_base, { desc = 'Pick PR-ladder diff base' })
+        vim.keymap.set('n', '<leader>gp', pick_ladder_base, { desc = 'Pick PR-ladder view (cd + diff base)' })
     end
 }
