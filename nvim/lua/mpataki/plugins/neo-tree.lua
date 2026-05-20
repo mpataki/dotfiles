@@ -61,5 +61,54 @@ return {
             print('PR diff vs ' .. base_branch)
             pr_tree_active = true
         end, { desc = 'Neotree (PR base)' })
+
+        -- PR-ladder picker — reads .git/ladder.json (or worktree equivalent),
+        -- offers diff bases over the ladder rungs.
+        local function pick_ladder_base()
+            local git_dir = vim.fn.system("git rev-parse --git-dir 2>/dev/null"):gsub("%s+$", "")
+            if git_dir == "" then
+                vim.notify("Not in a git repo", vim.log.levels.WARN)
+                return
+            end
+
+            local ladder_path = git_dir .. "/ladder.json"
+            if vim.fn.filereadable(ladder_path) == 0 then
+                vim.notify("No ladder state at " .. ladder_path .. " — run /pr-ladder init", vim.log.levels.WARN)
+                return
+            end
+
+            local ok, ladder = pcall(vim.fn.json_decode, vim.fn.readfile(ladder_path))
+            if not ok or type(ladder) ~= "table" or type(ladder.rungs) ~= "table" then
+                vim.notify("Invalid ladder.json", vim.log.levels.ERROR)
+                return
+            end
+
+            local entries = {}
+            table.insert(entries, {
+                label = (ladder.base or "main") .. "  (full fat diff)",
+                ref = ladder.base or "main",
+            })
+            for i, rung in ipairs(ladder.rungs) do
+                table.insert(entries, {
+                    label = rung .. "  (above rung " .. i .. ")",
+                    ref = rung,
+                })
+            end
+            table.insert(entries, {
+                label = "HEAD  (working tree only)",
+                ref = "HEAD",
+            })
+
+            vim.ui.select(entries, {
+                prompt = "Ladder diff base:",
+                format_item = function(e) return e.label end,
+            }, function(choice)
+                if not choice then return end
+                vim.cmd('Neotree git_base=' .. choice.ref)
+                vim.cmd('DiffPRBase ' .. choice.ref)
+                pr_tree_active = true
+            end)
+        end
+        vim.keymap.set('n', '<leader>gp', pick_ladder_base, { desc = 'Pick PR-ladder diff base' })
     end
 }

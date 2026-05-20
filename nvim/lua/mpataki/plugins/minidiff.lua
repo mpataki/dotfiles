@@ -58,11 +58,20 @@ return {
           pr_ref_applied[bufnr] = true
         end
 
-        vim.api.nvim_create_user_command('DiffPRBase', function()
-          local base = vim.fn.system("git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null"):gsub("%s+", "")
-          if base == "" then
-            vim.notify("Could not find merge base", vim.log.levels.ERROR)
-            return
+        vim.api.nvim_create_user_command('DiffPRBase', function(opts)
+          local base
+          if opts.args ~= "" then
+            base = vim.fn.system("git rev-parse " .. vim.fn.shellescape(opts.args) .. " 2>/dev/null"):gsub("%s+", "")
+            if base == "" then
+              vim.notify("Could not resolve ref: " .. opts.args, vim.log.levels.ERROR)
+              return
+            end
+          else
+            base = vim.fn.system("git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null"):gsub("%s+", "")
+            if base == "" then
+              vim.notify("Could not find merge base", vim.log.levels.ERROR)
+              return
+            end
           end
 
           pr_base_ref = base
@@ -80,7 +89,7 @@ return {
           })
 
           vim.notify("mini.diff: reviewing against " .. base:sub(1, 8), vim.log.levels.INFO)
-        end, { desc = "Set mini.diff reference to PR merge-base" })
+        end, { desc = "Set mini.diff reference (defaults to PR merge-base)", nargs = "?" })
 
         vim.api.nvim_create_user_command('DiffReset', function()
           pr_base_ref = nil
