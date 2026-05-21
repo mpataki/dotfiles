@@ -6,6 +6,24 @@ return {
     "BufReadPre " .. vim.fn.expand("~") .. "/obsidian-notes-vault/*.md",
     "BufNewFile " .. vim.fn.expand("~") .. "/obsidian-notes-vault/*.md",
   },
+  -- Also load on the :Obsidian command or any <leader>o* key, so the plugin
+  -- is reachable from buffers outside the vault (which is the whole point of
+  -- shortcuts like <leader>oj "today" and <leader>os "search").
+  cmd = { "Obsidian" },
+  keys = {
+    { "<leader>on", "<cmd>Obsidian new<cr>",              desc = "Obsidian: new note" },
+    { "<leader>ot", "<cmd>Obsidian tags<cr>",             desc = "Obsidian: tags" },
+    { "<leader>ol", "<cmd>Obsidian links<cr>",            desc = "Obsidian: links",            silent = true },
+    { "<leader>of", "<cmd>Obsidian link_new<cr>",         desc = "Obsidian: link selection",   mode = "v" },
+    { "<leader>os", "<cmd>Obsidian search<cr>",           desc = "Obsidian: search",           silent = true },
+    { "<leader>oj", "<cmd>Obsidian today<cr>",            desc = "Obsidian: today",            silent = true },
+    { "<leader>ok", "<cmd>Obsidian tomorrow<cr>",         desc = "Obsidian: tomorrow",         silent = true },
+    { "<leader>oh", "<cmd>Obsidian yesterday<cr>",        desc = "Obsidian: yesterday",        silent = true },
+    { "<leader>or", "<cmd>Obsidian rename<cr>",           desc = "Obsidian: rename",           silent = true },
+    { "<leader>oc", "<cmd>Obsidian toggle_checkbox<cr>",  desc = "Obsidian: toggle checkbox",  silent = true },
+    { "<leader>od", "<cmd>Obsidian dailies<cr>",          desc = "Obsidian: dailies",          silent = true },
+    { "<leader>oR", "<cmd>Lazy reload obsidian.nvim<cr>", desc = "Obsidian: reload plugin",    silent = true },
+  },
   dependencies = {
     -- Required.
     "nvim-lua/plenary.nvim",
@@ -72,19 +90,8 @@ return {
           -- See https://github.com/obsidian-nvim/obsidian.nvim/wiki/Attachment for details.
       })
 
-      vim.keymap.set('n', '<leader>on', ':Obsidian new<CR>', { })
-      vim.keymap.set('n', '<leader>ot', ':Obsidian tags<CR>', { })
-      vim.keymap.set('n', '<leader>ol', ':Obsidian links<CR>', { silent = true })
-      vim.keymap.set('v', '<leader>of', ':Obsidian link_new<CR>', { })
-      vim.keymap.set('n', '<leader>os', ':Obsidian search<CR>', { noremap = true, silent = true })
-      vim.keymap.set('n', '<leader>oj', ':Obsidian today<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>ok', ':Obsidian tomorrow<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>oh', ':Obsidian yesterday<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>or', ':Obsidian rename<CR>', { silent = true })
-      vim.keymap.set('n', '<leader>oc', ':Obsidian toggle_checkbox<CR>', { expr = true, silent = true })
-      vim.keymap.set('n', '<leader>od', ':Obsidian dailies<CR>', { silent = true })
-      -- Reload obsidian.nvim to pick up externally created files
-      vim.keymap.set('n', '<leader>oR', ':Lazy reload obsidian.nvim<CR>', { silent = true })
+      -- Keymaps live in the lazy spec's `keys = { … }` table above so they
+      -- exist from startup and trigger plugin load on first press.
 
       -- Create an autocommand group for Obsidian auto-commit
       local obsidian_autocommit = vim.api.nvim_create_augroup('ObsidianAutoCommit', { clear = true })
