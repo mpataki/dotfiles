@@ -171,22 +171,37 @@ return {
                 return
             end
 
-            -- Match current branch against ladders
-            local current = vim.trim(vim.fn.system("git symbolic-ref --short HEAD 2>/dev/null"))
+            -- Match current HEAD against ladders. Try branch-name match
+            -- first (cheap); fall back to SHA match for detached HEAD.
+            local current_branch = vim.trim(vim.fn.system("git symbolic-ref --short HEAD 2>/dev/null"))
+            local current_sha = vim.trim(vim.fn.system("git rev-parse HEAD 2>/dev/null"))
+
+            local function ref_sha(ref)
+                if not ref or ref == "" then return "" end
+                return vim.trim(vim.fn.system("git rev-parse " .. vim.fn.shellescape(ref) .. " 2>/dev/null"))
+            end
+
             local matching = {}
-            if current ~= "" then
-                for _, l in ipairs(ladders) do
-                    if l.fat_branch == current then
-                        table.insert(matching, l)
-                    else
+            for _, l in ipairs(ladders) do
+                local claimed = false
+                if current_branch ~= "" then
+                    if l.fat_branch == current_branch then claimed = true end
+                    if not claimed then
                         for _, rung in ipairs(l.rungs) do
-                            if rung == current then
-                                table.insert(matching, l)
-                                break
-                            end
+                            if rung == current_branch then claimed = true; break end
                         end
                     end
                 end
+                if not claimed and current_sha ~= "" then
+                    if ref_sha(l.fat_branch) == current_sha then
+                        claimed = true
+                    else
+                        for _, rung in ipairs(l.rungs) do
+                            if ref_sha(rung) == current_sha then claimed = true; break end
+                        end
+                    end
+                end
+                if claimed then table.insert(matching, l) end
             end
 
             if #matching == 1 then
