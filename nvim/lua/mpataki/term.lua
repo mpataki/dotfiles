@@ -26,7 +26,7 @@ end
 
 local function sendSigtermToTerminal(bufnr)
     -- Ensure the buffer is a valid terminal
-    if vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_get_option(bufnr, 'buftype') == 'terminal' then
+    if vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buftype == 'terminal' then
         -- Get the job ID
         local job_id = vim.api.nvim_buf_get_var(bufnr, 'terminal_job_id')
 

@@ -133,10 +133,15 @@ end
 
 -- query the LSP for the class or method under the cursor
 local function extractTestFilterFromLsp(co)
-    local params = vim.lsp.util.make_position_params()
-    vim.lsp.buf_request(0, 'textDocument/hover', params, function(err, result, ctx, config)
+    local clients = vim.lsp.get_clients({ bufnr = 0, method = 'textDocument/hover' })
+    if #clients == 0 then
+        return
+    end
+    local client = clients[1]
+    local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+    client:request('textDocument/hover', params, function(err, result, ctx, config)
         if err then
-            print("Error: " .. err)
+            print("Error: " .. vim.inspect(err))
             return
         end
 
