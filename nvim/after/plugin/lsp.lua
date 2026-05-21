@@ -22,8 +22,8 @@ local function setup_lsp_keybindings(bufnr)
     vim.keymap.set('n', 'gR',   vim.lsp.buf.rename, opts)
     vim.keymap.set('n', 'ga',   vim.lsp.buf.code_action, opts)
     vim.keymap.set('n', 'gl',   vim.diagnostic.open_float, opts)
-    vim.keymap.set('n', '[d',   vim.diagnostic.goto_prev, opts)
-    vim.keymap.set('n', ']d',   vim.diagnostic.goto_next, opts)
+    vim.keymap.set('n', '[d',   function() vim.diagnostic.jump({ count = -1, float = true }) end, opts)
+    vim.keymap.set('n', ']d',   function() vim.diagnostic.jump({ count = 1, float = true }) end, opts)
 end
 
 -- Export the function globally so it can be used by ftplugin files
@@ -75,8 +75,8 @@ vim.keymap.set('n', '<leader>xw', function()
 end, { desc = "Show warnings and errors (workspace)" })
 
 -- Additional useful diagnostic keymaps
-vim.keymap.set('n', '<leader>xd', vim.diagnostic.disable, { desc = "Disable diagnostics" })
-vim.keymap.set('n', '<leader>xD', vim.diagnostic.enable, { desc = "Enable diagnostics" })
+vim.keymap.set('n', '<leader>xd', function() vim.diagnostic.enable(false) end, { desc = "Disable diagnostics" })
+vim.keymap.set('n', '<leader>xD', function() vim.diagnostic.enable(true) end, { desc = "Enable diagnostics" })
 
 -- Quickfix and location list navigation helpers
 vim.keymap.set('n', ']q', vim.cmd.cnext, { desc = "Next quickfix item" })
