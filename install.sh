@@ -40,6 +40,7 @@ fi
 . node/setup_node.sh
 . k9s/setup_k9s.sh
 . k8s/setup_k8s.sh
+. k6/setup_k6.sh
 . misc_tools/setup_misc_tools.sh
 . claude/setup_claude.sh
 . opencode/setup_opencode.sh
