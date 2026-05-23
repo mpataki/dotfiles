@@ -16,7 +16,31 @@ vim.keymap.set("n", "<leader>Y", '"+Y')
 -- <leader>f is mapped by conform.nvim (plugins/conform.lua)
 
 -- terminal
-vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')
+vim.keymap.set("t", "<Esc>", "<C-\\><C-n>")
+
+-- horizontal scroll: smaller jump than default zL/zH, sticky-repeat with L/H
+local function horiz_scroll(dir)
+  local cols = 16
+  local function step(d)
+    vim.cmd("normal! " .. cols .. (d == "right" and "zl" or "zh"))
+    vim.cmd("redraw")
+  end
+  step(dir)
+  while true do
+    local ok, c = pcall(vim.fn.getcharstr)
+    if not ok then return end
+    if c == "L" then
+      step("right")
+    elseif c == "H" then
+      step("left")
+    else
+      vim.api.nvim_feedkeys(c, "n", false)
+      return
+    end
+  end
+end
+vim.keymap.set("n", "zL", function() horiz_scroll("right") end)
+vim.keymap.set("n", "zH", function() horiz_scroll("left") end)
 
 -- split resizing
 vim.keymap.set("n", "<c-w><", "<c-w>10<")
@@ -25,13 +49,13 @@ vim.keymap.set("n", "<c-w>+", "<C-w>2+")
 vim.keymap.set("n", "<c-w>-", "<C-w>2-")
 
 -- next and previous buffers
-vim.keymap.set("n", ']b', ":bnext<CR>")
-vim.keymap.set("n", '[b', ":bprevious<CR>")
+vim.keymap.set("n", "]b", ":bnext<CR>")
+vim.keymap.set("n", "[b", ":bprevious<CR>")
 
 -- next and previous jump
-vim.keymap.set("n", '<c-o>', "<c-o>zz");
-vim.keymap.set("n", '<c-i>', "<c-i>zz");
+vim.keymap.set("n", "<c-o>", "<c-o>zz")
+vim.keymap.set("n", "<c-i>", "<c-i>zz")
 
 vim.keymap.set("n", "<leader>w", ":w<CR>", { nowait = true, silent = true })
-vim.keymap.set("n", "<leader>s\\", ":vsplit<CR><C-w>l");
-vim.keymap.set("n", "<leader>s-", ":split<CR><C-w>j");
+vim.keymap.set("n", "<leader>s\\", ":vsplit<CR><C-w>l")
+vim.keymap.set("n", "<leader>s-", ":split<CR><C-w>j")

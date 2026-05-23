@@ -3,6 +3,7 @@ return {
   event = "VeryLazy",
   opts = {
     preset = "modern",
+    delay = 500,
     spec = {
       { "<leader>r", group = "Requests (kulala)" },
       { "<leader>g", group = "Git" },
