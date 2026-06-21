@@ -6,7 +6,7 @@ function setup_nvim(){
   install_package ripgrep
   install_package fd # telescope uses this to filesystem searching
   install_package luarocks # lua package manager
-  install_package tree-sitter # treesitter CLI for parser compilation
+  install_package tree-sitter-cli # treesitter CLI for parser compilation (nvim-treesitter `main` branch needs the CLI; the `tree-sitter` formula is library-only and ships no CLI)
   
   mkdir -p $HOME/.config/nvim
   check_and_link_file `pwd`/nvim/init.lua $HOME/.config/nvim/init.lua

@@ -1,69 +1,73 @@
 return {
     'nvim-treesitter/nvim-treesitter',
-    branch = 'master',
+    branch = 'main', -- the `master` branch is locked to Neovim <= 0.11; `main` is the supported rewrite
     lazy = false,
     build = ':TSUpdate',
     dependencies = { 'Hdoc1509/gh-actions.nvim' },
     config = function()
-        -- Register GitHub Actions expression parser before treesitter setup
+        -- Register the GitHub Actions expression parser before install (main-branch API).
         require('gh-actions.tree-sitter').setup()
 
-        require('nvim-treesitter.configs').setup {
-            ensure_installed = {
-                'javascript',
-                'typescript',
-                'tsx',
-                'java',
-                'groovy',
-                'python',
-                'c',
-                'lua',
-                'vim',
-                'vimdoc',
-                'query',
-                'go',
-                'gomod',
-                'rust',
-                'proto',
-                'terraform',
-                'dockerfile',
-                'xml',
-                'cpp',
-                'markdown',
-                'markdown_inline',
-                'sql',
-                'ruby',
-                'yaml',
-                'json',
-                'toml',
-                'bash',
-                'html',
-                'css',
-                'gh_actions_expressions',
-            },
+        require('nvim-treesitter').setup()
 
-            sync_install = false,
-            auto_install = false,
-
-            highlight = {
-                enable = true,
-                additional_vim_regex_highlighting = false,
-            },
-
-            incremental_selection = {
-                enable = true,
-                keymaps = {
-                    init_selection = "<leader>ss",
-                    node_incremental = "<leader>si",
-                    scope_incremental = "<leader>sc",
-                    node_decremental = "<leader>sd",
-                },
-            },
-
-            indent = {
-                enable = true,
-                disable = { "python" },
-            },
+        -- ensure_installed equivalent: install() is async and a no-op when already present.
+        require('nvim-treesitter').install {
+            'javascript',
+            'typescript',
+            'tsx',
+            'java',
+            'groovy',
+            'python',
+            'c',
+            'lua',
+            'vim',
+            'vimdoc',
+            'query',
+            'go',
+            'gomod',
+            'rust',
+            'proto',
+            'terraform',
+            'dockerfile',
+            'xml',
+            'cpp',
+            'markdown',
+            'markdown_inline',
+            'sql',
+            'ruby',
+            'yaml',
+            'json',
+            'toml',
+            'bash',
+            'html',
+            'css',
+            'gh_actions_expressions',
         }
-    end
+
+        -- The main branch leaves feature activation to the user. Enable highlighting
+        -- (and experimental indentation) for any buffer whose filetype has a parser.
+        local no_indent = { python = true }
+        vim.api.nvim_create_autocmd('FileType', {
+            group = vim.api.nvim_create_augroup('mpataki_treesitter', { clear = true }),
+            callback = function(args)
+                local ft = vim.bo[args.buf].filetype
+                local lang = vim.treesitter.language.get_lang(ft)
+                if not lang or not vim.treesitter.language.add(lang) then
+                    return -- no parser installed for this filetype yet
+                end
+                vim.treesitter.start(args.buf, lang)
+                if not no_indent[ft] then
+                    vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+                end
+            end,
+        })
+
+        -- Incremental selection: the main branch removed the built-in module, so the
+        -- keymaps are reimplemented against core treesitter in mpataki.ts_incsel.
+        local sel = require('mpataki.ts_incsel')
+        vim.keymap.set('n', '<leader>ss', sel.init, { desc = 'TS: init selection' })
+        vim.keymap.set('x', '<leader>si', sel.node_incremental, { desc = 'TS: expand to node' })
+        vim.keymap.set('x', '<leader>sc', sel.scope_incremental, { desc = 'TS: expand to scope' })
+        vim.keymap.set('x', '<leader>sd', sel.node_decremental, { desc = 'TS: shrink selection' })
+    end,
 }
