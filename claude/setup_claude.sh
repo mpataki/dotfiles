@@ -47,8 +47,15 @@ function sync_claude_mcp_servers() {
     else
       local url
       url=$(jq -r --arg n "$name" '.[$n].url' "$mcp_config")
+      # Pass any headers (e.g. Authorization) through. Values may contain
+      # ${VAR} references, which Claude Code expands at load time — keep them
+      # literal here so the secret never lands in ~/.claude.json.
+      local header_args=()
+      while IFS= read -r header; do
+        [ -n "$header" ] && header_args+=(--header "$header")
+      done < <(jq -r --arg n "$name" '.[$n].headers // {} | to_entries[] | "\(.key): \(.value)"' "$mcp_config")
       print_with_color $BLUE "adding MCP server: $name ($url)"
-      claude mcp add --transport "$type" "$name" "$url" --scope user 2>&1
+      claude mcp add --transport "$type" "$name" "$url" "${header_args[@]}" --scope user 2>&1
     fi
   done
 }

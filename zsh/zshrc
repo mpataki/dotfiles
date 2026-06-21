@@ -112,14 +112,19 @@ export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
 export PATH="$GOPATH/bin:$PATH"
 export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
 
-# Obsidian Local REST API (used by Claude Code's obsidian MCP server).
-# Wraps `claude` so the Touch ID prompt fires only when launching Claude Code,
-# not on every shell. Empty key on failure is fine — the obsidian MCP fails,
-# the rest works.
+# Pull Claude Code MCP secrets from 1Password at launch (vs. plaintext in
+# mcp-servers.json). Wraps `claude` so the Touch ID prompt fires only when
+# launching Claude Code, not on every shell. Empty value on failure is fine —
+# that MCP server fails to auth, the rest works.
+#
+# Account is pinned to the personal (matpataki@gmail.com) user ID: the bare URL
+# "my.1password.com" is ambiguous because the work account shares it.
 claude() {
-  local key
-  key=$(op read --account my.1password.com 'op://Private/obsidian-local-rest-api/password' 2>/dev/null)
-  OBSIDIAN_API_KEY=$key command claude "$@"
+  local op_account='SVDFAW7KNJDHNDDCQZD3EREUUY'
+  local obsidian_key n8n_token
+  obsidian_key=$(op read --account "$op_account" 'op://Private/obsidian-local-rest-api/password' 2>/dev/null)
+  n8n_token=$(op read --account "$op_account" 'op://Private/n8n-mcp/credential' 2>/dev/null)
+  OBSIDIAN_API_KEY=$obsidian_key N8N_MCP_TOKEN=$n8n_token command claude "$@"
 }
 
 # Uncomment the following line to use case-sensitive completion.
