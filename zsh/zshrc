@@ -117,10 +117,12 @@ export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
 # launching Claude Code, not on every shell. Empty value on failure is fine —
 # that MCP server fails to auth, the rest works.
 #
-# Account is pinned to the personal (matpataki@gmail.com) user ID: the bare URL
-# "my.1password.com" is ambiguous because the work account shares it.
+# Account is pinned to the personal (matpataki@gmail.com) account ID. The bare
+# URL "my.1password.com" is ambiguous (the work account shares it), and email
+# is not accepted as an --account filter here, so the account_uuid is the only
+# unambiguous selector (from `op account list --format=json`).
 claude() {
-  local op_account='SVDFAW7KNJDHNDDCQZD3EREUUY'
+  local op_account='4T4I5FCQRVFW5OBTUNAD3BN6PQ' # matpataki@gmail.com account_uuid
   local obsidian_key n8n_token
   obsidian_key=$(op read --account "$op_account" 'op://Private/obsidian-local-rest-api/password' 2>/dev/null)
   n8n_token=$(op read --account "$op_account" 'op://Private/n8n-mcp/credential' 2>/dev/null)
