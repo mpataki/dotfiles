@@ -61,13 +61,5 @@ return {
                 end
             end,
         })
-
-        -- Incremental selection: the main branch removed the built-in module, so the
-        -- keymaps are reimplemented against core treesitter in mpataki.ts_incsel.
-        local sel = require('mpataki.ts_incsel')
-        vim.keymap.set('n', '<leader>ss', sel.init, { desc = 'TS: init selection' })
-        vim.keymap.set('x', '<leader>si', sel.node_incremental, { desc = 'TS: expand to node' })
-        vim.keymap.set('x', '<leader>sc', sel.scope_incremental, { desc = 'TS: expand to scope' })
-        vim.keymap.set('x', '<leader>sd', sel.node_decremental, { desc = 'TS: shrink selection' })
     end,
 }
