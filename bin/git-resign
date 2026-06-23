@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# git-resign — re-sign branch commits with the configured signing key.
+#
+# Why: autonomous Claude sessions commit with signing disabled (commit.gpgsign=false
+# is forced via env, since the 1Password vault may be locked and op-ssh-sign would
+# otherwise make the commit fail). This re-signs those commits with the 1Password SSH
+# key once Mat is present. Per-repo signingkey resolves automatically (includeIf), so
+# work and personal repos each sign with the right key.
+#
+# Safe to re-run: only commits not yet on the remote are touched, and the rebase is
+# skipped entirely when nothing is unsigned — so already-pushed history is never
+# rewritten and a clean branch is a no-op.
+#
+# Usage: git resign [<base>]   (default base: push target, else origin/<branch>, else
+#        merge-base with the remote's default branch)
+set -euo pipefail
+
+branch=$(git symbolic-ref --quiet --short HEAD) || {
+  echo "git-resign: detached HEAD — pass an explicit <base>" >&2
+  exit 1
+}
+
+base="${1:-}"
+if [ -z "$base" ]; then
+  # Floor the range at the remote so pushed commits are never rewritten.
+  base=$(git rev-parse --abbrev-ref --symbolic-full-name '@{push}' 2>/dev/null) || base=""
+  if [ -z "$base" ] && git rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null; then
+    base="origin/$branch"
+  fi
+  if [ -z "$base" ]; then
+    def=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)
+    base=$(git merge-base HEAD "$def")
+  fi
+fi
+
+if ! git rev-parse --verify --quiet "${base}^{commit}" >/dev/null; then
+  echo "git-resign: base '$base' is not a valid commit" >&2
+  exit 1
+fi
+
+range="$base..HEAD"
+
+# %G? is N (none) for unsigned commits, G/U for signed. Resign only if something isn't signed.
+# Capture first so a git failure can't be swallowed by the pipe into grep.
+states=$(git log --pretty='%G?' "$range")
+if printf '%s\n' "$states" | grep -qvE '^[GU]'; then
+  echo "git-resign: signing commits in $range"
+  git rebase --exec 'git commit --amend --no-edit -S' "$base"
+else
+  echo "git-resign: all commits in $range already signed — nothing to do"
+fi
