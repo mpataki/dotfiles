@@ -124,6 +124,7 @@ mason_lspconfig.setup({
         'lua_ls',
         'rust_analyzer',
         'ts_ls',
+        'svelte',
         'eslint',
         'bashls',
         'yamlls',
@@ -210,6 +211,17 @@ vim.lsp.config('ts_ls', {
     cmd = { 'typescript-language-server', '--stdio' },
     filetypes = { 'javascript', 'javascriptreact', 'javascript.jsx', 'typescript', 'typescriptreact', 'typescript.tsx' },
     root_markers = { 'package.json', 'tsconfig.json', 'jsconfig.json', '.git' },
+    on_attach = on_attach,
+    capabilities = capabilities,
+})
+
+-- svelte (svelte-language-server: provides diagnostics, completion, and
+-- semantic highlighting for .svelte files; injected JS/TS/CSS still rely on the
+-- treesitter parser, installed via plugins/treesitter.lua)
+vim.lsp.config('svelte', {
+    cmd = { 'svelteserver', '--stdio' },
+    filetypes = { 'svelte' },
+    root_markers = { 'svelte.config.js', 'svelte.config.mjs', 'package.json', '.git' },
     on_attach = on_attach,
     capabilities = capabilities,
 })
@@ -313,6 +325,7 @@ local servers = {
     'pylsp',
     'rust_analyzer',
     'ts_ls',
+    'svelte',
     'eslint',
     'bashls',
     'yamlls',

@@ -41,6 +41,7 @@ return {
             'bash',
             'html',
             'css',
+            'svelte',
             'gh_actions_expressions',
         }
 
