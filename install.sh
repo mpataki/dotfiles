@@ -41,6 +41,7 @@ fi
 . k9s/setup_k9s.sh
 . k8s/setup_k8s.sh
 . k6/setup_k6.sh
+. duckdb/setup_duckdb.sh
 . misc_tools/setup_misc_tools.sh
 . claude/setup_claude.sh
 . opencode/setup_opencode.sh
