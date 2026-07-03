@@ -24,6 +24,20 @@ return {
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        -- prettier resolves from the repo's local node_modules, so it uses that
+        -- project's .prettierrc and does nothing in repos without prettier.
+        javascript = { 'prettier' },
+        typescript = { 'prettier' },
+        javascriptreact = { 'prettier' },
+        typescriptreact = { 'prettier' },
+        svelte = { 'prettier' },
+        css = { 'prettier' },
+        scss = { 'prettier' },
+        html = { 'prettier' },
+        json = { 'prettier' },
+        jsonc = { 'prettier' },
+        yaml = { 'prettier' },
+        markdown = { 'prettier' },
       },
     })
   end,
