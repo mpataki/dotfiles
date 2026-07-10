@@ -37,6 +37,11 @@
 
 # Worktrees as siblings of main inside the repo container dir
 worktree-path = "{{ repo_path }}/../{{ branch | sanitize }}"
+
+# CLAUDECODE= clears the marker Claude Code sets on its own shells, so this
+# nested invocation isn't treated as running inside a session.
+[commit.generation]
+command = "CLAUDECODE= MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haiku --tools='' --disable-slash-commands --setting-sources='' --system-prompt=''"
 #
 # ## LLM commit messages
 #
