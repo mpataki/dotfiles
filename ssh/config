@@ -22,3 +22,15 @@ Host gitlab.1password.io
   IdentityFile ~/.ssh/1p-work-gitlab.pub
   IdentitiesOnly yes
 
+# --- Home lab ---
+# Multiplexed connections: one persistent socket per host, reused by every
+# subsequent ssh call (kills per-command handshake latency). Persists 10m idle.
+# Add more nodes (pve, gateway, syncthing, n8n) here as their login is confirmed.
+Host openclaw
+  HostName 100.110.154.21
+  User openclaw
+  ControlMaster auto
+  ControlPath ~/.ssh/sockets/%r@%h:%p
+  ControlPersist 10m
+  ServerAliveInterval 30
+

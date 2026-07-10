@@ -2,6 +2,9 @@
 . lib/helpers.sh
 
 function setup_ssh() {
+  # ControlPath in ssh/config points here; ssh won't create it itself.
+  mkdir -p $HOME/.ssh/sockets
+  chmod 700 $HOME/.ssh/sockets
   check_and_link_file `pwd`/ssh/config $HOME/.ssh/config
 }
 
