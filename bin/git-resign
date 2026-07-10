@@ -45,7 +45,9 @@ range="$base..HEAD"
 states=$(git log --pretty='%G?' "$range")
 if printf '%s\n' "$states" | grep -qvE '^[GU]'; then
   echo "git-resign: signing commits in $range"
-  git rebase --exec 'git commit --amend --no-edit -S' "$base"
+  # --allow-empty: amending an empty commit (e.g. a release marker) fails without it,
+  # which kills the exec and strands the rebase mid-flight.
+  git rebase --exec 'git commit --amend --no-edit -S --allow-empty' "$base"
 else
   echo "git-resign: all commits in $range already signed — nothing to do"
 fi
