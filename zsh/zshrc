@@ -123,10 +123,11 @@ export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
 # unambiguous selector (from `op account list --format=json`).
 claude() {
   local op_account='4T4I5FCQRVFW5OBTUNAD3BN6PQ' # matpataki@gmail.com account_uuid
-  local obsidian_key n8n_token
+  local obsidian_key n8n_token boldsign_key
   obsidian_key=$(op read --account "$op_account" 'op://Private/obsidian-local-rest-api/password' 2>/dev/null)
   n8n_token=$(op read --account "$op_account" 'op://Private/n8n-mcp/credential' 2>/dev/null)
-  OBSIDIAN_API_KEY=$obsidian_key N8N_MCP_TOKEN=$n8n_token command claude "$@"
+  boldsign_key=$(op read --account "$op_account" 'op://bandvan/BoldSign API Key Staging/credential' 2>/dev/null)
+  OBSIDIAN_API_KEY=$obsidian_key N8N_MCP_TOKEN=$n8n_token BOLDSIGN_API_KEY=$boldsign_key command claude "$@"
 }
 
 # Uncomment the following line to use case-sensitive completion.
