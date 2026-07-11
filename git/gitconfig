@@ -39,6 +39,10 @@
   format = ssh
 [gpg "ssh"]
   program = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+  # Trust store for VERIFYING ssh signatures (%G?, --show-signature). Without
+  # it every commit verifies as N — which false-trips signed-commit guards
+  # (e.g. band-van's release.sh assert_signed).
+  allowedSignersFile = ~/.ssh/allowed_signers
 [commit]
   gpgsign = true
 [user]

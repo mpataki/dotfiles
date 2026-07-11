@@ -6,6 +6,7 @@ function setup_ssh() {
   mkdir -p $HOME/.ssh/sockets
   chmod 700 $HOME/.ssh/sockets
   check_and_link_file `pwd`/ssh/config $HOME/.ssh/config
+  check_and_link_file `pwd`/ssh/allowed_signers $HOME/.ssh/allowed_signers
 }
 
 print_with_color $YELLOW 'Setup SSH? (y/n)'
