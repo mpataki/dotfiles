@@ -3,8 +3,16 @@ return {
 	dependencies = {
 		{ 'nvim-lua/plenary.nvim' },
 		{ 'nvim-telescope/telescope-ui-select.nvim' },
+		-- Compiled C sorter: the single biggest speedup for the ~4k-file vault.
+		{ 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' },
 	},
 	cmd = 'TSUpdate',
+	-- Registered as lazy keys so they're reachable from startup (telescope is
+	-- otherwise pulled in as a neogit/dap dependency). See mpataki.note_pickers.
+	keys = {
+		{ '<leader>oo', function() require('mpataki.note_pickers').find_project_notes() end, desc = 'Obsidian: find project notes (repo)' },
+		{ '<leader>oO', function() require('mpataki.note_pickers').grep_project_notes() end, desc = 'Obsidian: grep project notes (repo)' },
+	},
 	config = function()
 		local telescope = require('telescope')
 		local actions = require("telescope.actions")
@@ -81,6 +89,7 @@ return {
 		})
 
 		telescope.load_extension("ui-select")
+		telescope.load_extension("fzf")
 
 		-- vim.keymap.set('n', '<leader>pf', builtin.find_files, {})
 		-- vim.keymap.set('n', '<C-p>', builtin.git_files, {})
