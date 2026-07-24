@@ -91,8 +91,8 @@ return {
             end
         end
 
-        -- vim.keymap.set('n', '<Leader>t', '<cmd>:Neotree position=current<CR>')
         vim.keymap.set('n', '<Leader>ls', ':Neotree<CR>', { desc = 'Neotree' })
+        vim.keymap.set('n', '<Leader>lS', ':Neotree position=current<CR>', { desc = 'Neotree (full window)' })
 
         local pr_tree_active = false
         vim.keymap.set('n', '<leader>gt', function()
