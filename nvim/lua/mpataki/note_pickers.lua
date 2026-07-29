@@ -5,19 +5,31 @@
 -- (<leader>os content grep, <leader>ot tags, :Obsidian quick_switch).
 local M = {}
 
-local VAULT = vim.fn.expand("~") .. "/obsidian-notes-vault"
+local HOME = vim.fn.expand("~")
+local VAULT = HOME .. "/obsidian-notes-vault"
 local PROJECTS = VAULT .. "/01-projects"
 
 -- Resolve the notes folder for the current buffer's repo.
--- Precedence: a `.obsidian-project` file at the repo root (first line = folder
--- name under 01-projects/), else the git-toplevel basename. Returns the
--- absolute dir when it exists, else nil plus the name we looked for.
+-- Precedence: the nearest `.obsidian-project` file at or above the repo root
+-- (first line = folder name under 01-projects/), else the git-toplevel
+-- basename. Returns the absolute dir when it exists, else nil plus the name we
+-- looked for.
+--
+-- The search continues past the repo root (stopping at $HOME) so one file can
+-- cover a submodule from its superproject (a buffer under dotfiles/claude-config
+-- roots at the submodule) and a container layout from the container dir
+-- (~/code/<repo>/<worktree>, where the basename is a branch name).
 local function project_notes_dir()
   local root = vim.fs.root(0, ".git") or vim.fn.getcwd()
 
   local name
-  local override = root .. "/.obsidian-project"
-  if vim.fn.filereadable(override) == 1 then
+  local override = vim.fs.find(".obsidian-project", {
+    upward = true,
+    type = "file",
+    path = root,
+    stop = HOME,
+  })[1]
+  if override then
     local first = vim.fn.readfile(override, "", 1)[1]
     if first then
       name = vim.trim(first)
