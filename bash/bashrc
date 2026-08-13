@@ -1,6 +1,6 @@
 # Interactive bash setup. zsh is the daily driver; this exists so the shells
-# that land in bash (scripts, `/bin/bash` on mac, tools that spawn one) still
-# get the shared completions.
+# that land in bash (scripts, `/bin/bash` on mac, tools that spawn one) get the
+# shared aliases, environment, and completions.
 
 case $- in
   *i*) ;;
@@ -8,6 +8,10 @@ case $- in
 esac
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+## shared shell config (bash-native files; zshrc sources the same two)
+[ -r "$DOTFILES_DIR/shell/aliases.sh" ] && . "$DOTFILES_DIR/shell/aliases.sh"
+[ -r "$DOTFILES_DIR/shell/environment.sh" ] && . "$DOTFILES_DIR/shell/environment.sh"
 
 ## completions
 # Each shim is guarded by -r, so a deleted file — or bash 3.2 handing back the
