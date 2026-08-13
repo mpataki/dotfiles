@@ -112,6 +112,17 @@ export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
 export PATH="$GOPATH/bin:$PATH"
 export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
 
+## completions
+# compinit has to run before a shim can `compdef`, and after the PATH exports
+# above so the shims see the tools they complete. The (N) glob qualifier makes
+# an empty or absent completions dir a no-op rather than an error.
+autoload -Uz compinit
+compinit
+for _completion_shim in $SCRIPT_DIR/../completions/*.zsh(N); do
+  source $_completion_shim
+done
+unset _completion_shim
+
 # Pull Claude Code MCP secrets from 1Password at launch (vs. plaintext in
 # mcp-servers.json). Wraps `claude` so the Touch ID prompt fires only when
 # launching Claude Code, not on every shell. Empty value on failure is fine —
