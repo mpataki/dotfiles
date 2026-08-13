@@ -1,0 +1,18 @@
+# Interactive bash setup. zsh is the daily driver; this exists so the shells
+# that land in bash (scripts, `/bin/bash` on mac, tools that spawn one) still
+# get the shared completions.
+
+case $- in
+  *i*) ;;
+  *) return ;;
+esac
+
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+## completions
+# Each shim is guarded by -r, so a deleted file — or bash 3.2 handing back the
+# literal glob when the dir is empty — is silent rather than an error.
+for _completion_shim in "$DOTFILES_DIR"/completions/*.bash; do
+  [ -r "$_completion_shim" ] && . "$_completion_shim"
+done
+unset _completion_shim

@@ -28,6 +28,7 @@ fi
 
 # both
 . zsh/setup_zsh.sh
+. bash/setup_bash.sh
 . git/setup_git.sh
 . ssh/setup_ssh.sh
 . tmux/setup_tmux.sh
