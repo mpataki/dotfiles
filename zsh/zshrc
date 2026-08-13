@@ -116,6 +116,10 @@ export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
 # compinit has to run before a shim can `compdef`, and after the PATH exports
 # above so the shims see the tools they complete. The (N) glob qualifier makes
 # an empty or absent completions dir a no-op rather than an error.
+# Machine-local completions (~/.zsh/completions, not in this repo) must join
+# fpath before compinit or their #compdef headers never bind. This is the only
+# compinit — ~/.zshrc must not run a second one.
+[ -d ~/.zsh/completions ] && fpath=(~/.zsh/completions $fpath)
 autoload -Uz compinit
 compinit
 for _completion_shim in $SCRIPT_DIR/../completions/*.zsh(N); do
