@@ -8,12 +8,14 @@ function setup_java() {
     # brew install openjdk@8 # requires x86. no good on arm
     brew install openjdk@11
     brew install openjdk@17
-    brew install openjdk@19
     brew install openjdk@21
+    brew install openjdk
 
-    jenv add /opt/homebrew/Cellar/openjdk@11/*/
-    jenv add /opt/homebrew/Cellar/openjdk@17/*/
-    jenv add /opt/homebrew/Cellar/openjdk/*/
+    # register via the stable opt symlinks — Cellar paths go stale on version bumps
+    jenv add /opt/homebrew/opt/openjdk@11
+    jenv add /opt/homebrew/opt/openjdk@17
+    jenv add /opt/homebrew/opt/openjdk@21
+    jenv add /opt/homebrew/opt/openjdk
 
   else
     git_clone https://github.com/jenv/jenv.git ~/.jenv

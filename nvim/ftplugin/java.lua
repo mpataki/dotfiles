@@ -6,7 +6,7 @@ local workspace_folder = home .. "/.local/share/eclipse/" .. vim.fn.fnamemodify(
 -- local inspect = require('vim.inspect')
 
 local cmd = {
-    vim.fn.glob("/opt/homebrew/Cellar/openjdk@21/21.*/bin/java", true),
+    "/opt/homebrew/opt/openjdk@21/bin/java",
 
     '-Declipse.application=org.eclipse.jdt.ls.core.id1',
     '-Dosgi.bundles.defaultStartLevel=4',
@@ -20,9 +20,9 @@ local cmd = {
 
     '-javaagent:' .. home .. '/.local/share/jars/lombok.jar',
 
-    '-jar', vim.fn.glob('/opt/homebrew/Cellar/jdtls/*/libexec/plugins/org.eclipse.equinox.launcher_*.jar', true),
+    '-jar', vim.fn.glob('/opt/homebrew/opt/jdtls/libexec/plugins/org.eclipse.equinox.launcher_*.jar', true),
 
-    '-configuration', vim.fn.glob('/opt/homebrew/Cellar/jdtls/*/libexec/config_mac_arm', true), -- notice this is mac specific at the moment
+    '-configuration', '/opt/homebrew/opt/jdtls/libexec/config_mac_arm', -- notice this is mac specific at the moment
     '-data', workspace_folder
 }
 
@@ -45,19 +45,19 @@ local config = {
                 runtimes = {
                     {
                         name = "JavaSE-11",
-                        path = vim.fn.glob("/opt/homebrew/Cellar/openjdk@11/11.*/libexec/openjdk.jdk/Contents/Home", true)
+                        path = "/opt/homebrew/opt/openjdk@11/libexec/openjdk.jdk/Contents/Home"
                     },
                     {
                         name = "JavaSE-17",
-                        path = vim.fn.glob("/opt/homebrew/Cellar/openjdk@17/17.*/libexec/openjdk.jdk/Contents/Home", true)
-                    },
-                    {
-                        name = "JavaSE-20",
-                        path = vim.fn.glob("/opt/homebrew/Cellar/openjdk/20.*/libexec/openjdk.jdk/Contents/Home", true)
+                        path = "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
                     },
                     {
                         name = "JavaSE-21",
-                        path = vim.fn.glob("/opt/homebrew/Cellar/openjdk/21.*/libexec/openjdk.jdk/Contents/Home", true)
+                        path = "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+                    },
+                    {
+                        name = "JavaSE-26",
+                        path = "/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home"
                     }
                 }
             },
