@@ -1,6 +1,6 @@
 return {
   "coder/claudecode.nvim",
-  config = {
+  opts = {
     terminal = {
       provider = "none",
     },
