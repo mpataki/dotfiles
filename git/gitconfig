@@ -14,8 +14,7 @@
   co = checkout
   d = diff
   pl = pull --rebase
-  ps = "!f() { git-resign && git push \"$@\"; }; f"
-  resign = "!git-resign"
+  ps = push
   s = status --short
   cp = cherry-pick
   pr = pull-request

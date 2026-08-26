@@ -15,9 +15,9 @@
 #   ~/.ssh/secretive-agent-signing.pub   the key, extracted from the agent
 #   ~/.gitconfig-agent-signing           turns signing on with that key
 #   claude-config/settings.json          agent sessions include that file via
-#                                        GIT_CONFIG env; missing file = today's
-#                                        unsigned+resign behavior (safe default
-#                                        on a Mac that hasn't run this yet)
+#                                        GIT_CONFIG env; missing file = unsigned
+#                                        commits (safe default on a Mac that
+#                                        hasn't run this yet)
 #   ssh/allowed_signers (dotfiles)       trust for verification (%G? = G)
 #   GitHub                               add as a SIGNING key on every account
 #                                        used from this machine
