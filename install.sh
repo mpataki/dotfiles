@@ -17,6 +17,7 @@ if is_mac; then
   brew update
   . aerospace/setup_aerospace.sh
   . shottr/setup_shottr.sh
+  . secretive/setup_secretive.sh
 else # linux
   . yay/setup_yay.sh
   . snap/setup_snap.sh
