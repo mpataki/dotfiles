@@ -8,9 +8,19 @@ function setup_claude() {
   check_and_link_file `pwd`/claude-config/CLAUDE.md $HOME/.claude/CLAUDE.md
   check_and_link_file `pwd`/claude-config/settings.json $HOME/.claude/settings.json
 
+  build_victoria_mcp
   sync_claude_mcp_servers
   sync_claude_marketplaces
   sync_claude_plugins
+}
+
+# Native VictoriaMetrics/VictoriaLogs MCP binaries; mcp-servers.json points at them.
+function build_victoria_mcp() {
+  if ! command -v go &> /dev/null; then
+    print_with_color $YELLOW "go not found, skipping victoria MCP build"
+    return
+  fi
+  bash "$(pwd)/claude/build_victoria_mcp.sh"
 }
 
 function sync_claude_mcp_servers() {
@@ -43,7 +53,8 @@ function sync_claude_mcp_servers() {
       env_args=$(jq -r --arg n "$name" '.[$n].env // {} | to_entries[] | "-e \(.key)=\(.value)"' "$mcp_config")
 
       print_with_color $BLUE "adding MCP server: $name (stdio: $command)"
-      eval claude mcp add $env_args "$name" --scope user -- "$command" $(echo "$args" | tr '\t' ' ') 2>&1
+      # name must precede -e: it is variadic and would swallow the name.
+      eval claude mcp add "$name" --scope user $env_args -- "$command" $(echo "$args" | tr '\t' ' ') 2>&1
     else
       local url
       url=$(jq -r --arg n "$name" '.[$n].url' "$mcp_config")
