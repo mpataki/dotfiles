@@ -47,6 +47,7 @@ fi
 . duckdb/setup_duckdb.sh
 . misc_tools/setup_misc_tools.sh
 . claude/setup_claude.sh
+. codex/setup_codex.sh
 . opencode/setup_opencode.sh
 . markdownlint/setup_markdownlint.sh
 . gws/setup_gws.sh
