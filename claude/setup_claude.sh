@@ -2,12 +2,12 @@
 . lib/helpers.sh
 
 function setup_claude() {
-  check_and_link_file `pwd`/claude-config/agents/ $HOME/.claude
-  check_and_link_file `pwd`/claude-config/skills/ $HOME/.claude
-  check_and_link_file `pwd`/claude-config/commands/ $HOME/.claude
-  check_and_link_file `pwd`/claude-config/CLAUDE.md $HOME/.claude/CLAUDE.md
-  check_and_link_file `pwd`/claude-config/settings.json $HOME/.claude/settings.json
-  check_and_link_file `pwd`/claude-config/workflows/ $HOME/.claude
+  check_and_link_file `pwd`/agent-config/agents/ $HOME/.claude
+  check_and_link_file `pwd`/agent-config/skills/ $HOME/.claude
+  check_and_link_file `pwd`/agent-config/commands/ $HOME/.claude
+  check_and_link_file `pwd`/agent-config/CLAUDE.md $HOME/.claude/CLAUDE.md
+  check_and_link_file `pwd`/agent-config/settings.json $HOME/.claude/settings.json
+  check_and_link_file `pwd`/agent-config/workflows/ $HOME/.claude
 
   build_victoria_mcp
   sync_claude_mcp_servers
@@ -16,7 +16,7 @@ function setup_claude() {
   sync_claude_work_profile
 }
 
-# Work profile: the `work` plugin (claude-config/plugins/work — Jira/acli, ER docs,
+# Work profile: the `work` plugin (agent-config/plugins/work — Jira/acli, ER docs,
 # team pulse, and the work MCP servers) is enabled only on a machine whose
 # ~/.dotfiles-profile says `work`. Enablement lives in ~/.claude/settings.local.json
 # (machine-local, not the dotfiles-tracked settings.json) so a personal Mac never
@@ -36,7 +36,7 @@ function sync_claude_work_profile() {
     return
   fi
 
-  local marketplace="$(pwd)/claude-config/plugins"
+  local marketplace="$(pwd)/agent-config/plugins"
   if ! claude plugin marketplace list 2>/dev/null | grep -q 'mat-local'; then
     print_with_color $BLUE "adding local marketplace: $marketplace"
     claude plugin marketplace add "$marketplace" 2>&1
@@ -45,12 +45,12 @@ function sync_claude_work_profile() {
     print_with_color $BLUE "installing work plugin"
     claude plugin install work@mat-local 2>&1
     # install enables it in the shared settings.json; move that to the machine-local file
-    local shared="$(pwd)/claude-config/settings.json"
+    local shared="$(pwd)/agent-config/settings.json"
     jq 'del(.enabledPlugins["work@mat-local"])' "$shared" > "$shared.tmp" && mv "$shared.tmp" "$shared"
   fi
   jq '.enabledPlugins["work@mat-local"] = true' "$local_settings" > "$local_settings.tmp" && mv "$local_settings.tmp" "$local_settings"
 
-  local work_settings="$(pwd)/claude-config/settings.work.json"
+  local work_settings="$(pwd)/agent-config/settings.work.json"
   jq -s '.[0] as $l | .[1] as $w | $l | .permissions.allow = ((($l.permissions.allow // []) + ($w.permissions.allow // [])) | unique)' \
     "$local_settings" "$work_settings" > "$local_settings.tmp" && mv "$local_settings.tmp" "$local_settings"
   print_with_color $GREEN "work profile synced"
@@ -71,7 +71,7 @@ function sync_claude_mcp_servers() {
     return
   fi
 
-  local mcp_config="$(pwd)/claude-config/mcp-servers.json"
+  local mcp_config="$(pwd)/agent-config/mcp-servers.json"
   if [ ! -f "$mcp_config" ]; then
     print_with_color $YELLOW "mcp-servers.json not found, skipping MCP sync"
     return
@@ -118,7 +118,7 @@ function sync_claude_marketplaces() {
     return
   fi
 
-  local settings="$(pwd)/claude-config/settings.json"
+  local settings="$(pwd)/agent-config/settings.json"
   if [ ! -f "$settings" ]; then
     return
   fi
@@ -142,7 +142,7 @@ function sync_claude_plugins() {
     return
   fi
 
-  local settings="$(pwd)/claude-config/settings.json"
+  local settings="$(pwd)/agent-config/settings.json"
   if [ ! -f "$settings" ]; then
     print_with_color $YELLOW "settings.json not found, skipping plugin sync"
     return

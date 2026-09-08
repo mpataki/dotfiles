@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Doctor for the multi-harness agent config. Read-only; exits 1 if anything is off.
 #
-# Checks that both harnesses resolve to the claude-config sources:
+# Checks that both harnesses resolve to the agent-config sources:
 #   Claude: ~/.claude/{CLAUDE.md,settings.json,skills,agents,commands,workflows} links
 #   Codex:  ~/.codex/AGENTS.md link, rendered AGENTS.md/agents up to date with their
 #           sources, one link per skill in ~/.agents/skills, agent role links,
@@ -9,7 +9,7 @@
 #           signing env keys present.
 set -uo pipefail
 
-CONFIG="$HOME/dotfiles/claude-config"
+CONFIG="$HOME/dotfiles/agent-config"
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 AGENT_SKILLS="$HOME/.agents/skills"
 fail=0

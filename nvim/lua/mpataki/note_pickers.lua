@@ -16,7 +16,7 @@ local PROJECTS = VAULT .. "/01-projects"
 -- looked for.
 --
 -- The search continues past the repo root (stopping at $HOME) so one file can
--- cover a submodule from its superproject (a buffer under dotfiles/claude-config
+-- cover a submodule from its superproject (a buffer under dotfiles/agent-config
 -- roots at the submodule) and a container layout from the container dir
 -- (~/code/<repo>/<worktree>, where the basename is a branch name).
 local function project_notes_dir()

@@ -1,11 +1,11 @@
 #!/bin/bash
-# Codex-native setup. Installs the same claude-config sources Claude Code uses:
-#   - global instructions: ~/.codex/AGENTS.md -> claude-config/codex/AGENTS.md
-#     (rendered from CLAUDE.md by claude-config/codex/render-agents-md.py)
-#   - hooks: ~/.codex/hooks.json -> claude-config/codex/hooks.json (same scripts
+# Codex-native setup. Installs the same agent-config sources Claude Code uses:
+#   - global instructions: ~/.codex/AGENTS.md -> agent-config/codex/AGENTS.md
+#     (rendered from CLAUDE.md by agent-config/codex/render-agents-md.py)
+#   - hooks: ~/.codex/hooks.json -> agent-config/codex/hooks.json (same scripts
 #     as Claude; Codex asks once to trust them via /hooks)
 #   - skills: one owned symlink per skill in ~/.agents/skills/<name>
-#   - agent roles: ~/.codex/agents/<name>.toml rendered from claude-config/agents/*.md
+#   - agent roles: ~/.codex/agents/<name>.toml rendered from agent-config/agents/*.md
 #   - MCP servers from mcp-servers.json via `codex mcp add`
 #   - plugins from settings.json enabledPlugins via `codex plugin`
 #   - work profile (~/.dotfiles-profile == work): the local `work` plugin
@@ -16,7 +16,7 @@
 # directories we did not create) are reported, never replaced.
 . lib/helpers.sh
 
-CONFIG="$(pwd)/claude-config"
+CONFIG="$(pwd)/agent-config"
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 AGENT_SKILLS="$HOME/.agents/skills"
 
@@ -49,7 +49,7 @@ function sync_codex_signing_env() {
 }
 
 # Render AGENTS.md and agent role TOMLs from the Claude-native sources. The
-# rendered files are tracked in claude-config so the diff is reviewable.
+# rendered files are tracked in agent-config so the diff is reviewable.
 function render_codex_sources() {
   python3 "$CONFIG/codex/render-agents-md.py" "$CONFIG/CLAUDE.md" "$CONFIG/codex/AGENTS.md" \
     && print_with_color $GREEN "rendered codex/AGENTS.md from CLAUDE.md"
@@ -78,7 +78,7 @@ function link_owned() {
 }
 
 # One link per skill so local, unmanaged skills can coexist in the same dir.
-# Links that point into claude-config but whose source is gone are removed
+# Links that point into agent-config but whose source is gone are removed
 # (the skill was retired); real directories are only reported.
 function sync_codex_skills() {
   local d name
