@@ -141,12 +141,13 @@ function sync_codex_mcp_servers() {
 }
 
 # Codex reads Claude-format marketplaces, so enabledPlugins carries over.
-# LSP plugins are Claude-only (Codex has no LSP tool) and are skipped.
+# Skipped: LSP plugins (Codex has no LSP tool) and the codex plugin itself
+# (it is Claude's bridge to Codex).
 function sync_codex_plugins() {
   local installed
   installed=$(codex plugin list 2>/dev/null)
   jq -r '.enabledPlugins // {} | keys[]' "$CONFIG/settings.json" | while read -r plugin; do
-    case "$plugin" in *@claude-code-lsps|*-lsp@*) continue ;; esac
+    case "$plugin" in *@claude-code-lsps|*-lsp@*|codex@openai-codex) continue ;; esac
     if echo "$installed" | grep -q "$plugin"; then
       print_with_color $GREEN "codex plugin already installed: $plugin"
     else
