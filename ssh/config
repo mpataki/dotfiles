@@ -34,3 +34,9 @@ Host openclaw
   ControlPersist 10m
   ServerAliveInterval 30
 
+
+Host willie willie-vm 192.168.86.72
+  HostName 192.168.86.72
+  User agent
+  IdentityFile ~/.ssh/willie-deploy_ed25519
+  IdentitiesOnly yes
