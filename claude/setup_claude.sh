@@ -7,11 +7,53 @@ function setup_claude() {
   check_and_link_file `pwd`/claude-config/commands/ $HOME/.claude
   check_and_link_file `pwd`/claude-config/CLAUDE.md $HOME/.claude/CLAUDE.md
   check_and_link_file `pwd`/claude-config/settings.json $HOME/.claude/settings.json
+  check_and_link_file `pwd`/claude-config/workflows/ $HOME/.claude
 
   build_victoria_mcp
   sync_claude_mcp_servers
   sync_claude_marketplaces
   sync_claude_plugins
+  sync_claude_work_profile
+}
+
+# Work profile: the `work` plugin (claude-config/plugins/work — Jira/acli, ER docs,
+# team pulse, and the work MCP servers) is enabled only on a machine whose
+# ~/.dotfiles-profile says `work`. Enablement lives in ~/.claude/settings.local.json
+# (machine-local, not the dotfiles-tracked settings.json) so a personal Mac never
+# loads it. Work-only permission allows come from settings.work.json the same way.
+function sync_claude_work_profile() {
+  command -v claude &> /dev/null || return
+  local profile
+  profile=$(cat "$HOME/.dotfiles-profile" 2>/dev/null)
+  local local_settings="$HOME/.claude/settings.local.json"
+  [ -f "$local_settings" ] || echo '{}' > "$local_settings"
+
+  if [ "$profile" != "work" ]; then
+    if jq -e '.enabledPlugins["work@mat-local"]' "$local_settings" >/dev/null 2>&1; then
+      print_with_color $BLUE "profile is not work: disabling work plugin"
+      jq 'del(.enabledPlugins["work@mat-local"])' "$local_settings" > "$local_settings.tmp" && mv "$local_settings.tmp" "$local_settings"
+    fi
+    return
+  fi
+
+  local marketplace="$(pwd)/claude-config/plugins"
+  if ! claude plugin marketplace list 2>/dev/null | grep -q 'mat-local'; then
+    print_with_color $BLUE "adding local marketplace: $marketplace"
+    claude plugin marketplace add "$marketplace" 2>&1
+  fi
+  if ! claude plugin list 2>/dev/null | grep -q 'work@mat-local'; then
+    print_with_color $BLUE "installing work plugin"
+    claude plugin install work@mat-local 2>&1
+    # install enables it in the shared settings.json; move that to the machine-local file
+    local shared="$(pwd)/claude-config/settings.json"
+    jq 'del(.enabledPlugins["work@mat-local"])' "$shared" > "$shared.tmp" && mv "$shared.tmp" "$shared"
+  fi
+  jq '.enabledPlugins["work@mat-local"] = true' "$local_settings" > "$local_settings.tmp" && mv "$local_settings.tmp" "$local_settings"
+
+  local work_settings="$(pwd)/claude-config/settings.work.json"
+  jq -s '.[0] as $l | .[1] as $w | $l | .permissions.allow = ((($l.permissions.allow // []) + ($w.permissions.allow // [])) | unique)' \
+    "$local_settings" "$work_settings" > "$local_settings.tmp" && mv "$local_settings.tmp" "$local_settings"
+  print_with_color $GREEN "work profile synced"
 }
 
 # Native VictoriaMetrics/VictoriaLogs MCP binaries; mcp-servers.json points at them.
