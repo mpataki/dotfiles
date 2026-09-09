@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Scrub secret values out of Claude Code session files after the session has
+# ended. Values are read from 1Password at run time — never hard-coded, never
+# printed. Each occurrence becomes [REDACTED:<label>].
+#
+#   claude-scrub-session <session-id> <label>=<op://ref> [<label>=<op://ref> ...]
+#
+# Targets: every ~/.claude/projects/*/<session-id>*.jsonl (main + subagent
+# transcripts) and ~/.claude/history.jsonl (prompt history). Run it only once the
+# session is closed — a live session appends to its transcript.
+set -euo pipefail
+
+[[ $# -ge 2 ]] || { echo "usage: $0 <session-id> <label>=<op://ref> ..." >&2; exit 2; }
+session=$1; shift
+
+files=()
+while IFS= read -r f; do files+=("$f"); done < <(find "$HOME/.claude/projects" -name "${session}*.jsonl" 2>/dev/null)
+[[ -f "$HOME/.claude/history.jsonl" ]] && files+=("$HOME/.claude/history.jsonl")
+[[ ${#files[@]} -gt 0 ]] || { echo "no files for session $session" >&2; exit 1; }
+
+# label<TAB>value lines arrive on fd 3; the script itself is stdin. Nothing lands
+# in argv or the environment.
+secrets_stream() {
+  for spec in "$@"; do
+    label=${spec%%=*}; ref=${spec#*=}
+    printf '%s\t%s\n' "$label" "$(op read "$ref" | tr -d '\n')"
+  done
+}
+python3 - "${files[@]}" 3< <(secrets_stream "$@") <<'PY'
+import json, os, sys
+with os.fdopen(3, encoding='utf-8') as fd:
+    secrets = [line.rstrip('\n').split('\t', 1) for line in fd if '\t' in line]
+for path in sys.argv[1:]:
+    data = open(path, encoding='utf-8').read()
+    original = data
+    hits = {}
+    for label, value in secrets:
+        if not value:
+            continue
+        for needle in (value, json.dumps(value)[1:-1]):
+            n = data.count(needle)
+            if n:
+                data = data.replace(needle, f'[REDACTED:{label}]')
+                hits[label] = hits.get(label, 0) + n
+    if data != original:
+        tmp = path + '.scrub'
+        with open(tmp, 'w', encoding='utf-8') as fh:
+            fh.write(data)
+        os.replace(tmp, path)
+    print(f"{path}: " + (', '.join(f'{k}×{v}' for k, v in hits.items()) or 'clean'))
+PY
