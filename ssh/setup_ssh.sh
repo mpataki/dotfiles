@@ -3,7 +3,7 @@
 
 function setup_ssh() {
   # ControlPath in ssh/config points here; ssh won't create it itself.
-  mkdir -p $HOME/.ssh/sockets
+  mkdir -p $HOME/.ssh/sockets $HOME/.ssh/config.d
   chmod 700 $HOME/.ssh/sockets
   check_and_link_file `pwd`/ssh/config $HOME/.ssh/config
   check_and_link_file `pwd`/ssh/allowed_signers $HOME/.ssh/allowed_signers

@@ -9,7 +9,6 @@ function setup_claude() {
   check_and_link_file `pwd`/agent-config/settings.json $HOME/.claude/settings.json
   check_and_link_file `pwd`/agent-config/workflows/ $HOME/.claude
 
-  build_victoria_mcp
   sync_claude_mcp_servers
   sync_claude_marketplaces
   sync_claude_plugins
@@ -54,15 +53,6 @@ function sync_claude_work_profile() {
   jq -s '.[0] as $l | .[1] as $w | $l | .permissions.allow = ((($l.permissions.allow // []) + ($w.permissions.allow // [])) | unique)' \
     "$local_settings" "$work_settings" > "$local_settings.tmp" && mv "$local_settings.tmp" "$local_settings"
   print_with_color $GREEN "work profile synced"
-}
-
-# Native VictoriaMetrics/VictoriaLogs MCP binaries; mcp-servers.json points at them.
-function build_victoria_mcp() {
-  if ! command -v go &> /dev/null; then
-    print_with_color $YELLOW "go not found, skipping victoria MCP build"
-    return
-  fi
-  bash "$(pwd)/claude/build_victoria_mcp.sh"
 }
 
 function sync_claude_mcp_servers() {
