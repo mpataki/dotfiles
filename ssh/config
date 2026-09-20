@@ -35,8 +35,10 @@ Host openclaw
   ServerAliveInterval 30
 
 
-Host willie willie-vm 192.168.86.72
-  HostName 192.168.86.72
+# Tailnet address, not the LAN one: deploys and sessions work from anywhere,
+# and the LAN lease (.72) is DHCP with no reservation yet.
+Host willie willie-vm 100.123.84.123 192.168.86.72
+  HostName 100.123.84.123
   User agent
   IdentityFile ~/.ssh/willie-deploy_ed25519
   IdentitiesOnly yes
