@@ -1,6 +1,9 @@
 #!/bin/bash
 . lib/helpers.sh
 
+# agent-config is a submodule; a plain clone leaves it empty.
+git submodule update --init --recursive
+
 if ! [[ `which sudo` ]]; then
   echo "sudo needs to be installed for this to work"
   exit 1

@@ -48,7 +48,8 @@ else
     || bad "codex/agents/*.toml stale — run codex/setup_codex.sh"
   rm -rf "$tmp"
   for d in "$CONFIG"/skills/*/; do
-    n=$(basename "$d"); check_link "$AGENT_SKILLS/$n" "${d%/}"
+    n=$(basename "$d"); [ "$n" = synced ] && continue # Claude Code's cloud-sync cache, not a skill
+    check_link "$AGENT_SKILLS/$n" "${d%/}"
   done
   for d in "$AGENT_SKILLS"/*/; do
     n=$(basename "$d"); [ -L "${d%/}" ] || warn "$AGENT_SKILLS/$n is a real directory (local, unmanaged)"

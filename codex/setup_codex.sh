@@ -84,6 +84,7 @@ function sync_codex_skills() {
   local d name
   for d in "$CONFIG"/skills/*/; do
     name=$(basename "$d")
+    [ "$name" = synced ] && continue # Claude Code's cloud-sync cache, not a skill
     link_owned "${d%/}" "$AGENT_SKILLS/$name"
   done
   for d in "$AGENT_SKILLS"/*/; do
