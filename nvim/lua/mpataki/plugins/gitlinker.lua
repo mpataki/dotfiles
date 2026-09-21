@@ -1,36 +1,29 @@
+-- Pin links to a commit SHA so they don't rot when the branch moves.
+-- Resolve the SHA from the buffer's own directory: nvim's cwd is often a
+-- different repo, which yields a SHA gitlinker can't find the file in.
+local function git_link(open)
+  return function()
+    local dir = vim.fn.expand('%:p:h')
+    if dir == '' then
+      vim.notify('gitlinker: buffer has no file on disk', vim.log.levels.WARN)
+      return
+    end
+
+    local out = vim.system({ 'git', '-C', dir, 'rev-parse', 'HEAD' }, { text = true }):wait()
+    if out.code ~= 0 then
+      vim.notify('gitlinker: not a git repo: ' .. dir, vim.log.levels.WARN)
+      return
+    end
+
+    vim.cmd('GitLink' .. (open and '!' or '') .. ' rev=' .. vim.trim(out.stdout))
+  end
+end
+
 return {
   'linrongbin16/gitlinker.nvim',
   cmd = 'GitLink',
-  opts = {
-    router = {
-      browse = {
-        ["^gitlab%.1password%.io"] = "https://gitlab.1password.io/"
-          .. "{_A.ORG}/"
-          .. "{_A.REPO}/-/blob/"
-          .. "{_A.REV}/"
-          .. "{_A.FILE}"
-          .. "#L{_A.LSTART}"
-          .. "{(_A.LEND > _A.LSTART and ('-L' .. _A.LEND) or '')}",
-      },
-      blame = {
-        ["^gitlab%.1password%.io"] = "https://gitlab.1password.io/"
-          .. "{_A.ORG}/"
-          .. "{_A.REPO}/-/blame/"
-          .. "{_A.REV}/"
-          .. "{_A.FILE}"
-          .. "#L{_A.LSTART}"
-          .. "{(_A.LEND > _A.LSTART and ('-L' .. _A.LEND) or '')}",
-      },
-    },
-  },
   keys = {
-    { '<Leader>gl', function()
-      local rev = vim.trim(vim.fn.system('git rev-parse HEAD'))
-      vim.cmd('GitLink rev=' .. rev)
-    end, mode = { 'n', 'v' }, desc = 'Copy git link' },
-    { '<Leader>gL', function()
-      local rev = vim.trim(vim.fn.system('git rev-parse HEAD'))
-      vim.cmd('GitLink! rev=' .. rev)
-    end, mode = { 'n', 'v' }, desc = 'Open git link' },
+    { '<Leader>gl', git_link(false), mode = { 'n', 'v' }, desc = 'Copy git link' },
+    { '<Leader>gL', git_link(true), mode = { 'n', 'v' }, desc = 'Open git link' },
   },
 }
