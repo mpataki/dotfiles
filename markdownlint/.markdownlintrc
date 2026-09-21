@@ -1,3 +1,13 @@
 {
-  "MD013": false
+  // Global fallback for markdown outside a repo with its own .markdownlint.jsonc.
+  // Mirrors the Obsidian vault policy (~/obsidian-notes-vault/.markdownlint.jsonc);
+  // keep the two in sync. nvim-lint runs `markdownlint --stdin`, so config is found
+  // by walking up from nvim's cwd — this file catches everything else.
+  "MD013": false,
+  "MD012": false,
+  "MD034": false,
+  "MD036": false,
+  "MD024": { "siblings_only": true },
+  "MD049": { "style": "asterisk" },
+  "MD050": { "style": "asterisk" }
 }
