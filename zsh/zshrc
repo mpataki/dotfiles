@@ -117,7 +117,9 @@ export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
 # compinit — ~/.zshrc must not run a second one.
 [ -d ~/.zsh/completions ] && fpath=(~/.zsh/completions $fpath)
 autoload -Uz compinit
-compinit
+# -C trusts a dump younger than 24h instead of re-scanning fpath every start
+# (the rescan + rewrite cost ~150ms per shell). Delete ~/.zcompdump to force.
+if [[ -n ~/.zcompdump(#qN.mh-24) ]]; then compinit -C; else compinit; fi
 for _completion_shim in $SCRIPT_DIR/../completions/*.zsh(N); do
   source $_completion_shim
 done
