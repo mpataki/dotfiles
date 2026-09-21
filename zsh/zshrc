@@ -81,10 +81,11 @@ fi
 #  eval "$(pyenv virtualenv-init -)"
 #fi
 
-if [[ `which jenv` ]]; then
-    export PATH="$HOME/.jenv/bin:$PATH"
-    eval "$(jenv init -)"
-fi
+# jenv disabled: no Java dev on this machine, and `jenv init` cost ~300ms per shell.
+#if [[ `which jenv` ]]; then
+#    export PATH="$HOME/.jenv/bin:$PATH"
+#    eval "$(jenv init -)"
+#fi
 
 if [ -d $HOME/.cargo ]; then
     source "$HOME/.cargo/env"                                                                  │

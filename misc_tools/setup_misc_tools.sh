@@ -5,6 +5,8 @@ function setup_misc_tools() {
   if is_mac; then
     install_package awscli
     install_package watch
+    brew_install_cask secretive # enclave git signing key for agent sessions; see secretive/
+    brew_install_cask codex     # OpenAI CLI; codex/setup_codex.sh + the codex plugin MCP need it
   else
     pacman_sync base-devel
     pacman_sync cmake

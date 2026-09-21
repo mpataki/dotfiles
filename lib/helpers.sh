@@ -131,6 +131,23 @@ function brew_install() {
   fi
 }
 
+# Casks don't show in `brew list` without --cask, so brew_install can't see them.
+function brew_install_cask() {
+  cask=$1
+
+  if ! [[ `brew list --cask | grep -x $cask` ]]; then
+    print_with_color $YELLOW "Cask '$cask' not installed. Do you want to install it? (y/n)"
+
+    read yn
+    case $yn in
+      yes|Yes|YES|y|Y )
+        brew install --cask $cask
+        ;;
+      * ) print_with_color $GREEN 'skipping...';;
+    esac
+  fi
+}
+
 function is_mac() {
   if [[ `uname | grep Darwin` ]]; then
     return 0
