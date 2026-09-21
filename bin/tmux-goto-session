@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# tmux-goto-session NAME
+#
+# Switch the current client to session NAME (prefix match, like sessionist's
+# prefix+g). If NAME already has a client attached (another WezTerm window),
+# join it via a grouped session instead of mirroring: same windows, independent
+# current window. The view gets `destroy-unattached keep-last` so it is reaped
+# when its client leaves; canonical sessions keep the default (survive detach).
+set -u
+name=${1:-}
+[[ -n "$name" ]] || exit 0
+tmux send-keys -X cancel 2>/dev/null  # close the session list shown by prefix+g
+
+# Only canonical sessions are switch targets: ungrouped ones, or the group
+# leader (tmux names a group after the session it was created from), so
+# auto-named views like `policies-1` never match a prefix.
+canonical=$(tmux list-sessions \
+    -f '#{||:#{==:#{session_grouped},0},#{==:#{session_name},#{session_group}}}' \
+    -F '#{session_name}' 2>/dev/null)
+target=$(grep -x -- "$name" <<<"$canonical" || grep -m1 -- "^$name" <<<"$canonical")
+if [[ -z "$target" ]]; then
+  tmux display-message "no session matching '$name'"
+  exit 1
+fi
+
+attached=$(tmux display-message -p -t "$target" '#{session_attached}')
+if [[ "$attached" == 0 ]]; then
+  exec tmux switch-client -t "$target"
+fi
+
+# Created detached, so the session-created hook (attached-only) skips it; set
+# keep-last here, *after* the client is on it. Setting it while unattached would
+# get the view reaped the moment this CLI client disconnects.
+view=$(tmux new-session -d -t "$target" -P -F '#{session_name}')
+tmux switch-client -t "$view"
+exec tmux set-option -t "$view" destroy-unattached keep-last
