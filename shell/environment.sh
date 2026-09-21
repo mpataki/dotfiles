@@ -13,8 +13,6 @@ export PATH="$HOME/dotfiles/bin:$PATH"
 # hack.. not sure what's setting BROWSER right now
 unset BROWSER
 
-# GH CLI
-export CLICOLOR_FORCE=true
 
 # IRB/Reline completion colors for dark mode
 export RELINE_ALT_SCROLLBAR=1
