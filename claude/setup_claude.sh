@@ -6,34 +6,49 @@ function setup_claude() {
   check_and_link_file `pwd`/agent-config/skills/ $HOME/.claude
   check_and_link_file `pwd`/agent-config/commands/ $HOME/.claude
   check_and_link_file `pwd`/agent-config/CLAUDE.md $HOME/.claude/CLAUDE.md
-  check_and_link_file `pwd`/agent-config/settings.json $HOME/.claude/settings.json
   check_and_link_file `pwd`/agent-config/workflows/ $HOME/.claude
 
+  render_claude_settings || return 1
   sync_claude_mcp_servers
   sync_claude_marketplaces
   sync_claude_plugins
   sync_claude_work_profile
 }
 
+# ~/.claude/settings.json is RENDERED, not linked: it is the only user-scope file
+# Claude Code reads (there is no ~/.claude/settings.local.json), so the work
+# profile has to be baked into it. agent/render_claude_settings.sh merges
+# settings.work.json on top of settings.json when ~/.dotfiles-profile says `work`.
+# Claude Code also writes to this file (/config, plugin enable, "always allow"),
+# so it can drift from the sources; we never clobber drift — reconcile first.
+function render_claude_settings() {
+  local dst="$HOME/.claude/settings.json"
+  local render="$(pwd)/agent/render_claude_settings.sh"
+  if [ -L "$dst" ]; then
+    print_with_color $BLUE "settings.json was a link into the repo; replacing with a rendered file"
+    rm -f "$dst"
+  fi
+  if [ -f "$dst" ] && ! cmp -s <("$render" | jq -S .) <(jq -S . "$dst"); then
+    print_with_color $RED "settings.json has drifted from agent-config; not overwriting."
+    print_with_color $RED "run agent/reconcile_claude_settings.sh (--apply to port the drift back), then re-run."
+    return 1
+  fi
+  "$render" > "$dst.tmp" && mv "$dst.tmp" "$dst"
+  print_with_color $GREEN "rendered $dst (profile: $(cat "$HOME/.dotfiles-profile" 2>/dev/null || echo personal))"
+  # written by the pre-rendering setup; Claude Code never read it
+  [ -e "$HOME/.claude/settings.local.json" ] && rm -f "$HOME/.claude/settings.local.json" \
+    && print_with_color $BLUE "removed ~/.claude/settings.local.json (dead: Claude Code has no user-level local file)"
+  return 0
+}
+
 # Work profile: the `work` plugin (agent-config/plugins/work — Jira/acli, ER docs,
-# team pulse, and the work MCP servers) is enabled only on a machine whose
-# ~/.dotfiles-profile says `work`. Enablement lives in ~/.claude/settings.local.json
-# (machine-local, not the dotfiles-tracked settings.json) so a personal Mac never
-# loads it. Work-only permission allows come from settings.work.json the same way.
+# team pulse, and the work MCP servers) exists only on a machine whose
+# ~/.dotfiles-profile says `work`. Its enablement, marketplace and permission
+# allows are declared in settings.work.json and land via render_claude_settings;
+# this only makes sure the plugin itself is installed.
 function sync_claude_work_profile() {
   command -v claude &> /dev/null || return
-  local profile
-  profile=$(cat "$HOME/.dotfiles-profile" 2>/dev/null)
-  local local_settings="$HOME/.claude/settings.local.json"
-  [ -f "$local_settings" ] || echo '{}' > "$local_settings"
-
-  if [ "$profile" != "work" ]; then
-    if jq -e '.enabledPlugins["work@mat-local"]' "$local_settings" >/dev/null 2>&1; then
-      print_with_color $BLUE "profile is not work: disabling work plugin"
-      jq 'del(.enabledPlugins["work@mat-local"])' "$local_settings" > "$local_settings.tmp" && mv "$local_settings.tmp" "$local_settings"
-    fi
-    return
-  fi
+  [ "$(cat "$HOME/.dotfiles-profile" 2>/dev/null)" = work ] || return 0
 
   local marketplace="$(pwd)/agent-config/plugins"
   if ! claude plugin marketplace list 2>/dev/null | grep -q 'mat-local'; then
@@ -43,15 +58,7 @@ function sync_claude_work_profile() {
   if ! claude plugin list 2>/dev/null | grep -q 'work@mat-local'; then
     print_with_color $BLUE "installing work plugin"
     claude plugin install work@mat-local 2>&1
-    # install enables it in the shared settings.json; move that to the machine-local file
-    local shared="$(pwd)/agent-config/settings.json"
-    jq 'del(.enabledPlugins["work@mat-local"])' "$shared" > "$shared.tmp" && mv "$shared.tmp" "$shared"
   fi
-  jq '.enabledPlugins["work@mat-local"] = true' "$local_settings" > "$local_settings.tmp" && mv "$local_settings.tmp" "$local_settings"
-
-  local work_settings="$(pwd)/agent-config/settings.work.json"
-  jq -s '.[0] as $l | .[1] as $w | $l | .permissions.allow = ((($l.permissions.allow // []) + ($w.permissions.allow // [])) | unique)' \
-    "$local_settings" "$work_settings" > "$local_settings.tmp" && mv "$local_settings.tmp" "$local_settings"
   print_with_color $GREEN "work profile synced"
 }
 

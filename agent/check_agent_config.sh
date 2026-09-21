@@ -2,7 +2,10 @@
 # Doctor for the multi-harness agent config. Read-only; exits 1 if anything is off.
 #
 # Checks that both harnesses resolve to the agent-config sources:
-#   Claude: ~/.claude/{CLAUDE.md,settings.json,skills,agents,commands,workflows} links
+#   Claude: ~/.claude/{CLAUDE.md,skills,agents,commands,workflows} links;
+#           ~/.claude/settings.json is a rendered file matching
+#           agent/render_claude_settings.sh (settings.json + settings.work.json on
+#           a work-profile machine) — Claude Code writes to it, so it can drift
 #   Codex:  ~/.codex/AGENTS.md link, rendered AGENTS.md/agents up to date with their
 #           sources, one link per skill in ~/.agents/skills, agent role links,
 #           MCP servers from mcp-servers.json registered, config.toml parses,
@@ -29,9 +32,18 @@ check_link() { # dst expected-src   (trailing slashes ignored on both sides)
 }
 
 echo "Claude Code"
-for f in CLAUDE.md settings.json; do check_link "$HOME/.claude/$f" "$CONFIG/$f"; done
+check_link "$HOME/.claude/CLAUDE.md" "$CONFIG/CLAUDE.md"
 for d in skills agents commands workflows; do check_link "$HOME/.claude/$d" "$CONFIG/$d"; done
-jq -e . "$CONFIG/settings.json" >/dev/null 2>&1 && ok "settings.json parses" || bad "settings.json does not parse"
+for f in settings.json settings.work.json; do
+  jq -e . "$CONFIG/$f" >/dev/null 2>&1 && ok "$f parses" || bad "$f does not parse"
+done
+rendered="$HOME/.claude/settings.json"
+if [ -L "$rendered" ]; then bad "$rendered is a link; it is rendered now — run claude/setup_claude.sh"
+elif [ ! -f "$rendered" ]; then bad "$rendered missing — run claude/setup_claude.sh"
+elif cmp -s <("$HOME/dotfiles/agent/render_claude_settings.sh" | jq -S .) <(jq -S . "$rendered"); then
+  ok "$rendered matches render (profile: $(cat "$HOME/.dotfiles-profile" 2>/dev/null || echo personal))"
+else bad "$rendered drifted from agent-config — run agent/reconcile_claude_settings.sh"; fi
+[ -e "$HOME/.claude/settings.local.json" ] && warn "~/.claude/settings.local.json exists but Claude Code never reads a user-level local file"
 
 echo "Codex"
 if ! command -v codex >/dev/null 2>&1; then
