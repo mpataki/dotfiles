@@ -57,15 +57,9 @@ eval "$(direnv hook zsh)"
 #   }
 # fi
 
-# asdf
-if [[ `uname | grep Darwin` ]]; then
-  if [ -f /opt/homebrew/opt/asdf/libexec/asdf.sh ]; then
-    . /opt/homebrew/opt/asdf/libexec/asdf.sh
-  fi
-else
-  if [ -f "$HOME/.asdf/asdf.sh" ]; then
-    . "$HOME/.asdf/asdf.sh"
-  fi
+# asdf >= 0.16 is a Go binary: no asdf.sh to source, shims just need to be on PATH.
+if command -v asdf >/dev/null 2>&1; then
+  export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
 fi
 
 # these are so friggin slow... let's not and find something better
