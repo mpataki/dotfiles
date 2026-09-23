@@ -21,16 +21,22 @@ function M.key(entry)
   return ('%s:%d'):format(entry.path, entry.line)
 end
 
+-- repo is %S* (not %S+): serialize writes every field every time, so a doc with
+-- no repo yet emits a double space here — matching %S+ would reject the line and
+-- silently drop head/pushed, and pushed is the fingerprint sync compares against.
 local function parse_header(line)
-  local repo, head, pushed = line:match('^<!%-%- review: (%S+) head=(%S*) pushed=(%S*) %-%->')
+  local repo, head, pushed = line:match('^<!%-%- review: (%S*) head=(%S*) pushed=(%S*) %-%->')
   if not repo then return {} end
-  return { repo = repo, head = head ~= '' and head or nil, pushed = pushed ~= '' and pushed or nil }
+  local function some(v) return v ~= '' and v or nil end
+  return { repo = some(repo), head = some(head), pushed = some(pushed) }
 end
 
+-- %s*$ because this file is hand-edited: a heading with a stray trailing space
+-- must still anchor its entry rather than dissolve the comment into nothing.
 local function parse_heading(line)
-  local path, a, b = line:match('^## (.-):(%d+)%-(%d+)$')
+  local path, a, b = line:match('^## (.-):(%d+)%-(%d+)%s*$')
   if path then return { path = path, start_line = tonumber(a), line = tonumber(b) } end
-  path, a = line:match('^## (.-):(%d+)$')
+  path, a = line:match('^## (.-):(%d+)%s*$')
   if path then return { path = path, line = tonumber(a) } end
   return nil
 end
@@ -39,15 +45,20 @@ function M.parse(text)
   local doc = { header = {}, entries = {} }
   local current, body = nil, {}
 
+  -- One entry per anchor: a hand-edited file can repeat a heading, and keeping
+  -- both would let find/upsert edit one twin while serialize writes the other.
+  -- Last heading wins; the entry keeps the position of its first occurrence.
   local function flush()
     if current then
       current.body = vim.trim(table.concat(body, '\n'))
-      table.insert(doc.entries, current)
+      local _, i = M.find(doc, current.path, current.line, current.start_line)
+      if i then doc.entries[i] = current else table.insert(doc.entries, current) end
     end
     current, body = nil, {}
   end
 
   for line in (text .. '\n'):gmatch('(.-)\n') do
+    line = line:gsub('\r$', '') -- tolerate CRLF files
     local heading = parse_heading(line)
     if heading then
       flush()

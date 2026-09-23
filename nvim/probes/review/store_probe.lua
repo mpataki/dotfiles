@@ -47,4 +47,30 @@ P.ok(fp1 ~= store.fingerprint({ { path = 'x', line = 1, body = 'changed' } }), '
 P.eq(store.parse('').header.head, nil, 'empty text parses')
 P.eq(#store.parse('# junk\n\nno headings').entries, 0, 'non-entry text ignored')
 
+-- A doc with no repo yet must not lose head/pushed through serialize -> parse:
+-- pushed is the fingerprint sync compares against.
+local norepo = store.parse(store.serialize({ header = { head = 'abc', pushed = 'deadbeef' }, entries = {} }))
+P.eq(norepo.header.repo, nil, 'header without repo stays nil')
+P.eq(norepo.header.head, 'abc', 'header without repo keeps head')
+P.eq(norepo.header.pushed, 'deadbeef', 'header without repo keeps pushed')
+
+-- Hand-edited files: CRLF and stray trailing whitespace must not drop entries.
+local crlf = store.parse('<!-- review: o/r#1 head=h pushed=p -->\r\n\r\n## a/b.go:9\r\n\r\nbody\r\n')
+P.eq(#crlf.entries, 1, 'CRLF heading parses to one entry')
+P.eq(crlf.entries[1] and crlf.entries[1].body, 'body', 'CRLF body has no stray CR')
+P.eq(crlf.header.pushed, 'p', 'CRLF header parses')
+
+local trailing = store.parse('## a/b.go:42 \n\nbody\n')
+P.eq(#trailing.entries, 1, 'heading with trailing space parses to one entry')
+P.eq(trailing.entries[1] and trailing.entries[1].body, 'body', 'trailing-space heading keeps its body')
+
+local trailing_range = store.parse('## a/b.go:10-15  \n\nbody\n')
+P.eq(trailing_range.entries[1] and trailing_range.entries[1].start_line, 10, 'trailing-space range heading parses')
+
+-- One entry per anchor: a repeated heading must collapse, or find/upsert edit
+-- one twin while serialize writes the other.
+local dup = store.parse('## a/b.go:9\n\nfirst\n\n## a/b.go:9\n\nsecond\n')
+P.eq(#dup.entries, 1, 'duplicate anchors collapse to one entry')
+P.eq(dup.entries[1] and dup.entries[1].body, 'second', 'last heading wins')
+
 P.done()
