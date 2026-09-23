@@ -135,7 +135,10 @@ end
 
 -- :ReviewPush[!]. bang skips only the clobber guard.
 function M.push(bang)
-  local ctx, err = review.context()
+  -- current_context, not context: a push is a repo gesture, and the most likely
+  -- buffer to fire it from is the comments file itself, which has no repo of
+  -- its own (it lives under .git).
+  local ctx, err = review.current_context()
   if not ctx then return fail(err) end
   local doc = store.read(ctx.file)
 
@@ -175,7 +178,7 @@ end
 
 -- :ReviewPull. Overwrites both local caches from the server.
 function M.pull()
-  local ctx, err = review.context()
+  local ctx, err = review.current_context()
   if not ctx then return fail(err) end
 
   local login, lerr = gh.login(ctx.root)

@@ -39,9 +39,12 @@ function M.context(bufnr)
   return ctx
 end
 
--- The repo a gesture acts on when it needs no file: quickfix and the escape
--- hatch work from neo-tree, the quickfix window, or an empty buffer.
-local function current_context()
+-- The repo a gesture acts on when it needs no file: quickfix, the escape hatch
+-- and push/pull work from neo-tree, the quickfix window, an empty buffer, or
+-- the comments file itself (which lives under .git, where `git rev-parse
+-- --show-toplevel` refuses to answer, so the buffer's own path resolves to no
+-- repo and only the cwd fallback finds one). No relpath: there is no file here.
+function M.current_context()
   local root = pr.current_root()
   if not root then return nil, 'not in a git repo' end
   return repo_context(root)
@@ -127,7 +130,7 @@ function M.comment(opts)
 end
 
 function M.quickfix()
-  local ctx, err = current_context()
+  local ctx, err = M.current_context()
   if not ctx then return notify_err(err) end
   local doc = store.read(ctx.file)
   render.quickfix(ctx.root, doc.entries, M.load_threads(ctx))
@@ -135,7 +138,7 @@ function M.quickfix()
 end
 
 function M.open_file()
-  local ctx, err = current_context()
+  local ctx, err = M.current_context()
   if not ctx then return notify_err(err) end
   vim.fn.mkdir(vim.fn.fnamemodify(ctx.file, ':h'), 'p')
   vim.cmd('edit ' .. vim.fn.fnameescape(ctx.file))

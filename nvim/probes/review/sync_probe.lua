@@ -243,4 +243,31 @@ P.ok(rok, 'rerender skips a window with a fileless buffer')
 P.eq(#vim.api.nvim_buf_get_extmarks(fbuf, render.ns, 0, -1, {}), 1, 'the review file buffer is re-rendered')
 vim.cmd('only')
 
+-- The comments file lives under .git, where the buffer's own path resolves to
+-- no repo at all: push and pull must still work from the buffer :ReviewOpen
+-- opens (edit the draft, then push it), via the cwd fallback.
+vim.cmd('cd ' .. vim.fn.fnameescape(fx.root))
+local draft = store.read(ctx.file)
+store.upsert(draft, { path = 'sub/dir/file.txt', line = 5, body = 'edited in the comments file' })
+store.write(ctx.file, draft)
+vim.cmd('ReviewOpen')
+P.ok(vim.api.nvim_buf_get_name(0) == ctx.file, 'ReviewOpen put us in the comments file')
+P.eq(review.context(0), nil, 'the comments file has no buffer-scoped context (it is under .git)')
+c0 = #calls
+m = mark()
+sync.push(false)
+P.wait(200)
+local from_file
+for _, c in ipairs(calls_since(c0)) do
+  if vim.tbl_contains(c.argv, 'POST') then from_file = vim.json.decode(c.opts.stdin) end
+end
+P.ok(from_file ~= nil, 'push from the comments file reaches GitHub')
+P.eq(from_file and #from_file.comments, 1, 'the edited draft is what gets posted')
+P.ok(notes_since(m):find('not in a git repo', 1, true) == nil, 'no bogus not-a-repo refusal')
+
+m = mark()
+sync.pull()
+P.wait(200)
+P.ok(wait_note(m, 'pulled'):find('pulled', 1, true) ~= nil, 'pull works from the comments file too')
+
 P.done()
