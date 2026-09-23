@@ -1,0 +1,113 @@
+-- Anchored float for authoring one review comment. Owns nothing but the
+-- window: the caller supplies the initial body and receives the final one.
+-- `:w` works because the buffer is `acwrite` and BufWriteCmd intercepts it.
+local M = {}
+
+local HEIGHT = 6
+
+local function close(win)
+  if vim.api.nvim_win_is_valid(win) then
+    vim.api.nvim_win_close(win, true)
+  end
+end
+
+-- Exact name only: bufnr(name) takes a file-pattern and falls back to a partial
+-- match, so 'path:5' would find a live 'path:5-8' float and wipe that draft.
+local function find_buf(name)
+  for _, b in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_get_name(b) == name then return b end
+  end
+  return nil
+end
+
+-- A float the user tabbed away from is still open under this name: opening a
+-- second one would raise E95 on nvim_buf_set_name. Focus it instead; a stale
+-- buffer nobody displays is wiped so the name is free.
+local function reuse_existing(name)
+  local buf = find_buf(name)
+  if not buf then return nil end
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_buf(win) == buf then
+      vim.api.nvim_set_current_win(win)
+      return win, buf
+    end
+  end
+  vim.api.nvim_buf_delete(buf, { force = true })
+  return nil
+end
+
+-- Below the cursor unless that would push the float off the bottom, where nvim
+-- would slide it back up over the very line being commented on. screenpos(),
+-- not screenrow(): the latter is the *screen* cursor, which sits on the command
+-- line right after a message and would flip every float above its line.
+local function placement()
+  local row = vim.fn.screenpos(0, vim.fn.line('.'), 1).row
+  local rows_left = vim.o.lines - vim.o.cmdheight - row
+  if rows_left >= HEIGHT + 2 then return { anchor = 'NW', row = 1 } end
+  return { anchor = 'SW', row = 0 }
+end
+
+function M.open(opts)
+  local name = 'review://' .. opts.title
+  local win, buf = reuse_existing(name)
+  if win then return win, buf end
+
+  buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[buf].buftype = 'acwrite'
+  vim.bo[buf].bufhidden = 'wipe'
+  vim.bo[buf].filetype = 'markdown'
+  vim.api.nvim_buf_set_name(buf, name)
+  local lines = vim.split(opts.body or '', '\n', { plain = true })
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+
+  local place = placement()
+  local width = math.min(80, math.max(40, vim.o.columns - 10))
+  win = vim.api.nvim_open_win(buf, true, {
+    relative = 'cursor',
+    anchor = place.anchor,
+    row = place.row,
+    col = 0,
+    width = width,
+    height = HEIGHT,
+    style = 'minimal',
+    border = 'rounded',
+    title = ' ' .. opts.title .. ' ',
+    title_pos = 'left',
+  })
+  vim.wo[win].wrap = true
+  vim.wo[win].linebreak = true
+
+  -- Never close from inside BufWriteCmd: `:wq` runs the write, then quits
+  -- *whatever window is current* — with the float already gone that is the
+  -- code window (or nvim itself when it was the last one). Mark clean, let the
+  -- write return, and close on the next tick; a `:wq` finds the float still
+  -- there and closes exactly it.
+  local function save()
+    local body = table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), '\n')
+    vim.bo[buf].modified = false
+    vim.cmd('stopinsert')
+    vim.schedule(function()
+      close(win)
+      opts.on_save(body)
+    end)
+  end
+
+  local function cancel()
+    vim.bo[buf].modified = false
+    vim.cmd('stopinsert')
+    close(win)
+  end
+
+  vim.api.nvim_create_autocmd('BufWriteCmd', { buffer = buf, callback = save })
+  -- `:q` on a modified acwrite buffer is E37. There is no file to lose here;
+  -- quitting the float is cancelling, the same as `q`.
+  vim.api.nvim_create_autocmd('QuitPre', { buffer = buf, callback = function() vim.bo[buf].modified = false end })
+  vim.keymap.set({ 'n', 'i' }, '<C-s>', save, { buffer = buf })
+  vim.keymap.set('n', 'q', cancel, { buffer = buf })
+
+  vim.api.nvim_win_set_cursor(win, { #lines, 0 })
+  vim.cmd('startinsert!')
+  return win, buf
+end
+
+return M
