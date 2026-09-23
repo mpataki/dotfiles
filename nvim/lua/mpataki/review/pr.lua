@@ -34,8 +34,13 @@ function M.common_dir(root)
   return (vim.fn.fnamemodify(d, ':p'):gsub('/$', ''))
 end
 
+-- Path relative to `root`, forward slashes. Returns nil when `abs_path` is not
+-- inside `root` — a path from another repo has no repo-relative name here, and
+-- silently returning a truncated one would address a comment at the wrong file.
 function M.relpath(root, abs_path)
+  if not root or root == '' or not abs_path or abs_path == '' then return nil end
   local full = vim.uv.fs_realpath(abs_path) or vim.fn.fnamemodify(abs_path, ':p')
+  if full:sub(1, #root + 1) ~= root .. '/' then return nil end
   local rel = full:sub(#root + 2)
   return (rel:gsub('\\', '/'))
 end
@@ -55,6 +60,7 @@ local function gh_pr_view(root)
 end
 
 function M.info(root, opts)
+  if not root or root == '' then return nil, 'no repo root' end
   opts = opts or {}
   if not opts.refresh and cache[root] then return cache[root] end
 
@@ -80,13 +86,19 @@ function M.clear_cache()
   cache = {}
 end
 
+-- New-file line ranges from `@@ -a,b +c,d @@` headers. Matched per line and
+-- anchored at the start: a hunk header appearing inside diff *content* (this
+-- repo stores .diff files and briefs full of them) is body text, not a hunk.
 function M.parse_hunk_ranges(diff_text)
   local ranges = {}
-  for c, d in diff_text:gmatch('\n?@@ %-%d+,?%d* %+(%d+),?(%d*) @@') do
-    local start = tonumber(c)
-    local count = d == '' and 1 or tonumber(d)
-    if count > 0 then
-      table.insert(ranges, { s = start, e = start + count - 1 })
+  for line in diff_text:gmatch('[^\n]+') do
+    local c, d = line:match('^@@ %-%d+,?%d* %+(%d+),?(%d*) @@')
+    if c then
+      local start = tonumber(c)
+      local count = d == '' and 1 or tonumber(d)
+      if count > 0 then
+        table.insert(ranges, { s = start, e = start + count - 1 })
+      end
     end
   end
   return ranges

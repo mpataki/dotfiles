@@ -9,6 +9,7 @@ local file = fx.root .. '/sub/dir/file.txt'
 P.eq(pr.root(file), fx.root, 'root from file path')
 P.eq(pr.root(fx.root .. '/sub/dir'), fx.root, 'root from dir path')
 P.eq(pr.relpath(fx.root, file), 'sub/dir/file.txt', 'relpath is repo-relative')
+P.eq(pr.relpath(fx.root, '/definitely/elsewhere/z.txt'), nil, 'relpath nil outside root')
 P.ok(pr.common_dir(fx.root):match('/%.git$') ~= nil, 'common_dir ends in .git')
 
 -- cwd must not matter: chdir into the subdir and resolve again
@@ -20,6 +21,10 @@ P.ok(info ~= nil, 'info resolves without a PR: ' .. tostring(err))
 P.eq(info and info.base_sha, fx.base_sha, 'base_sha falls back to merge-base with main')
 P.eq(info and info.number, nil, 'no PR number without gh PR')
 
+local bad, bad_err = pr.info(nil)
+P.eq(bad, nil, 'info(nil) refuses to fall back to nvim cwd')
+P.eq(type(bad_err), 'string', 'info(nil) explains itself')
+
 local ranges = pr.parse_hunk_ranges(table.concat({
   'diff --git a/x b/x',
   '@@ -2,7 +2,8 @@',
@@ -30,6 +35,17 @@ local ranges = pr.parse_hunk_ranges(table.concat({
 P.eq(#ranges, 2, 'two hunks parsed')
 P.eq(ranges[1].s, 2, 'hunk1 start'); P.eq(ranges[1].e, 9, 'hunk1 end')
 P.eq(ranges[2].s, 21, 'hunk2 start'); P.eq(ranges[2].e, 22, 'hunk2 end (count 2)')
+
+-- a hunk header inside diff *content* is body text, not a hunk
+local body = pr.parse_hunk_ranges(table.concat({
+  'diff --git a/x b/x',
+  '@@ -1,1 +1,2 @@',
+  ' ctx',
+  '+@@ -1,2 +3,4 @@',
+}, '\n'))
+P.eq(#body, 1, 'hunk header in content is not a hunk')
+P.eq(body[1] and body[1].s, 1, 'body hunk start')
+P.eq(body[1] and body[1].e, 2, 'body hunk end')
 
 local live = pr.diff_ranges(fx.root, fx.base_sha, fx.head_sha, 'sub/dir/file.txt')
 P.ok(pr.in_ranges(live, 5), 'changed line 5 in diff')
