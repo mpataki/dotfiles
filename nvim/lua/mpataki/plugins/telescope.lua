@@ -181,9 +181,14 @@ return {
 
 			local pr = require('mpataki.review.pr')
 			local root = pr.root(vim.api.nvim_buf_get_name(0)) or pr.root(vim.fn.getcwd())
-			local info, err = root and pr.info(root)
+			if not root then
+				vim.notify('PR files: not in a git repo', vim.log.levels.ERROR)
+				return
+			end
+
+			local info, err = pr.info(root)
 			if not info then
-				vim.notify('PR files: ' .. (err or 'not in a git repo'), vim.log.levels.ERROR)
+				vim.notify('PR files: ' .. err, vim.log.levels.ERROR)
 				return
 			end
 			local base = info.base_sha

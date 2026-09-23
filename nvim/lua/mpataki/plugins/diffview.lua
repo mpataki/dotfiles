@@ -51,9 +51,14 @@ return {
     vim.api.nvim_create_user_command('DiffviewPR', function()
       local pr = require('mpataki.review.pr')
       local root = pr.root(vim.api.nvim_buf_get_name(0)) or pr.root(vim.fn.getcwd())
-      local info, err = root and pr.info(root)
+      if not root then
+        vim.notify('DiffviewPR: not in a git repo', vim.log.levels.ERROR)
+        return
+      end
+
+      local info, err = pr.info(root)
       if not info then
-        vim.notify('DiffviewPR: ' .. (err or 'not in a git repo'), vim.log.levels.ERROR)
+        vim.notify('DiffviewPR: ' .. err, vim.log.levels.ERROR)
         return
       end
       vim.cmd('DiffviewOpen ' .. info.base_sha .. '...HEAD')
