@@ -60,6 +60,15 @@ local function calls_since(n)
   return out
 end
 local function json(t) return { code = 0, stdout = vim.json.encode(t), stderr = '' } end
+-- A pending review's comments come back over GraphQL: REST answers null for
+-- every line field on one. Keyed on the review's node id, like gh queries it.
+local function graphql_comments(nodes)
+  return json({ data = { node = { state = 'PENDING', comments = {
+    nodes = nodes,
+    pageInfo = { hasNextPage = false, endCursor = vim.NIL },
+  } } } })
+end
+local GQL = 'graphql -f query={ node(id: "R_501"'
 canned['user'] = json({ login = 'mpataki' })
 canned['pulls/7/reviews'] = json({ {} })          -- no pending review
 canned['POST repos/{owner}/{repo}/pulls/7/reviews'] = json({ id = 501 })
@@ -154,8 +163,8 @@ P.eq(after.header.head, fx.head_sha, 'header head updated')
 P.ok(wait_note(m, 'pushed'):find('example.invalid/pr/7', 1, true) ~= nil, 'PR URL printed')
 
 -- Second push with a server pending review that matches: DELETE then POST.
-canned['pulls/7/reviews'] = json({ { { id = 501, state = 'PENDING', user = { login = 'mpataki' } } } })
-canned['pulls/7/reviews/501/comments'] = json({ { { path = 'sub/dir/file.txt', line = 5, start_line = vim.NIL, body = 'c1' } } })
+canned['pulls/7/reviews'] = json({ { { id = 501, state = 'PENDING', node_id = 'R_501', user = { login = 'mpataki' } } } })
+canned[GQL] = graphql_comments({ { path = 'sub/dir/file.txt', line = 5, startLine = vim.NIL, body = 'c1' } })
 c0 = #calls
 sync.push(false)
 P.wait(200)
@@ -167,7 +176,7 @@ end
 P.eq(table.concat(order, ','), 'DELETE,POST', 'replace = delete then create')
 
 -- Drift on server + no bang: refused, no DELETE. With bang: proceeds.
-canned['pulls/7/reviews/501/comments'] = json({ { { path = 'sub/dir/file.txt', line = 5, start_line = vim.NIL, body = 'browser edit' } } })
+canned[GQL] = graphql_comments({ { path = 'sub/dir/file.txt', line = 5, startLine = vim.NIL, body = 'browser edit' } })
 c0 = #calls
 m = mark()
 sync.push(false)
@@ -196,10 +205,10 @@ info.url = 'https://example.invalid/pr/7'
 -- The second server comment is one GitHub no longer anchors (line and
 -- original_line both null): it has no heading to write and must not reach the
 -- file — nor throw while store.key formats it.
-canned['pulls/7/reviews/501/comments'] = json({ {
-  { path = 'sub/dir/file.txt', line = 5, start_line = vim.NIL, body = 'from server' },
-  { path = 'sub/dir/file.txt', line = vim.NIL, original_line = vim.NIL, start_line = vim.NIL, body = 'outdated' },
-} })
+canned[GQL] = graphql_comments({
+  { path = 'sub/dir/file.txt', line = 5, startLine = vim.NIL, body = 'from server' },
+  { path = 'sub/dir/file.txt', line = vim.NIL, originalLine = vim.NIL, startLine = vim.NIL, body = 'outdated' },
+})
 m = mark()
 sync.pull()
 P.wait(200)
@@ -294,9 +303,9 @@ P.ok(not vim.bo.modified, 'discarded the unwritten edit')
 
 -- …and after a pull rewrites the file under it, the open buffer shows the new
 -- draft rather than the stale one it was displaying.
-canned['pulls/7/reviews'] = json({ { { id = 501, state = 'PENDING', user = { login = 'mpataki' } } } })
-canned['pulls/7/reviews/501/comments'] = json({ { { path = 'sub/dir/file.txt', line = 5, start_line = vim.NIL,
-  body = 'body that arrived with the pull' } } })
+canned['pulls/7/reviews'] = json({ { { id = 501, state = 'PENDING', node_id = 'R_501', user = { login = 'mpataki' } } } })
+canned[GQL] = graphql_comments({ { path = 'sub/dir/file.txt', line = 5, startLine = vim.NIL,
+  body = 'body that arrived with the pull' } })
 sync.pull()
 P.wait(200)
 local shown = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')

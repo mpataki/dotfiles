@@ -120,6 +120,52 @@ function M.threads(root, number)
   return out, nil
 end
 
+-- REST is useless for a *pending* review's comments: GET
+-- .../reviews/{id}/comments answers line, original_line, start_line,
+-- original_start_line and side all null for one, leaving only `position`, which
+-- is a diff offset and not what this file anchors on. GraphQL returns the lines.
+local function pending_comments_query(node_id, after)
+  local cursor = after and ('"' .. after .. '"') or 'null'
+  return ('{ node(id: "%s") { ... on PullRequestReview { state comments(first: 100, after: %s)'
+    .. ' { pageInfo { hasNextPage endCursor } nodes { path line startLine originalLine'
+    .. ' originalStartLine body } } } } }'):format(node_id, cursor)
+end
+
+-- `data` and `node` are both nullable in a GraphQL envelope, and vim.NIL is
+-- truthy: indexing one throws far from here.
+local function review_node(payload)
+  local data = nilify(payload and payload.data)
+  if not data then return nil end
+  return nilify(data.node)
+end
+
+local function pending_comments(root, node_id)
+  local entries, after = {}, nil
+  while true do
+    local payload, err = M.api(root, { 'graphql', '-f', 'query=' .. pending_comments_query(node_id, after) })
+    if not payload then return nil, err end
+    local node = review_node(payload)
+    if not node then return nil, 'gh api graphql: no pending review node in response' end
+    local comments = nilify(node.comments) or {}
+    for _, c in ipairs(nilify(comments.nodes) or {}) do
+      table.insert(entries, {
+        path = nilify(c.path),
+        -- GitHub nulls `line` and `startLine` together once a comment goes
+        -- outdated; without both fallbacks a range comes back as a single line,
+        -- and this shape round-trips back to the server.
+        line = nilify(c.line) or nilify(c.originalLine),
+        start_line = nilify(c.startLine) or nilify(c.originalStartLine),
+        body = nilify(c.body) or '',
+      })
+    end
+    local page = nilify(comments.pageInfo) or {}
+    if not nilify(page.hasNextPage) then return entries, nil end
+    -- hasNextPage with no cursor would re-request page 1 forever.
+    after = nilify(page.endCursor)
+    if not after then return entries, nil end
+  end
+end
+
 function M.pending_review(root, number, login)
   local reviews, err = M.api(root, { endpoint(number, '/reviews') }, { paginate = true })
   if not reviews then return nil, err end
@@ -130,26 +176,19 @@ function M.pending_review(root, number, login)
   end
   if not mine then return nil, nil end
   -- An id-less pending review can be neither fetched nor deleted; reporting
-  -- "none" would have sync create a second review alongside the live one.
+  -- "none" would have sync create a second review alongside the live one. The
+  -- node id is just as load-bearing: without it the comments cannot be read.
   local mine_id = nilify(mine.id)
   if not mine_id then
     return nil, ('gh api %s: pending review has no id'):format(endpoint(number, '/reviews'))
   end
-
-  local comments, cerr = M.api(root, { endpoint(number, '/reviews/' .. mine_id .. '/comments') }, { paginate = true })
-  if not comments then return nil, cerr end
-  local entries = {}
-  for _, c in ipairs(comments) do
-    table.insert(entries, {
-      path = nilify(c.path),
-      -- GitHub nulls `line` and `start_line` together once a comment goes
-      -- outdated; without both fallbacks a range comes back as a single line,
-      -- and this shape round-trips back to the server.
-      line = nilify(c.line) or nilify(c.original_line),
-      start_line = nilify(c.start_line) or nilify(c.original_start_line),
-      body = nilify(c.body) or '',
-    })
+  local node_id = nilify(mine.node_id)
+  if not node_id then
+    return nil, ('gh api %s: pending review has no node_id'):format(endpoint(number, '/reviews'))
   end
+
+  local entries, cerr = pending_comments(root, node_id)
+  if not entries then return nil, cerr end
   return { id = mine_id, comments = entries }, nil
 end
 
