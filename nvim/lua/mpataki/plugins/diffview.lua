@@ -49,14 +49,16 @@ return {
     })
 
     vim.api.nvim_create_user_command('DiffviewPR', function()
-      local base = vim.fn.system("git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null"):gsub("%s+", "")
-      if base == "" then
-        vim.notify("Could not find merge base", vim.log.levels.ERROR)
+      local pr = require('mpataki.review.pr')
+      local root = pr.root(vim.api.nvim_buf_get_name(0)) or pr.root(vim.fn.getcwd())
+      local info, err = root and pr.info(root)
+      if not info then
+        vim.notify('DiffviewPR: ' .. (err or 'not in a git repo'), vim.log.levels.ERROR)
         return
       end
-      vim.cmd("DiffviewOpen " .. base .. "...HEAD")
-      vim.cmd("DiffPRBase")
-    end, { desc = "Open Diffview against base branch (PR diff)" })
+      vim.cmd('DiffviewOpen ' .. info.base_sha .. '...HEAD')
+      vim.cmd('DiffPRBase')
+    end, { desc = 'Open Diffview against base branch (PR diff)' })
 
     -- Set up keymaps
     vim.keymap.set('n', '<leader>gd', '<cmd>DiffviewOpen<CR>', { noremap = true, silent = true, desc = "Open Diffview" })

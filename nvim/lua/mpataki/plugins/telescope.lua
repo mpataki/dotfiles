@@ -179,11 +179,14 @@ return {
 			local conf = require('telescope.config').values
 			local previewers = require('telescope.previewers')
 
-			local base = vim.fn.system("git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null"):gsub("%s+", "")
-			if base == "" then
-				vim.notify("Could not find merge base", vim.log.levels.ERROR)
+			local pr = require('mpataki.review.pr')
+			local root = pr.root(vim.api.nvim_buf_get_name(0)) or pr.root(vim.fn.getcwd())
+			local info, err = root and pr.info(root)
+			if not info then
+				vim.notify('PR files: ' .. (err or 'not in a git repo'), vim.log.levels.ERROR)
 				return
 			end
+			local base = info.base_sha
 
 			vim.cmd('DiffPRBase')
 
