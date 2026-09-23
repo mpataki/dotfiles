@@ -100,7 +100,7 @@ function M.threads(root, number)
       id = nilify(c.id),
       path = nilify(c.path),
       line = nilify(c.line) or nilify(c.original_line),
-      start_line = nilify(c.start_line),
+      start_line = nilify(c.start_line) or nilify(c.original_start_line),
       side = nilify(c.side) or 'RIGHT',
       body = nilify(c.body) or '',
       author = user and nilify(user.login) or '?',
@@ -121,19 +121,28 @@ function M.pending_review(root, number, login)
     if r.state == 'PENDING' and user and nilify(user.login) == login then mine = r end
   end
   if not mine then return nil, nil end
+  -- An id-less pending review can be neither fetched nor deleted; reporting
+  -- "none" would have sync create a second review alongside the live one.
+  local mine_id = nilify(mine.id)
+  if not mine_id then
+    return nil, ('gh api %s: pending review has no id'):format(endpoint(number, '/reviews'))
+  end
 
-  local comments, cerr = M.api(root, { endpoint(number, '/reviews/' .. mine.id .. '/comments') }, { paginate = true })
+  local comments, cerr = M.api(root, { endpoint(number, '/reviews/' .. mine_id .. '/comments') }, { paginate = true })
   if not comments then return nil, cerr end
   local entries = {}
   for _, c in ipairs(comments) do
     table.insert(entries, {
       path = nilify(c.path),
+      -- GitHub nulls `line` and `start_line` together once a comment goes
+      -- outdated; without both fallbacks a range comes back as a single line,
+      -- and this shape round-trips back to the server.
       line = nilify(c.line) or nilify(c.original_line),
-      start_line = nilify(c.start_line),
+      start_line = nilify(c.start_line) or nilify(c.original_start_line),
       body = nilify(c.body) or '',
     })
   end
-  return { id = mine.id, comments = entries }, nil
+  return { id = mine_id, comments = entries }, nil
 end
 
 function M.delete_review(root, number, review_id)
@@ -155,7 +164,14 @@ function M.create_pending(root, number, head_sha, entries)
   local data, err = M.api(root, { '-X', 'POST', endpoint(number, '/reviews') },
     { input = { commit_id = head_sha, comments = comments } })
   if not data then return nil, err end
-  return data.id, nil
+  -- The review may well exist server-side by now, so an id we cannot read is an
+  -- error: returning nil with no error reads as "nothing happened" and sends
+  -- sync back to create a second one.
+  local id = nilify(data.id)
+  if not id then
+    return nil, ('gh api %s: no review id in response'):format(endpoint(number, '/reviews'))
+  end
+  return id, nil
 end
 
 return M

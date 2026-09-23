@@ -94,4 +94,47 @@ local nologin, lerr = gh.login('/r')
 P.eq(nologin, nil, 'missing login → nil')
 P.ok(lerr ~= nil, '…and an error, not a silent nil')
 
+-- A create that reports no review id must not read as "nothing happened": the
+-- review may well exist server-side, and a silent nil,nil sends sync back to
+-- create another one. vim.NIL is truthy, so an explicit null needs nilify too.
+canned['POST repos/{owner}/{repo}/pulls/7/reviews'] = { code = 0, stdout = '{}', stderr = '' }
+local noid, noiderr = gh.create_pending('/r', 7, 'headsha', { { path = 'a.go', line = 3, body = 'x' } })
+P.eq(noid, nil, 'create with no id in response → nil')
+P.ok(type(noiderr) == 'string', '…and an error string')
+canned['POST repos/{owner}/{repo}/pulls/7/reviews'] = { code = 0, stdout = '{"id":null}', stderr = '' }
+local nullid, nulliderr = gh.create_pending('/r', 7, 'headsha', { { path = 'a.go', line = 3, body = 'x' } })
+P.eq(nullid, nil, 'create with null id → nil, not vim.NIL')
+P.ok(type(nulliderr) == 'string', '…and an error string')
+
+-- GitHub nulls `line` and `start_line` together once a comment goes outdated.
+-- Without the original_start_line fallback a multi-line comment comes back as a
+-- single line — in pending_review that is round-trip data loss.
+canned['pulls/10/comments'] = { code = 0, stdout = vim.json.encode({ {
+  { id = 3, path = 'a.go', line = vim.NIL, original_line = 8, start_line = vim.NIL,
+    original_start_line = 5, side = 'RIGHT', body = 'stale range', user = { login = 'bob' } },
+} }), stderr = '' }
+local outdated = gh.threads('/r', 10)
+P.eq(outdated and outdated[1] and outdated[1].line, 8, 'outdated thread line falls back')
+P.eq(outdated and outdated[1] and outdated[1].start_line, 5, 'outdated thread start_line falls back too')
+
+canned['pulls/10/reviews'] = { code = 0, stdout = vim.json.encode({ {
+  { id = 60, state = 'PENDING', user = { login = 'mpataki' } },
+} }), stderr = '' }
+canned['pulls/10/reviews/60/comments'] = { code = 0, stdout = vim.json.encode({ {
+  { path = 'a.go', line = vim.NIL, original_line = 8, start_line = vim.NIL, original_start_line = 5,
+    body = 'stale draft' },
+} }), stderr = '' }
+local stale = gh.pending_review('/r', 10, 'mpataki')
+P.eq(stale and stale.comments[1] and stale.comments[1].line, 8, 'outdated pending line falls back')
+P.eq(stale and stale.comments[1] and stale.comments[1].start_line, 5, 'outdated pending start_line falls back')
+
+-- An id-less pending review cannot be deleted or fetched; calling it "none"
+-- would have sync create a second review alongside it.
+canned['pulls/11/reviews'] = { code = 0, stdout = vim.json.encode({ {
+  { state = 'PENDING', user = { login = 'mpataki' } },
+} }), stderr = '' }
+local idless, idlesserr = gh.pending_review('/r', 11, 'mpataki')
+P.eq(idless, nil, 'id-less pending review → nil')
+P.ok(type(idlesserr) == 'string', '…and an error, not "no pending review"')
+
 P.done()
