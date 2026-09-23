@@ -36,4 +36,28 @@ function F.repo()
   return { root = root, base_sha = base_sha, head_sha = head_sha }
 end
 
+-- Installs a fake `gh.runner` so probes never shell out to the real `gh`.
+-- Returns (calls, canned): `calls` records every { argv, opts } in order; fill
+-- `canned` with pattern -> response, a { code, stdout, stderr } table or a
+-- function(argv, opts) returning one. Longest matching pattern wins, so
+-- 'pulls/7/reviews/55/comments' beats 'pulls/7/reviews', and
+-- 'POST repos/.../pulls/7/reviews' beats both.
+function F.fake_gh(gh)
+  local calls, canned = {}, {}
+  gh.runner = function(argv, opts)
+    table.insert(calls, { argv = argv, opts = opts })
+    local key = table.concat(argv, ' ')
+    local best, best_len = nil, -1
+    for pat, resp in pairs(canned) do
+      if key:find(pat, 1, true) and #pat > best_len then best, best_len = resp, #pat end
+    end
+    if best == nil then
+      return { code = 1, stdout = '', stderr = 'no canned response for: ' .. key }
+    end
+    if type(best) == 'function' then return best(argv, opts) end
+    return best
+  end
+  return calls, canned
+end
+
 return F
