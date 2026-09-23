@@ -4,8 +4,16 @@
 -- which is why every call runs with cwd = repo root.
 local M = {}
 
+-- env: forced color (CLICOLOR_FORCE, set in agent sessions) makes gh emit
+-- ANSI-wrapped JSON that vim.json.decode rejects; merged over the inherited
+-- environment, never clear_env, so gh keeps PATH, HOME and its token.
 function M.runner(argv, opts)
-  local r = vim.system(argv, { cwd = opts.cwd, stdin = opts.stdin, text = true }):wait()
+  local r = vim.system(argv, {
+    cwd = opts.cwd,
+    stdin = opts.stdin,
+    text = true,
+    env = { CLICOLOR_FORCE = '0', NO_COLOR = '1' },
+  }):wait()
   return { code = r.code, stdout = r.stdout or '', stderr = r.stderr or '' }
 end
 

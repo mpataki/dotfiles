@@ -59,7 +59,13 @@ P.eq(#body, 1, 'hunk header in content is not a hunk')
 P.eq(body[1] and body[1].s, 1, 'body hunk start')
 P.eq(body[1] and body[1].e, 2, 'body hunk end')
 
+-- Forced color must not break hunk parsing: a colored `@@` header no longer
+-- matches '^@@'. color.ui=always is the user-config twin of the CLICOLOR_FORCE
+-- the runner neutralizes, and both land on the same `git diff`.
+pr.git(fx.root, { 'config', 'color.ui', 'always' })
+
 local live = pr.diff_ranges(fx.root, fx.base_sha, fx.head_sha, 'sub/dir/file.txt')
+P.ok(live ~= nil and #live > 0, 'diff_ranges parses hunks under color.ui=always')
 P.ok(pr.in_ranges(live, 5), 'changed line 5 in diff')
 P.ok(pr.in_ranges(live, 2), 'context line 2 in diff (U3)')
 P.ok(pr.in_ranges(live, 11), 'appended line 11 in diff')

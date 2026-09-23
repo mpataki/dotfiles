@@ -11,8 +11,19 @@ local M = {}
 -- outlives the next explicit gesture.
 local cache = {}
 
+-- Forced color breaks every parser downstream, so the runner neutralizes it for
+-- both git and gh: CLICOLOR_FORCE in the environment (agent sessions set it;
+-- f8ccc2b dropped it from the shell for exactly this reason) makes `gh --json`
+-- emit ANSI-wrapped JSON that vim.json.decode rejects, and a user's
+-- `color.ui=always` colors the `@@` headers past parse_hunk_ranges' '^@@'.
+-- No clear_env: vim.system merges this over the inherited environment, which
+-- gh still needs for PATH, HOME and its token.
 local function run(argv, cwd)
-  local r = vim.system(argv, { cwd = cwd, text = true }):wait()
+  local r = vim.system(argv, {
+    cwd = cwd,
+    text = true,
+    env = { CLICOLOR_FORCE = '0', NO_COLOR = '1' },
+  }):wait()
   return { code = r.code, stdout = r.stdout or '', stderr = r.stderr or '' }
 end
 
@@ -129,7 +140,7 @@ end
 -- itself fails — an unfetched PR head must not read as "no hunks", which a
 -- caller would report as every line being outside the diff.
 function M.diff_ranges(root, base_sha, head_ref, relpath)
-  local r = M.git(root, { 'diff', '-U3', base_sha, head_ref, '--', relpath })
+  local r = M.git(root, { 'diff', '--no-color', '-U3', base_sha, head_ref, '--', relpath })
   if r.code ~= 0 then return nil, (vim.trim(r.stderr):match('^[^\n]*')) end
   return M.parse_hunk_ranges(r.stdout)
 end
