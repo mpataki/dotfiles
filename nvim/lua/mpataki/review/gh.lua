@@ -7,14 +7,34 @@ local M = {}
 -- env: forced color (CLICOLOR_FORCE, set in agent sessions) makes gh emit
 -- ANSI-wrapped JSON that vim.json.decode rejects; merged over the inherited
 -- environment, never clear_env, so gh keeps PATH, HOME and its token.
+-- :wait() with no argument waits forever: a gh call that hangs (an unreachable
+-- host, a credential prompt) would freeze the editor with no way back. Every
+-- call here is synchronous, so the bound is the only way out.
+M.timeout_ms = 15000
+
 function M.runner(argv, opts)
   local r = vim.system(argv, {
     cwd = opts.cwd,
     stdin = opts.stdin,
     text = true,
     env = { CLICOLOR_FORCE = '0', NO_COLOR = '1' },
-  }):wait()
-  return { code = r.code, stdout = r.stdout or '', stderr = r.stderr or '' }
+  }):wait(M.timeout_ms)
+  local function timed_out(stderr)
+    return vim.trim(('%s timed out after %gs\n%s'):format(argv[1], M.timeout_ms / 1000, stderr or ''))
+  end
+  -- :wait hands back nothing at all when the kill leaves the pipes open behind
+  -- it (a child that outlives its parent holds them), so a nil result is a
+  -- timeout too — and indexing it is how this crashes instead.
+  if not r then
+    return { code = 124, stdout = '', stderr = timed_out() }
+  end
+  local stderr = r.stderr or ''
+  -- A timed-out process is killed: it exits on a signal with an empty stderr,
+  -- and 'gh api user: ' with nothing after it explains nothing.
+  if r.code ~= 0 and (r.signal or 0) ~= 0 then
+    stderr = timed_out(stderr)
+  end
+  return { code = r.code, stdout = r.stdout or '', stderr = stderr }
 end
 
 local function first_line(s)

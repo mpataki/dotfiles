@@ -11,6 +11,16 @@ local M = {}
 -- outlives the next explicit gesture.
 local cache = {}
 
+-- root -> git common dir. A root's common dir cannot change while nvim runs,
+-- and this is on the BufWinEnter path: one `git rev-parse` per window entry,
+-- per file, forever, for an answer that is always the same string.
+local common_dirs = {}
+
+-- vim.system():wait() with no argument waits forever: a git or gh call that
+-- hangs (a credential prompt, an unreachable host) would freeze the editor with
+-- no way back. Bounded instead, and the kill reports itself as a timeout.
+M.timeouts = { git = 10000, gh = 15000 }
+
 -- Forced color breaks every parser downstream, so the runner neutralizes it for
 -- both git and gh: CLICOLOR_FORCE in the environment (agent sessions set it;
 -- f8ccc2b dropped it from the shell for exactly this reason) makes `gh --json`
@@ -18,13 +28,34 @@ local cache = {}
 -- `color.ui=always` colors the `@@` headers past parse_hunk_ranges' '^@@'.
 -- No clear_env: vim.system merges this over the inherited environment, which
 -- gh still needs for PATH, HOME and its token.
-local function run(argv, cwd)
+local function timed_out(argv, timeout, stderr)
+  return vim.trim(('%s timed out after %gs\n%s'):format(argv[1], timeout / 1000, stderr or ''))
+end
+
+local function run(argv, cwd, timeout)
+  timeout = timeout or M.timeouts.git
   local r = vim.system(argv, {
     cwd = cwd,
     text = true,
     env = { CLICOLOR_FORCE = '0', NO_COLOR = '1' },
-  }):wait()
-  return { code = r.code, stdout = r.stdout or '', stderr = r.stderr or '' }
+  }):wait(timeout)
+  -- :wait hands back nothing at all when the kill leaves the pipes open behind
+  -- it (a git alias that shells out keeps stdout in a grandchild), so a nil
+  -- result is a timeout too — and indexing it is how this crashes instead.
+  if not r then
+    return { code = 124, stdout = '', stderr = timed_out(argv, timeout) }
+  end
+  local stderr = r.stderr or ''
+  -- A timed-out process is killed, so it exits on a signal with nothing on
+  -- stderr: without this the caller reports an empty reason for the failure.
+  if r.code ~= 0 and (r.signal or 0) ~= 0 then
+    stderr = timed_out(argv, timeout, stderr)
+  end
+  return { code = r.code, stdout = r.stdout or '', stderr = stderr }
+end
+
+local function first_line(s)
+  return (vim.trim(s or ''):match('^[^\n]*'))
 end
 
 function M.git(root, argv)
@@ -57,10 +88,13 @@ function M.current_root()
 end
 
 function M.common_dir(root)
+  if common_dirs[root] then return common_dirs[root] end
   local r = M.git(root, { 'rev-parse', '--git-common-dir' })
   local d = vim.trim(r.stdout)
   if d:sub(1, 1) ~= '/' then d = root .. '/' .. d end
-  return (vim.fn.fnamemodify(d, ':p'):gsub('/$', ''))
+  local common = (vim.fn.fnamemodify(d, ':p'):gsub('/$', ''))
+  common_dirs[root] = common
+  return common
 end
 
 -- Path relative to `root`, forward slashes. Returns nil when `abs_path` is not
@@ -80,12 +114,17 @@ local function merge_base(root, ref)
   return vim.trim(r.stdout)
 end
 
+-- nil, reason. The reason matters: unauthenticated, offline, rate-limited and
+-- "this branch has no PR" all land here, and a caller that reports them all as
+-- "no PR" sends the user looking in the wrong place.
 local function gh_pr_view(root)
-  local r = run({ 'gh', 'pr', 'view', '--json', 'number,baseRefName,headRefOid,url' }, root)
-  if r.code ~= 0 then return nil end
+  local r = run({ 'gh', 'pr', 'view', '--json', 'number,baseRefName,headRefOid,url' }, root, M.timeouts.gh)
+  if r.code ~= 0 then
+    return nil, first_line(r.stderr) ~= '' and first_line(r.stderr) or 'gh pr view failed'
+  end
   local ok, data = pcall(vim.json.decode, r.stdout)
-  if not ok then return nil end
-  return data
+  if not ok then return nil, 'gh pr view: bad JSON' end
+  return data, nil
 end
 
 function M.info(root, opts)
@@ -95,7 +134,8 @@ function M.info(root, opts)
   if not opts.refresh and hit then return hit.info, hit.err end
 
   local info = { root = root, common_dir = M.common_dir(root) }
-  local pr = gh_pr_view(root)
+  local pr, pr_err = gh_pr_view(root)
+  info.pr_err = pr_err
   if pr then
     info.number = pr.number
     info.base_ref = pr.baseRefName
@@ -116,6 +156,7 @@ end
 
 function M.clear_cache()
   cache = {}
+  common_dirs = {}
 end
 
 -- New-file line ranges from `@@ -a,b +c,d @@` headers. Matched per line and

@@ -15,7 +15,12 @@ end
 local function repo_context(root)
   local info, err = pr.info(root)
   if not info then return nil, err end
-  if not info.number then return nil, 'no PR for this branch (gh pr view found none)' end
+  -- gh failing (unauthenticated, offline, rate-limited) is not the same as this
+  -- branch having no PR, and the fix is different for each.
+  if not info.number then
+    if info.pr_err then return nil, 'no PR for this branch: ' .. info.pr_err end
+    return nil, 'no PR for this branch (gh pr view found none)'
+  end
   return {
     root = root,
     info = info,
@@ -24,12 +29,14 @@ local function repo_context(root)
   }
 end
 
--- A file buffer's review context; nil, err when it has no file, no repo, or no PR.
-function M.context(bufnr)
+-- A file buffer's review context; nil, err when it has no file, no repo, or no
+-- PR. `root` is optional: a caller that already resolved it (the BufWinEnter
+-- path) passes it rather than paying for a second `git rev-parse` per entry.
+function M.context(bufnr, root)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
   local path = vim.api.nvim_buf_get_name(bufnr)
   if path == '' or vim.bo[bufnr].buftype ~= '' then return nil, 'buffer has no file' end
-  local root = pr.root(path)
+  root = root or pr.root(path)
   if not root then return nil, 'not in a git repo' end
   local relpath = pr.relpath(root, path)
   if not relpath then return nil, 'file outside repo' end
@@ -146,14 +153,15 @@ end
 
 -- Passive render on every window entry. Gated on the reviews dir existing so a
 -- repo with no review files never pays for `gh pr view` on its first file open
--- (that call is a network round-trip that blocks the editor); `pr.root` and
--- `pr.common_dir` are local git calls.
+-- (that call is a network round-trip that blocks the editor). What is left is
+-- one `git rev-parse` per entry: common_dir is memoized per root, and context
+-- is handed the root resolved here instead of resolving it a second time.
 local function on_buf_win_enter(ev)
   if vim.bo[ev.buf].buftype ~= '' then return end
   local root = pr.root(vim.api.nvim_buf_get_name(ev.buf))
   if not root then return end
   if vim.fn.isdirectory(pr.common_dir(root) .. '/reviews') == 0 then return end
-  local ctx = M.context(ev.buf)
+  local ctx = M.context(ev.buf, root)
   if not ctx then return end
   if vim.fn.filereadable(ctx.file) ~= 1 and vim.fn.filereadable(ctx.remote_file) ~= 1 then return end
   render_buf(ev.buf, ctx)

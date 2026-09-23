@@ -32,6 +32,27 @@ local info, err = pr.info(fx.root)
 P.ok(info ~= nil, 'info resolves without a PR: ' .. tostring(err))
 P.eq(info and info.base_sha, fx.base_sha, 'base_sha falls back to merge-base with main')
 P.eq(info and info.number, nil, 'no PR number without gh PR')
+-- The fixture has no remote, so `gh pr view` fails here. Its reason has to
+-- survive: "no PR for this branch" is a different problem with a different fix
+-- than unauthenticated / offline / rate-limited, which all land in the same
+-- place. (The gh *api* surface is faked in every probe; this is `gh pr view`
+-- failing locally against a remote-less repo, no network involved.)
+P.ok(type(info and info.pr_err) == 'string' and info.pr_err ~= '',
+  'gh pr view failure is recorded as pr_err: ' .. tostring(info and info.pr_err))
+P.ok(info and info.pr_err and not info.pr_err:find('\n', 1, true), 'pr_err is a single line')
+
+-- A hung git (a credential prompt, an unreachable host) must not freeze the
+-- editor: every call is bounded, and the kill explains itself rather than
+-- failing with an empty stderr.
+P.eq(pr.timeouts.git, 10000, 'git calls wait 10s')
+P.eq(pr.timeouts.gh, 15000, 'gh pr view waits 15s')
+local real_git_timeout = pr.timeouts.git
+pr.timeouts.git = 150
+local slow = pr.git(fx.root, { '-c', 'alias.slow=!sleep 5', 'slow' })
+pr.timeouts.git = real_git_timeout
+P.ok(slow.code ~= 0, 'a git call past the timeout fails rather than hanging')
+P.ok(slow.stderr:find('timed out after 0.15s', 1, true) ~= nil,
+  'the timeout names itself: ' .. tostring(slow.stderr))
 
 local bad, bad_err = pr.info(nil)
 P.eq(bad, nil, 'info(nil) refuses to fall back to nvim cwd')

@@ -52,6 +52,19 @@ local other = F.repo()
 vim.cmd('edit ' .. vim.fn.fnameescape(other.root .. '/sub/dir/file.txt'))
 P.wait(100)
 P.eq(gh_calls, 0, 'BufWinEnter in a repo without review files never runs gh')
+
+-- gh failing is not the same as this branch having no PR: the fixture has no
+-- remote, so `gh pr view` fails, and the reason has to reach the user instead
+-- of "gh pr view found none" (which would send them to open a PR they have).
+local other_info = pr.info(other.root)
+P.ok(type(other_info and other_info.pr_err) == 'string' and other_info.pr_err ~= '',
+  'pr.info records why gh pr view failed: ' .. tostring(other_info and other_info.pr_err))
+local nopr_ctx, nopr_err = review.context()
+P.eq(nopr_ctx, nil, 'no context without a PR')
+P.ok(nopr_err and nopr_err:find('no PR for this branch: ' .. tostring(other_info.pr_err), 1, true) ~= nil,
+  'the context error carries the gh failure: ' .. tostring(nopr_err))
+gh_calls = 0
+
 vim.api.nvim_set_current_buf(code_buf)
 
 -- A repo with no main/master: pr.info fails, and the failure is cached so the
@@ -232,6 +245,21 @@ vim.api.nvim_set_current_buf(code_buf)
 render.clear(code_buf)
 vim.cmd('doautocmd BufWinEnter')
 P.eq(#vim.api.nvim_buf_get_extmarks(code_buf, render.ns, 0, -1, {}), 3, 'BufWinEnter renders pending entries')
+
+-- BufWinEnter fires on every window entry, for every file, forever. Measured
+-- at 3 git spawns per entry before this: pr.root, pr.common_dir, then
+-- M.context resolving pr.root all over again. common_dir is memoized per root
+-- and context is handed the root, leaving the root lookup itself. (Root is not
+-- memoized by directory: a path can stop being in a repo, and the lookup is
+-- the cheapest of the three.)
+vim.fn.writefile({ 'second file' }, fx.root .. '/sub/dir/second.txt')
+vim.cmd('edit ' .. vim.fn.fnameescape(fx.root .. '/sub/dir/second.txt'))
+P.wait(200)
+spawns, gh_calls = 0, 0
+vim.cmd('doautocmd BufWinEnter')
+P.ok(spawns <= 1, 'BufWinEnter in a reviewed repo spawns at most one process, got ' .. tostring(spawns))
+P.eq(gh_calls, 0, '…and never gh')
+vim.api.nvim_set_current_buf(code_buf)
 
 P.ok(vim.fn.maparg('<leader>gc', 'n') ~= '', '<leader>gc mapped (n)')
 P.ok(vim.fn.maparg('<leader>gc', 'x') ~= '', '<leader>gc mapped (v)')

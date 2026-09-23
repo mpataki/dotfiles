@@ -3,6 +3,9 @@ local P = require('probe')
 local F = require('fixture')
 local gh = require('mpataki.review.gh')
 
+-- The real runner, kept before the fake replaces it: the timeout at the bottom
+-- is the one thing that has to be exercised against an actual process.
+local real_runner = gh.runner
 local calls, canned = F.fake_gh(gh)
 
 local function last() return calls[#calls] end
@@ -188,5 +191,17 @@ canned['graphql -f query={ node(id: "R_pending13"'] = { code = 0, stdout = '{"da
 local gone, goneerr = gh.pending_review('/r', 13, 'mpataki')
 P.eq(gone, nil, 'null graphql node → nil')
 P.ok(type(goneerr) == 'string', '…and an error string')
+
+-- Every gh call here is synchronous, so an unbounded :wait() is an editor that
+-- never comes back. The kill has to explain itself, too: 'gh api user: ' with
+-- an empty stderr after it names no problem.
+P.eq(gh.timeout_ms, 15000, 'gh calls wait 15s by default')
+local real_timeout = gh.timeout_ms
+gh.timeout_ms = 150
+local slow = real_runner({ 'sleep', '5' }, { cwd = vim.uv.cwd() })
+gh.timeout_ms = real_timeout
+P.ok(slow.code ~= 0, 'a gh call past the timeout fails rather than hanging')
+P.ok(slow.stderr:find('timed out after 0.15s', 1, true) ~= nil,
+  'the timeout names itself: ' .. tostring(slow.stderr))
 
 P.done()
