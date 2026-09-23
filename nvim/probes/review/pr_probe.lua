@@ -65,4 +65,11 @@ P.ok(pr.in_ranges(live, 2), 'context line 2 in diff (U3)')
 P.ok(pr.in_ranges(live, 11), 'appended line 11 in diff')
 P.ok(not pr.in_ranges(live, 1), 'line 1 outside diff')
 
+-- An unfetched head: the diff itself fails, and that must not read as "no
+-- hunks" (callers would then refuse every line as outside the diff).
+local none, none_err = pr.diff_ranges(fx.root, fx.base_sha, ('0'):rep(40), 'sub/dir/file.txt')
+P.eq(none, nil, 'diff_ranges returns nil when git diff fails')
+P.ok(type(none_err) == 'string' and none_err ~= '', 'diff_ranges returns the git error: ' .. tostring(none_err))
+P.ok(not none_err:find('\n', 1, true), 'error is a single line')
+
 P.done()

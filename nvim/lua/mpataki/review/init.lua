@@ -98,7 +98,12 @@ function M.comment(opts)
   if not ctx then return notify_err(err) end
 
   local line, start_line = anchor_from_range(opts)
-  local ranges = pr.diff_ranges(ctx.root, ctx.info.base_sha, ctx.info.head or 'HEAD', ctx.relpath)
+  local head = ctx.info.head or 'HEAD'
+  local ranges, derr = pr.diff_ranges(ctx.root, ctx.info.base_sha, head, ctx.relpath)
+  if not ranges then
+    return notify_err(('no diff for %s against PR head %s: %s — fetch the PR branch?'):format(
+      ctx.relpath, head:sub(1, 8), derr))
+  end
   local outside = first_line_outside(ranges, line, start_line)
   if outside then
     return notify_err(('line %d is not in the PR diff; GitHub only anchors comments inside hunks (+3 context)'):format(outside))

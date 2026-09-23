@@ -54,7 +54,10 @@ function M.open(opts)
 
   buf = vim.api.nvim_create_buf(false, true)
   vim.bo[buf].buftype = 'acwrite'
-  vim.bo[buf].bufhidden = 'wipe'
+  -- 'hide', not 'wipe': `:q` on a modified buffer is E37 unless the buffer may
+  -- be hidden. Marking it clean up front instead (QuitPre) breaks `:wqa`/`:xa`,
+  -- which only write *changed* buffers. So it hides, and BufHidden wipes it.
+  vim.bo[buf].bufhidden = 'hide'
   vim.bo[buf].filetype = 'markdown'
   vim.api.nvim_buf_set_name(buf, name)
   local lines = vim.split(opts.body or '', '\n', { plain = true })
@@ -77,19 +80,17 @@ function M.open(opts)
   vim.wo[win].wrap = true
   vim.wo[win].linebreak = true
 
-  -- Never close from inside BufWriteCmd: `:wq` runs the write, then quits
-  -- *whatever window is current* — with the float already gone that is the
-  -- code window (or nvim itself when it was the last one). Mark clean, let the
-  -- write return, and close on the next tick; a `:wq` finds the float still
-  -- there and closes exactly it.
+  -- on_save runs synchronously: `:wqa` writes, then quits before the event
+  -- loop gets another tick, so a deferred save is a lost comment. Only the
+  -- close is deferred — `:wq` runs the write, then quits *whatever window is
+  -- current*, and with the float already gone that is the code window (or
+  -- nvim itself when it was the last one).
   local function save()
     local body = table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), '\n')
     vim.bo[buf].modified = false
     vim.cmd('stopinsert')
-    vim.schedule(function()
-      close(win)
-      opts.on_save(body)
-    end)
+    opts.on_save(body)
+    vim.schedule(function() close(win) end)
   end
 
   local function cancel()
@@ -99,9 +100,14 @@ function M.open(opts)
   end
 
   vim.api.nvim_create_autocmd('BufWriteCmd', { buffer = buf, callback = save })
-  -- `:q` on a modified acwrite buffer is E37. There is no file to lose here;
-  -- quitting the float is cancelling, the same as `q`.
-  vim.api.nvim_create_autocmd('QuitPre', { buffer = buf, callback = function() vim.bo[buf].modified = false end })
+  vim.api.nvim_create_autocmd('BufHidden', {
+    buffer = buf,
+    callback = function()
+      vim.schedule(function()
+        if vim.api.nvim_buf_is_valid(buf) then vim.api.nvim_buf_delete(buf, { force = true }) end
+      end)
+    end,
+  })
   vim.keymap.set({ 'n', 'i' }, '<C-s>', save, { buffer = buf })
   vim.keymap.set('n', 'q', cancel, { buffer = buf })
 

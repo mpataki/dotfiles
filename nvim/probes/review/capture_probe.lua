@@ -6,6 +6,9 @@ local store = require('mpataki.review.store')
 local render = require('mpataki.review.render')
 local review = require('mpataki.review')
 
+-- startinsert/stopinsert echo '-- (insert) --' into headless output otherwise.
+vim.o.showmode = false
+
 -- vim.notify is nvim-notify here: assert through its history, never override it.
 local function notified()
   local lines = {}
@@ -17,9 +20,10 @@ end
 
 -- Count gh invocations: the passive BufWinEnter path must never be the first
 -- thing to shell out to gh (it blocks the editor on the network).
-local gh_calls = 0
+local gh_calls, spawns = 0, 0
 local real_system = vim.system
 vim.system = function(argv, ...)
+  spawns = spawns + 1
   if argv[1] == 'gh' then gh_calls = gh_calls + 1 end
   return real_system(argv, ...)
 end
@@ -50,6 +54,25 @@ P.wait(100)
 P.eq(gh_calls, 0, 'BufWinEnter in a repo without review files never runs gh')
 vim.api.nvim_set_current_buf(code_buf)
 
+-- A repo with no main/master: pr.info fails, and the failure is cached so the
+-- passive path does not re-run gh + two merge-base attempts per window entry.
+local bare = vim.fn.tempname()
+vim.fn.mkdir(bare, 'p')
+bare = vim.uv.fs_realpath(bare)
+local function sh(argv)
+  assert(real_system(argv, { cwd = bare, text = true }):wait().code == 0, table.concat(argv, ' '))
+end
+sh({ 'git', 'init', '-q', '-b', 'topic' })
+sh({ 'git', '-c', 'user.email=p@x', '-c', 'user.name=p', '-c', 'commit.gpgsign=false', 'commit', '-q', '--allow-empty', '-m', 'only' })
+local _, err1 = pr.info(bare)
+P.ok(err1 ~= nil, 'pr.info fails without a merge base')
+spawns = 0
+local _, err2 = pr.info(bare)
+P.eq(spawns, 0, 'second pr.info on a failing root spawns no process (failure cached)')
+P.eq(err2, err1, 'cached failure returns the same error')
+pr.info(bare, { refresh = true })
+P.ok(spawns > 0, 'refresh bypasses the cached failure')
+
 -- Line 1 is outside the diff: refuse. nvim-notify records history on the
 -- next tick, so wait for it.
 vim.api.nvim_win_set_cursor(code_win, { 1, 0 })
@@ -57,6 +80,17 @@ review.comment()
 P.eq(vim.api.nvim_get_current_win(), code_win, 'no float outside diff')
 P.wait(500, function() return notified():find('not in the PR diff', 1, true) ~= nil end)
 P.ok(notified():find('not in the PR diff', 1, true) ~= nil, 'refusal message')
+
+-- A PR head that is not fetched locally: git diff fails, and the message must
+-- blame the missing ref, not the line.
+info.head = ('0'):rep(40)
+vim.api.nvim_win_set_cursor(code_win, { 5, 0 })
+review.comment()
+P.eq(vim.api.nvim_get_current_win(), code_win, 'no float when the diff itself fails')
+P.wait(500, function() return notified():find('no diff for sub/dir/file.txt', 1, true) ~= nil end)
+P.ok(notified():find('no diff for sub/dir/file.txt against PR head 00000000', 1, true) ~= nil,
+  'failed diff names the file and head, not the line')
+info.head = fx.head_sha
 
 -- Line 5 is changed: float opens, write body, :w saves. nvim resolves
 -- relative='cursor' into relative='win' + the cursor's row at open time, so
@@ -74,6 +108,7 @@ P.eq(vim.bo.filetype, 'markdown', 'float is markdown')
 vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'looks wrong', '', 'see above' })
 local ok_write, write_err = pcall(vim.cmd, 'write')
 P.ok(ok_write, ':write in the float raises no error: ' .. tostring(write_err))
+P.eq(#store.read(ctx.file).entries, 1, 'entry is on disk when :write returns (save is not deferred)')
 P.wait(200)
 P.eq(vim.api.nvim_get_current_win(), code_win, 'float closed after :w')
 P.ok(not vim.api.nvim_win_is_valid(float_win), 'float window is gone after :w')
@@ -102,6 +137,7 @@ P.ok(ok_q, ':q closes a modified float without E37: ' .. tostring(q_err))
 P.wait(100)
 P.eq(vim.api.nvim_get_current_win(), code_win, ':q returns to the code window')
 P.eq(store.read(ctx.file).entries[1].body, 'looks wrong\n\nsee above', ':q left entry unchanged')
+P.eq(vim.fn.bufexists('review://sub/dir/file.txt:5'), 0, 'cancelled float buffer is wiped, not left hidden')
 
 -- :wq saves and closes the float only. (A close from inside BufWriteCmd lets
 -- the quit half of :wq take the code window instead.)
@@ -205,4 +241,16 @@ P.ok(vim.fn.exists(':ReviewPull') == 2, ':ReviewPull exists')
 P.ok(vim.fn.exists(':ReviewRefresh') == 2, ':ReviewRefresh exists')
 
 vim.system = real_system
-P.done()
+
+-- :wqa from a modified float: write-all, then quit-all with no event-loop tick
+-- between them. The entry must already be on disk when nvim leaves.
+vim.api.nvim_win_set_cursor(code_win, { 8, 0 })
+review.comment()
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'via wqa' })
+vim.api.nvim_create_autocmd('VimLeavePre', {
+  callback = function()
+    P.ok(store.find(store.read(ctx.file), 'sub/dir/file.txt', 8) ~= nil, ':wqa saved the entry before nvim left')
+    P.done()
+  end,
+})
+vim.cmd('wqa')

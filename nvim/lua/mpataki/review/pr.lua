@@ -4,7 +4,12 @@
 -- never consulted, because it is often a different directory or repo.
 local M = {}
 
-local cache = {} -- root -> info
+-- root -> { info = info } | { err = err }. Failures are cached too: the passive
+-- BufWinEnter render would otherwise re-run `gh pr view` (network) plus two
+-- merge-base attempts on every window entry in a repo with no merge base.
+-- `refresh` and clear_cache() drop both kinds, so a cached failure never
+-- outlives the next explicit gesture.
+local cache = {}
 
 local function run(argv, cwd)
   local r = vim.system(argv, { cwd = cwd, text = true }):wait()
@@ -75,7 +80,8 @@ end
 function M.info(root, opts)
   if not root or root == '' then return nil, 'no repo root' end
   opts = opts or {}
-  if not opts.refresh and cache[root] then return cache[root] end
+  local hit = cache[root]
+  if not opts.refresh and hit then return hit.info, hit.err end
 
   local info = { root = root, common_dir = M.common_dir(root) }
   local pr = gh_pr_view(root)
@@ -88,10 +94,12 @@ function M.info(root, opts)
   end
   info.base_sha = info.base_sha or merge_base(root, 'main') or merge_base(root, 'master')
   if not info.base_sha then
-    return nil, 'could not find merge base (no PR, no main/master)'
+    local err = 'could not find merge base (no PR, no main/master)'
+    cache[root] = { err = err }
+    return nil, err
   end
 
-  cache[root] = info
+  cache[root] = { info = info }
   return info
 end
 
@@ -117,9 +125,12 @@ function M.parse_hunk_ranges(diff_text)
   return ranges
 end
 
+-- Ranges for `relpath`, or nil, err (first line of git's stderr) when the diff
+-- itself fails — an unfetched PR head must not read as "no hunks", which a
+-- caller would report as every line being outside the diff.
 function M.diff_ranges(root, base_sha, head_ref, relpath)
   local r = M.git(root, { 'diff', '-U3', base_sha, head_ref, '--', relpath })
-  if r.code ~= 0 then return {} end
+  if r.code ~= 0 then return nil, (vim.trim(r.stderr):match('^[^\n]*')) end
   return M.parse_hunk_ranges(r.stdout)
 end
 
