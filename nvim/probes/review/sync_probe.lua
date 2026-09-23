@@ -108,12 +108,12 @@ local wlines = {}
 for i = 1, 30 do wlines[i] = 'w ' .. i end
 vim.fn.writefile(wlines, fw.root .. '/wide.txt')
 sh({ 'git', 'add', 'wide.txt' }, fw.root)
-sh({ 'git', 'commit', '-q', '-m', 'wide' }, fw.root)
+sh({ 'git', '-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'wide' }, fw.root)
 local wbase = sh({ 'git', 'rev-parse', 'HEAD' }, fw.root)
 wlines[5] = 'w 5 changed'
 wlines[25] = 'w 25 changed'
 vim.fn.writefile(wlines, fw.root .. '/wide.txt')
-sh({ 'git', 'commit', '-q', '-am', 'wide edits' }, fw.root)
+sh({ 'git', '-c', 'commit.gpgsign=false', 'commit', '-q', '-am', 'wide edits' }, fw.root)
 local whead = sh({ 'git', 'rev-parse', 'HEAD' }, fw.root)
 local wctx = { root = fw.root, file = fw.root .. '/unused.md',
   info = { base_sha = wbase, head = whead, number = 7 } }

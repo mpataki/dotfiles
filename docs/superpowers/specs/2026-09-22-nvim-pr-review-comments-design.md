@@ -170,3 +170,16 @@ Real `gh` calls are exercised manually against a real PR before handoff.
 - `side=LEFT` via mini.diff hunk data.
 - Replies (GraphQL `addPullRequestReviewThreadReply` into the pending review).
 - Submitting from nvim once the anxiety is gone: one more `event` field.
+
+## Usage
+
+1. `gh pr checkout N` (or a worktree on the PR branch), open nvim there.
+2. `<leader>gS` picks a PR file; `<leader>go` for overlay.
+3. `<leader>gc` on a changed line (or a visual range) opens the float. `:w` saves, `q` cancels. Empty body deletes.
+4. `:ReviewPull` fetches everyone's threads and your pending review; comments render as virtual lines, `<leader>gC` lists them in quickfix.
+5. `:ReviewPush` creates/replaces your pending review on GitHub. Finish in the browser.
+6. Escape hatch: `:ReviewOpen` edits `<git-common-dir>/reviews/<N>.md` directly.
+
+`:ReviewRefresh` clears the cached PR identity and re-renders — use it after a
+rebase, or when the PR is opened mid-session. `:ReviewPush!` skips the clobber
+guard (push over a pending review that differs from what was last pushed).

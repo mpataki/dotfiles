@@ -24,7 +24,7 @@ sh({ 'git', 'config', 'user.name', 'probe' }, root)
 sh({ 'git', 'config', 'commit.gpgsign', 'false' }, root)
 vim.fn.writefile({ 'hello' }, root .. '/file.txt')
 sh({ 'git', 'add', 'file.txt' }, root)
-sh({ 'git', 'commit', '-q', '-m', 'only commit' }, root)
+sh({ 'git', '-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'only commit' }, root)
 
 vim.cmd('edit ' .. vim.fn.fnameescape(root .. '/file.txt'))
 P.wait(300)

@@ -23,14 +23,14 @@ function F.repo()
   for i = 1, 10 do lines[i] = 'line ' .. i end
   vim.fn.writefile(lines, root .. '/sub/dir/file.txt')
   sh({ 'git', 'add', 'sub/dir/file.txt' }, root)
-  sh({ 'git', 'commit', '-q', '-m', 'base' }, root)
+  sh({ 'git', '-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'base' }, root)
   local base_sha = sh({ 'git', 'rev-parse', 'HEAD' }, root)
 
   sh({ 'git', 'checkout', '-q', '-b', 'feature' }, root)
   lines[5] = 'line 5 changed'
   lines[11] = 'line 11'
   vim.fn.writefile(lines, root .. '/sub/dir/file.txt')
-  sh({ 'git', 'commit', '-q', '-am', 'change' }, root)
+  sh({ 'git', '-c', 'commit.gpgsign=false', 'commit', '-q', '-am', 'change' }, root)
   local head_sha = sh({ 'git', 'rev-parse', 'HEAD' }, root)
 
   return { root = root, base_sha = base_sha, head_sha = head_sha }
