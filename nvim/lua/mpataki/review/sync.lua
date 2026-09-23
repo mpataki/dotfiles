@@ -138,7 +138,9 @@ end
 
 -- The comments file is an ordinary buffer. Reading it off disk while that
 -- buffer holds unwritten edits would push the *previous* draft and report
--- success, which is the one failure mode a push must never have.
+-- success, which is the one failure mode a push must never have. Pull is the
+-- mirror image: it rewrites the file the buffer is sitting on, so those same
+-- edits would be lost the moment anything reloaded it.
 local function unsaved(ctx)
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_loaded(buf)
@@ -229,12 +231,23 @@ function M.push(bang)
 
   -- Nothing destructive until every guard has passed: the DELETE is the point
   -- of no return for whatever the browser has in that review.
+  local deleted = false
   if pending then
     local dok, derr = gh.delete_review(ctx.root, ctx.info.number, pending.id)
     if not dok then return fail(derr) end
+    deleted = true
   end
   local id, ierr = gh.create_pending(ctx.root, ctx.info.number, ctx.info.head, doc.entries)
-  if not id then return fail(ierr) end
+  if not id then
+    -- The DELETE already landed: the user's pending review is gone from
+    -- GitHub and the POST that was to replace it failed. Reporting only the
+    -- POST error reads as "nothing happened", which is the opposite of true.
+    if deleted then
+      return fail(('pending review deleted on GitHub but re-create failed: %s. Local draft intact in %s; fix and re-run :ReviewPush')
+        :format(ierr, ctx.file))
+    end
+    return fail(ierr)
+  end
 
   stamp(doc, ctx)
   -- The review is already on GitHub; only the local bookkeeping failed. Say so
@@ -254,6 +267,13 @@ function M.pull()
   if not ctx then return fail(err) end
   local wrong = foreign_buffer(ctx, ':ReviewPull')
   if wrong then return fail(wrong) end
+  -- Pull overwrites the comments file from the server. Doing that under a
+  -- buffer holding unwritten edits loses them on the next :e, with no warning
+  -- and nothing to recover from — the push side refuses for the same reason.
+  if unsaved(ctx) then
+    return fail(('%s has unwritten changes: write or discard the comments file first (:w or :e!)')
+      :format(ctx.file))
+  end
 
   local login, lerr = gh.login(ctx.root)
   if not login then return fail(lerr) end

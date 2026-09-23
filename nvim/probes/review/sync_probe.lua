@@ -298,6 +298,18 @@ P.wait(200)
 P.ok(wait_note(m, 'write the comments file first'):find('write the comments file first (:w)', 1, true) ~= nil,
   'unsaved comments buffer refuses the push')
 P.eq(#calls_since(c0), 0, 'no gh calls behind an unsaved buffer')
+
+-- Pull is the mirror: it overwrites the comments file from the server, so
+-- unwritten edits in the buffer sitting on it would be lost silently.
+c0 = #calls
+m = mark()
+sync.pull()
+P.wait(200)
+P.ok(wait_note(m, 'write or discard'):find('write or discard the comments file first (:w or :e!)', 1, true) ~= nil,
+  'unsaved comments buffer refuses the pull: ' .. notes_since(m))
+P.eq(#calls_since(c0), 0, 'no gh calls behind an unsaved buffer on pull')
+P.ok(vim.bo.modified, 'the unwritten edit is still there to save or discard')
+
 vim.cmd('edit!')
 P.ok(not vim.bo.modified, 'discarded the unwritten edit')
 
@@ -364,5 +376,23 @@ for _, c in ipairs(calls_since(c0)) do
   if vim.tbl_contains(c.argv, 'POST') then from_scheme = vim.json.decode(c.opts.stdin) end
 end
 P.eq(from_scheme and #from_scheme.comments, 1, 'push from a scheme buffer reaches GitHub')
+
+-- DELETE landed, POST failed: the pending review is *gone* from GitHub and
+-- nothing replaced it. Reporting only the POST error reads as "nothing
+-- happened", and the user would never know to look in the browser.
+canned['pulls/7/reviews'] = json({ { { id = 501, state = 'PENDING', node_id = 'R_501', user = { login = 'mpataki' } } } })
+canned[GQL] = graphql_comments({ { path = 'sub/dir/file.txt', line = 5, startLine = vim.NIL, body = 'on the server' } })
+canned['POST repos/{owner}/{repo}/pulls/7/reviews'] = { code = 1, stdout = '', stderr = 'HTTP 422: Unprocessable\nmore' }
+c0 = #calls
+m = mark()
+sync.push(true) -- bang: the clobber guard is not what is under test here
+P.wait(200)
+P.ok(deleted_since(c0), 'the DELETE went through')
+local lost = wait_note(m, 'deleted on GitHub')
+P.ok(lost:find('pending review deleted on GitHub but re-create failed:', 1, true) ~= nil,
+  'the half-applied replace is reported as such: ' .. lost)
+P.ok(lost:find('HTTP 422', 1, true) ~= nil, '…carrying the POST error')
+P.ok(lost:find(ctx.file, 1, true) ~= nil, '…and naming the intact local draft')
+P.eq(level_of(m, 'deleted on GitHub'), 'ERROR', '…at ERROR')
 
 P.done()
