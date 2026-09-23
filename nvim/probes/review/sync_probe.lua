@@ -332,4 +332,28 @@ P.ok(wait_note(m, 'another repo'):find('current buffer belongs to another repo',
 P.ok(notes_since(m):find(fx.root, 1, true) ~= nil, 'the refusal names the repo it would have pushed')
 P.eq(#calls_since(c0), 0, 'no gh calls at the wrong repo')
 
+-- …but a buffer that merely *has* a name is not a foreign repo: a scheme buffer
+-- (diffview panel, neo-tree, term://) names no path on disk, and push/pull from
+-- one is the whole reason current_context falls back to the cwd.
+local clean = { header = {}, entries = {} }
+store.upsert(clean, { path = 'sub/dir/file.txt', line = 5, body = 'pushed from a diffview panel' })
+store.write(ctx.file, clean)
+canned['pulls/7/reviews'] = json({ {} })
+local scheme = vim.api.nvim_create_buf(false, true)
+vim.api.nvim_buf_set_name(scheme, 'diffview:///panels/1')
+vim.api.nvim_set_current_buf(scheme)
+P.ok(vim.api.nvim_buf_get_name(0) ~= '', 'scheme buffer has a name')
+P.eq(vim.uv.fs_realpath(vim.api.nvim_buf_get_name(0)), nil, '…and no path on disk')
+c0 = #calls
+m = mark()
+sync.push(false)
+P.wait(200)
+P.ok(notes_since(m):find('belongs to another repo', 1, true) == nil,
+  'a scheme buffer is not mistaken for another repo: ' .. notes_since(m))
+local from_scheme
+for _, c in ipairs(calls_since(c0)) do
+  if vim.tbl_contains(c.argv, 'POST') then from_scheme = vim.json.decode(c.opts.stdin) end
+end
+P.eq(from_scheme and #from_scheme.comments, 1, 'push from a scheme buffer reaches GitHub')
+
 P.done()

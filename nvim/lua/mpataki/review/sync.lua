@@ -163,7 +163,12 @@ end
 local function foreign_buffer(ctx, command)
   local name = vim.api.nvim_buf_get_name(0)
   if name == '' then return nil end -- a scratch buffer names no repo to disagree with
-  local real = vim.uv.fs_realpath(name) or name
+  -- Only a real path on disk can disagree with the repo we resolved. A scheme
+  -- buffer (diffview:///panels/1, term://, oil://, neo-tree) has a name but no
+  -- path, and those are exactly the buffers current_context exists to serve —
+  -- refusing them would break the gesture instead of guarding it.
+  local real = vim.uv.fs_realpath(name)
+  if not real then return nil end
   if name == ctx.file or real == ctx.file then return nil end
   if real:sub(1, #ctx.root + 1) == ctx.root .. '/' then return nil end
   return ('current buffer belongs to another repo; %s from a file in %s or its comments file')
