@@ -19,6 +19,11 @@ local function fail(msg)
   notify(msg, vim.log.levels.ERROR)
 end
 
+-- Bodies arrive from GitHub with CRLF endings; a notification wants one line.
+local function first_line(body)
+  return (((body or ''):gsub('\r', '')):match('^[^\n]*'))
+end
+
 local function short(sha)
   return (sha or '?'):sub(1, 8)
 end
@@ -37,12 +42,20 @@ end
 -- store.key would throw formatting a nil line — so both users of the server's
 -- comment list drop them, or the fingerprint compared in check_push would not
 -- match the list pull just wrote and every later push would read as drift.
-local function anchored(comments)
-  local out = {}
+local function split_anchored(comments)
+  local kept, dropped = {}, {}
   for _, c in ipairs(comments or {}) do
-    if c.path and type(c.line) == 'number' then table.insert(out, c) end
+    if c.path and type(c.line) == 'number' then
+      table.insert(kept, c)
+    else
+      table.insert(dropped, c)
+    end
   end
-  return out
+  return kept, dropped
+end
+
+local function anchored(comments)
+  return (split_anchored(comments))
 end
 
 -- Every line of a range must sit in a hunk, not just its ends: GitHub rejects a
@@ -71,6 +84,15 @@ function M.check_push(ctx, doc, pending, head, ranges)
   if head ~= ctx.info.head then
     return false, ('local HEAD %s ≠ PR head %s; push or pull the branch first')
       :format(short(head), short(ctx.info.head))
+  end
+  -- A backwards range is not just invalid to GitHub: `for l = start, line`
+  -- never runs for it, so it would slip the diff guard below untouched and
+  -- reach the DELETE. Hand-editing the file is how one gets here.
+  for _, e in ipairs(doc.entries) do
+    if e.start_line and e.start_line > e.line then
+      return false, ('%s runs backwards (start line after end line); fix the heading in %s')
+        :format(store.key(e), ctx.file)
+    end
   end
   ranges = ranges or {}
   for _, e in ipairs(doc.entries) do
@@ -114,6 +136,40 @@ local function stamp(doc, ctx)
   doc.header.pushed = store.fingerprint(doc.entries)
 end
 
+-- The comments file is an ordinary buffer. Reading it off disk while that
+-- buffer holds unwritten edits would push the *previous* draft and report
+-- success, which is the one failure mode a push must never have.
+local function unsaved(ctx)
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(buf)
+      and vim.api.nvim_buf_get_name(buf) == ctx.file
+      and vim.bo[buf].modified then
+      return true
+    end
+  end
+  return false
+end
+
+-- Push and pull rewrite the comments file under whatever is displaying it; an
+-- open, unmodified buffer would otherwise keep showing the pre-push draft.
+local function reload_file_buffers()
+  vim.cmd('checktime')
+end
+
+-- current_context falls back to nvim's cwd, which can name a different repo
+-- than the buffer on screen (the comments file of *another* repo resolves to no
+-- repo of its own, so the fallback takes over). Acting on a PR the user is not
+-- looking at is silent and unrecoverable, so refuse instead of guessing.
+local function foreign_buffer(ctx, command)
+  local name = vim.api.nvim_buf_get_name(0)
+  if name == '' then return nil end -- a scratch buffer names no repo to disagree with
+  local real = vim.uv.fs_realpath(name) or name
+  if name == ctx.file or real == ctx.file then return nil end
+  if real:sub(1, #ctx.root + 1) == ctx.root .. '/' then return nil end
+  return ('current buffer belongs to another repo; %s from a file in %s or its comments file')
+    :format(command, ctx.root)
+end
+
 -- Redraw every window on a file belonging to this review. One buffer can hold
 -- several windows (render replaces the whole namespace, so once is enough), and
 -- a window can hold a buffer with no file and no context at all.
@@ -140,6 +196,11 @@ function M.push(bang)
   -- its own (it lives under .git).
   local ctx, err = review.current_context()
   if not ctx then return fail(err) end
+  local wrong = foreign_buffer(ctx, ':ReviewPush')
+  if wrong then return fail(wrong) end
+  if unsaved(ctx) then
+    return fail(('%s has unwritten changes: write the comments file first (:w)'):format(ctx.file))
+  end
   local doc = store.read(ctx.file)
 
   -- Local guards first, before any network call: an empty draft or a stale
@@ -172,6 +233,7 @@ function M.push(bang)
 
   stamp(doc, ctx)
   store.write(ctx.file, doc)
+  reload_file_buffers()
   notify(('pushed %d comment(s) as pending review %s — %s')
     :format(#doc.entries, tostring(id), ctx.info.url or '(no url)'))
 end
@@ -180,6 +242,8 @@ end
 function M.pull()
   local ctx, err = review.current_context()
   if not ctx then return fail(err) end
+  local wrong = foreign_buffer(ctx, ':ReviewPull')
+  if wrong then return fail(wrong) end
 
   local login, lerr = gh.login(ctx.root)
   if not login then return fail(lerr) end
@@ -197,18 +261,24 @@ function M.pull()
   vim.fn.writefile({ vim.json.encode(threads) }, ctx.remote_file)
 
   local doc = store.read(ctx.file)
-  local comments = anchored(pending and pending.comments)
-  local dropped = pending and (#pending.comments - #comments) or 0
+  local comments, dropped = split_anchored(pending and pending.comments)
   doc.entries = comments
   stamp(doc, ctx)
   store.write(ctx.file, doc)
+  reload_file_buffers()
 
   rerender(ctx)
-  local msg = ('pulled %d thread(s), %d pending comment(s)'):format(#threads, #doc.entries)
-  if dropped > 0 then
-    msg = msg .. (' — %d dropped, GitHub no longer anchors them to a line'):format(dropped)
+  notify(('pulled %d thread(s), %d pending comment(s)'):format(#threads, #doc.entries))
+  -- Dropping a comment loses text the user wrote in the browser, so say which
+  -- ones: they are gone from the file and cannot be pushed back.
+  if #dropped > 0 then
+    local lines = { ('%d pending comment(s) GitHub no longer anchors to a line:'):format(#dropped) }
+    for _, c in ipairs(dropped) do
+      table.insert(lines, ('dropped unanchored pending comment %s: %s')
+        :format(c.path or '?', first_line(c.body)))
+    end
+    notify(table.concat(lines, '\n'), vim.log.levels.WARN)
   end
-  notify(msg)
 end
 
 return M

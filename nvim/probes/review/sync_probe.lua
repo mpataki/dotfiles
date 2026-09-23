@@ -208,6 +208,10 @@ P.eq(#threads, 1, 'remote thread cached')
 P.eq(threads[1].author, 'bob', 'thread author cached')
 local pulled = store.read(ctx.file)
 P.eq(#pulled.entries, 1, 'unanchored server comment dropped')
+-- Dropping it loses text written in the browser, so it is said out loud.
+P.ok(notes_since(m):find('dropped unanchored pending comment sub/dir/file.txt: outdated', 1, true) ~= nil,
+  'dropped comment named in a notification: ' .. notes_since(m))
+P.eq(level_of(m, 'dropped unanchored pending comment'), 'WARN', 'dropped comments warn')
 P.eq(pulled.entries[1].body, 'from server', 'pending section replaced from server')
 P.eq(pulled.header.pushed, store.fingerprint(pulled.entries), 'pull sets pushed fingerprint to server state')
 P.eq(#vim.api.nvim_buf_get_extmarks(0, render.ns, 0, -1, {}), 2, 'pull re-rendered pending + remote')
@@ -269,5 +273,63 @@ m = mark()
 sync.pull()
 P.wait(200)
 P.ok(wait_note(m, 'pulled'):find('pulled', 1, true) ~= nil, 'pull works from the comments file too')
+
+-- Unwritten edits in the comments buffer must not be pushed past: the file on
+-- disk is still the previous draft, and pushing it would report success.
+local stale = { header = {}, entries = {} }
+store.upsert(stale, { path = 'sub/dir/file.txt', line = 5, body = 'what is on disk' })
+store.write(ctx.file, stale)
+vim.cmd('edit!')
+vim.api.nvim_buf_set_lines(0, -1, -1, false, { '## sub/dir/file.txt:11', '', 'never written' })
+P.ok(vim.bo.modified, 'comments buffer is modified')
+c0 = #calls
+m = mark()
+sync.push(false)
+P.wait(200)
+P.ok(wait_note(m, 'write the comments file first'):find('write the comments file first (:w)', 1, true) ~= nil,
+  'unsaved comments buffer refuses the push')
+P.eq(#calls_since(c0), 0, 'no gh calls behind an unsaved buffer')
+vim.cmd('edit!')
+P.ok(not vim.bo.modified, 'discarded the unwritten edit')
+
+-- …and after a pull rewrites the file under it, the open buffer shows the new
+-- draft rather than the stale one it was displaying.
+canned['pulls/7/reviews'] = json({ { { id = 501, state = 'PENDING', user = { login = 'mpataki' } } } })
+canned['pulls/7/reviews/501/comments'] = json({ { { path = 'sub/dir/file.txt', line = 5, start_line = vim.NIL,
+  body = 'body that arrived with the pull' } } })
+sync.pull()
+P.wait(200)
+local shown = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
+P.ok(shown:find('body that arrived with the pull', 1, true) ~= nil,
+  'the open comments buffer reloaded after pull')
+
+-- A backwards range never enters the `for l = start, line` loop, so without its
+-- own guard it slips every diff check and reaches the DELETE.
+local rdoc = { header = {}, entries = { { path = 'sub/dir/file.txt', start_line = 11, line = 5, body = 'backwards' } } }
+store.write(ctx.file, rdoc)
+vim.cmd('edit!')
+c0 = #calls
+m = mark()
+sync.push(false)
+P.wait(200)
+P.ok(wait_note(m, 'sub/dir/file.txt:11-5'):find('sub/dir/file.txt:11-5', 1, true) ~= nil,
+  'backwards range refused by key: ' .. notes_since(m))
+P.eq(#calls_since(c0), 0, 'a backwards range never reaches gh')
+
+-- The cwd fallback can hand back a repo the user is not looking at: the second
+-- fixture's comments file resolves to no repo of its own (it lives under .git),
+-- so current_context falls through to the cwd — the *first* fixture's PR.
+vim.fn.mkdir(fw.root .. '/.git/reviews', 'p')
+vim.fn.writefile({ '<!-- review:  head= pushed= -->' }, fw.root .. '/.git/reviews/7.md')
+vim.cmd('edit ' .. vim.fn.fnameescape(fw.root .. '/.git/reviews/7.md'))
+vim.fn.chdir(fx.root)
+c0 = #calls
+m = mark()
+sync.push(false)
+P.wait(200)
+P.ok(wait_note(m, 'another repo'):find('current buffer belongs to another repo', 1, true) ~= nil,
+  'a buffer from another repo refuses the push: ' .. notes_since(m))
+P.ok(notes_since(m):find(fx.root, 1, true) ~= nil, 'the refusal names the repo it would have pushed')
+P.eq(#calls_since(c0), 0, 'no gh calls at the wrong repo')
 
 P.done()
