@@ -87,9 +87,11 @@ function M.open(opts)
   -- nvim itself when it was the last one).
   local function save()
     local body = table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), '\n')
+    -- on_save returning false means the comment did not land anywhere: leave
+    -- the float open and the buffer modified, or :w would silently eat it.
+    if opts.on_save(body) == false then return end
     vim.bo[buf].modified = false
     vim.cmd('stopinsert')
-    opts.on_save(body)
     vim.schedule(function() close(win) end)
   end
 

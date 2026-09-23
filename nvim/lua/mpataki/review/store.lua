@@ -95,9 +95,16 @@ function M.read(file)
   return M.parse(table.concat(vim.fn.readfile(file), '\n'))
 end
 
+-- ok, err. A write that cannot land (a read-only .git, a full disk, a path
+-- whose parent is a regular file) used to be silent, and every caller went on
+-- to report success and clear the draft the user just typed. mkdir *throws*
+-- (E739) where writefile only returns non-zero, so both shapes are caught.
 function M.write(file, doc)
-  vim.fn.mkdir(vim.fn.fnamemodify(file, ':h'), 'p')
-  vim.fn.writefile(vim.split(M.serialize(doc), '\n'), file)
+  local mkok = pcall(vim.fn.mkdir, vim.fn.fnamemodify(file, ':h'), 'p')
+  if not mkok then return false, 'cannot write ' .. file end
+  local wok, res = pcall(vim.fn.writefile, vim.split(M.serialize(doc), '\n'), file)
+  if not wok or res ~= 0 then return false, 'cannot write ' .. file end
+  return true, nil
 end
 
 function M.find(doc, path, line, start_line)

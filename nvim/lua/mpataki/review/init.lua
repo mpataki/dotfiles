@@ -126,12 +126,19 @@ function M.comment(opts)
   capture.open({
     title = title,
     body = existing and existing.body or '',
+    -- false keeps the float open with the draft still in it: closing on a
+    -- failed write would throw away the comment the user just typed.
     on_save = function(body)
       -- Re-read: the file may have been hand-edited while the float was open.
       local fresh = store.read(ctx.file)
       store.upsert(fresh, { path = ctx.relpath, line = line, start_line = start_line, body = body })
-      store.write(ctx.file, fresh)
+      local ok, werr = store.write(ctx.file, fresh)
+      if not ok then
+        notify_err(werr)
+        return false
+      end
       render_buf(bufnr, ctx)
+      return true
     end,
   })
 end

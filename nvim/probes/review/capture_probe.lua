@@ -246,6 +246,26 @@ render.clear(code_buf)
 vim.cmd('doautocmd BufWinEnter')
 P.eq(#vim.api.nvim_buf_get_extmarks(code_buf, render.ns, 0, -1, {}), 3, 'BufWinEnter renders pending entries')
 
+-- A write that cannot land must keep the float open with the draft in it: the
+-- old silent store.write closed the float and reported nothing, losing the
+-- comment. Read-only file, so mkdir succeeds and writefile is what refuses.
+vim.fn.setfperm(ctx.file, 'r--r--r--')
+vim.api.nvim_win_set_cursor(code_win, { 4, 0 })
+review.comment()
+local ro_float = vim.api.nvim_get_current_win()
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'this cannot land' })
+pcall(vim.cmd, 'write')
+P.wait(500, function() return notified():find('cannot write', 1, true) ~= nil end)
+P.ok(notified():find('cannot write', 1, true) ~= nil, 'a failed write is reported')
+P.eq(vim.api.nvim_get_current_win(), ro_float, 'the float stays open when the write fails')
+P.ok(vim.bo.modified, '…with the draft still in it, unsaved')
+vim.fn.setfperm(ctx.file, 'rw-r--r--')
+vim.cmd('stopinsert')
+vim.api.nvim_feedkeys('q', 'x', false)
+P.wait(100)
+P.eq(vim.api.nvim_get_current_win(), code_win, 'cancelling the failed float returns to the code window')
+P.eq(store.find(store.read(ctx.file), 'sub/dir/file.txt', 4), nil, 'nothing was written')
+
 -- BufWinEnter fires on every window entry, for every file, forever. Measured
 -- at 3 git spawns per entry before this: pr.root, pr.common_dir, then
 -- M.context resolving pr.root all over again. common_dir is memoized per root

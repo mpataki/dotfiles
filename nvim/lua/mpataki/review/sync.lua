@@ -237,7 +237,12 @@ function M.push(bang)
   if not id then return fail(ierr) end
 
   stamp(doc, ctx)
-  store.write(ctx.file, doc)
+  -- The review is already on GitHub; only the local bookkeeping failed. Say so
+  -- rather than reporting a clean push whose fingerprint never got written.
+  local wok, werr = store.write(ctx.file, doc)
+  if not wok then
+    return fail(('pushed as pending review %s, but %s'):format(tostring(id), werr))
+  end
   reload_file_buffers()
   notify(('pushed %d comment(s) as pending review %s — %s')
     :format(#doc.entries, tostring(id), ctx.info.url or '(no url)'))
@@ -269,7 +274,8 @@ function M.pull()
   local comments, dropped = split_anchored(pending and pending.comments)
   doc.entries = comments
   stamp(doc, ctx)
-  store.write(ctx.file, doc)
+  local wok, werr = store.write(ctx.file, doc)
+  if not wok then return fail(werr) end
   reload_file_buffers()
 
   rerender(ctx)

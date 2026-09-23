@@ -73,4 +73,31 @@ local dup = store.parse('## a/b.go:9\n\nfirst\n\n## a/b.go:9\n\nsecond\n')
 P.eq(#dup.entries, 1, 'duplicate anchors collapse to one entry')
 P.eq(dup.entries[1] and dup.entries[1].body, 'second', 'last heading wins')
 
+-- A write that cannot land was silent: callers cleared the float, stamped the
+-- header and reported success over a file that never changed. `afile` is a
+-- regular file, so mkdir throws (E739) on the directory this path needs.
+local afile = vim.fn.tempname()
+vim.fn.writefile({ 'i am a file, not a directory' }, afile)
+local wok, werr = store.write(afile .. '/x.md', { header = {}, entries = {} })
+P.eq(wok, false, 'write under a regular file fails')
+P.ok(type(werr) == 'string' and werr:find('cannot write', 1, true) ~= nil,
+  '…with an error naming the file: ' .. tostring(werr))
+
+-- …and a read-only file fails the same way, where mkdir succeeds and only
+-- writefile refuses.
+local ro = vim.fn.tempname() .. '/7.md'
+vim.fn.mkdir(vim.fn.fnamemodify(ro, ':h'), 'p')
+vim.fn.writefile({ '' }, ro)
+vim.fn.setfperm(ro, 'r--r--r--')
+local rok, rerr = store.write(ro, { header = {}, entries = {} })
+vim.fn.setfperm(ro, 'rw-r--r--')
+P.eq(rok, false, 'write to a read-only file fails')
+P.ok(type(rerr) == 'string', '…with an error string: ' .. tostring(rerr))
+
+local good = vim.fn.tempname() .. '/reviews/7.md'
+local gok, gerr = store.write(good, { header = {}, entries = {} })
+P.eq(gok, true, 'a write that lands returns true')
+P.eq(gerr, nil, '…and no error')
+P.eq(vim.fn.filereadable(good), 1, '…and the file is there')
+
 P.done()
