@@ -96,7 +96,12 @@ All via `gh api` with cwd = repo root so `{owner}/{repo}` placeholders resolve.
 - Threads: `GET repos/{owner}/{repo}/pulls/N/comments --paginate` → id, path,
   line, side, start_line, body, user.login, in_reply_to_id, html_url.
 - My pending review: `GET .../pulls/N/reviews`, filter `state == PENDING` and
-  `user.login == me`; then `GET .../reviews/{id}/comments`.
+  `user.login == me` (keep both `id` and `node_id`); then its comments over
+  **GraphQL** — `gh api graphql` on the `PullRequestReview` node, paging on
+  `pageInfo.hasNextPage`. REST is not an option here: for a *pending* review
+  `GET .../reviews/{id}/comments` answers `line`, `original_line`,
+  `start_line`, `original_start_line` and `side` all null, leaving only
+  `position` (a diff offset), so every pulled draft comment loses its anchor.
 - Delete pending: `DELETE .../reviews/{id}`.
 - Create pending: `POST .../reviews` with `commit_id`, `comments[]` of
   `{path, line, side: RIGHT, start_line?, start_side?, body}`, **no `event`**.
@@ -112,18 +117,25 @@ level; the fake used in probes returns canned JSON and records calls.
 | `:ReviewComment` (`<leader>gc`, n + v) | Open capture float at cursor / selection. Reopens existing pending entry if one is anchored here. |
 | `:ReviewPull` | Fetch threads + my pending review → rewrite `.remote.json`, rewrite pending section of `.md` from server, re-render. |
 | `:ReviewPush[!]` | Guards, then delete pending + create pending from `.md`. `!` skips the clobber guard. Prints PR URL bare. |
-| `:ReviewRender` | Re-render extmarks + quickfix for current buffer from local files. Also runs on `BufEnter` when a review file exists for the PR. |
+| `:ReviewRender` | Re-render extmarks + quickfix for current buffer from local files. Also runs on `BufWinEnter` when a review file exists for the PR. |
 | `:ReviewQuickfix` | Populate quickfix with pending + remote comments, `:copen`. |
 | `:ReviewOpen` | Edit the `.md` escape hatch. |
 
-Push guards, in order, each with an actionable message:
+Push guards, in the order they run, each with an actionable message. The local
+ones come first so a refusal costs no network call and still explains itself
+when `gh` is unreachable:
 
-1. Not in a PR branch → stop.
+1. Empty draft (no entries in the `.md`) → stop.
 2. Local `HEAD != headRefOid` → stop (line numbers would drift).
-3. Server pending review fingerprint ≠ `pushed=` in header → stop unless `!`.
-   Fingerprint = sha256 of sorted `path:line:body` list.
-4. Any entry's line outside the diff hunks vs merge-base → stop, name the
-   entry (GitHub would reject the whole batch).
+3. Any entry outside the diff — a backwards range, a `git diff` that failed, or
+   a line not inside a hunk vs merge-base → stop, name the entry (GitHub would
+   reject the whole batch).
+4. Server pending review fingerprint ≠ `pushed=` in header → stop unless `!`.
+   Fingerprint = sha256 of sorted `path:line:body` list. `!` skips **only**
+   this guard.
+
+Push and pull also refuse while the comments file has unwritten changes in a
+buffer, and refuse from a buffer belonging to another repo.
 
 ## Capture float (`capture.lua`)
 
@@ -132,8 +144,10 @@ Push guards, in order, each with an actionable message:
 - `:w` / `<C-s>` → `store.upsert`, close, re-render. `q` (normal) → close, no
   change. Buffer-local mappings only.
 - Visual selection → range anchor.
-- Refuses with a notify when the cursor line is not inside a diff hunk
-  (uses mini.diff hunk data for the buffer).
+- Refuses with a notify when the cursor line is not inside a diff hunk. The
+  hunks come from `pr.diff_ranges` (`git diff -U3 <base> <head> -- <path>`),
+  not from mini.diff's buffer data: the comment is anchored against the PR
+  head GitHub will apply it to, which is not always what the buffer shows.
 
 ## Rendering (`render.lua`)
 
@@ -151,8 +165,11 @@ path in `minidiff.lua:53` stays but only after the path is repo-relative.
 
 ## Testing (nvim-probe)
 
-Probes under `nvim/probes/review/`, run with
-`nvim --headless -c 'luafile <probe>' -c 'qa'`.
+Probes under `nvim/probes/review/`, all of them at once with
+`nvim/probes/review/run.sh` (from `~/dotfiles/nvim`), or one at a time with
+`nvim --headless -c 'luafile <probe>' -c 'qa'`. `fixture.lua` builds a
+throwaway git repo and installs the fake `gh` runner; no probe ever reaches
+GitHub.
 
 - Tier 2: `store` parse ⇄ serialize round trip, upsert/delete, range parsing.
 - Tier 2: `pr` root + relative-path resolution from a subdirectory cwd
@@ -162,6 +179,8 @@ Probes under `nvim/probes/review/`, run with
 - Tier 3: `:ReviewComment` opens a float, writing + `:w` produces an entry in
   the file and an extmark in the buffer; `q` produces neither.
 - Tier 3: `:ReviewQuickfix` lists pending + cached remote items.
+- Tier 3: `<leader>gS` (the PR files picker) lists the changed file and hands
+  back an absolute path, from a cwd inside a subdirectory of the repo.
 
 Real `gh` calls are exercised manually against a real PR before handoff.
 
@@ -183,3 +202,8 @@ Real `gh` calls are exercised manually against a real PR before handoff.
 `:ReviewRefresh` clears the cached PR identity and re-renders — use it after a
 rebase, or when the PR is opened mid-session. `:ReviewPush!` skips the clobber
 guard (push over a pending review that differs from what was last pushed).
+
+One thing nvim cannot do: emptying the draft and pushing does not retire the
+pending review on GitHub. A push with no entries is refused by guard 1, and
+GitHub has no "delete my pending review" gesture here that leaves nothing
+behind — delete it in the browser.
