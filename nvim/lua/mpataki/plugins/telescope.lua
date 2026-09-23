@@ -180,11 +180,14 @@ return {
 			local previewers = require('telescope.previewers')
 
 			local pr = require('mpataki.review.pr')
-			local root = pr.root(vim.api.nvim_buf_get_name(0)) or pr.root(vim.fn.getcwd())
+			local root = pr.current_root()
 			if not root then
 				vim.notify('PR files: not in a git repo', vim.log.levels.ERROR)
 				return
 			end
+
+			-- DiffPRBase first: it refreshes the cached PR identity this reads.
+			vim.cmd('DiffPRBase')
 
 			local info, err = pr.info(root)
 			if not info then
@@ -192,8 +195,6 @@ return {
 				return
 			end
 			local base = info.base_sha
-
-			vim.cmd('DiffPRBase')
 
 			-- Fetch line stats per file
 			local numstat = {}

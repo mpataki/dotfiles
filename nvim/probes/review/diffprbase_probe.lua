@@ -22,4 +22,11 @@ P.ok(data and data.ref_text and data.ref_text:find('line 5\n', 1, true) ~= nil,
   'ref text is the base file, not empty (cwd-independent path)')
 P.ok(data and #data.hunks >= 1 and #data.hunks <= 2, 'hunks reflect base..HEAD, got ' .. tostring(data and #data.hunks))
 
+-- DiffReset drops the cached PR identity, so the next gesture re-resolves the
+-- base instead of freezing on the one this session first computed.
+vim.cmd('DiffReset')
+P.wait(200)
+local info = require('mpataki.review.pr').info(fx.root)
+P.eq(info and info.base_sha, fx.base_sha, 'pr.info recomputes after DiffReset clears the cache')
+
 P.done()

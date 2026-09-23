@@ -50,11 +50,15 @@ return {
 
     vim.api.nvim_create_user_command('DiffviewPR', function()
       local pr = require('mpataki.review.pr')
-      local root = pr.root(vim.api.nvim_buf_get_name(0)) or pr.root(vim.fn.getcwd())
+      local root = pr.current_root()
       if not root then
         vim.notify('DiffviewPR: not in a git repo', vim.log.levels.ERROR)
         return
       end
+
+      -- DiffPRBase first: it refreshes the cached PR identity, and it runs while
+      -- the focused buffer is still a real file rather than a diffview panel.
+      vim.cmd('DiffPRBase')
 
       local info, err = pr.info(root)
       if not info then
@@ -62,7 +66,6 @@ return {
         return
       end
       vim.cmd('DiffviewOpen ' .. info.base_sha .. '...HEAD')
-      vim.cmd('DiffPRBase')
     end, { desc = 'Open Diffview against base branch (PR diff)' })
 
     -- Set up keymaps

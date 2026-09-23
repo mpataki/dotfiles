@@ -66,7 +66,7 @@ return {
         end
 
         vim.api.nvim_create_user_command('DiffPRBase', function(opts)
-          local root = pr.root(vim.api.nvim_buf_get_name(0)) or pr.root(vim.fn.getcwd())
+          local root = pr.current_root()
           if not root then
             vim.notify('DiffPRBase: not in a git repo', vim.log.levels.ERROR)
             return
@@ -81,7 +81,9 @@ return {
             end
             base = vim.trim(r.stdout)
           else
-            local info, err = pr.info(root)
+            -- refresh: an explicit gesture re-resolves the base, so a session
+            -- does not freeze on a merge-base the branch has since moved past.
+            local info, err = pr.info(root, { refresh = true })
             if not info then
               vim.notify('DiffPRBase: ' .. err, vim.log.levels.ERROR)
               return
@@ -109,6 +111,7 @@ return {
         vim.api.nvim_create_user_command('DiffReset', function()
           pr_base_ref = nil
           pr_ref_applied = {}
+          pr.clear_cache()
 
           if pr_review_group then
             vim.api.nvim_del_augroup_by_id(pr_review_group)

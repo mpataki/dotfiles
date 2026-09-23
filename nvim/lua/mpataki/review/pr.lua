@@ -15,16 +15,29 @@ function M.git(root, argv)
   return run(vim.list_extend({ 'git' }, argv), root)
 end
 
+-- Returns nil when the name is not a real on-disk path. Scheme buffers
+-- ('diffview:///panels/1', 'term://…', 'oil://…') name no directory, and
+-- vim.system *throws* ENOENT on a cwd that does not exist rather than failing
+-- the command — so callers would never see a nil to fall back from.
 local function dir_of(abs_path)
   if vim.fn.isdirectory(abs_path) == 1 then return abs_path end
-  return vim.fn.fnamemodify(abs_path, ':h')
+  local dir = vim.fn.fnamemodify(abs_path, ':h')
+  if vim.fn.isdirectory(dir) == 0 then return nil end
+  return dir
 end
 
 function M.root(abs_path)
   if not abs_path or abs_path == '' then return nil end
-  local r = run({ 'git', 'rev-parse', '--show-toplevel' }, dir_of(abs_path))
+  local dir = dir_of(abs_path)
+  if not dir then return nil end
+  local r = run({ 'git', 'rev-parse', '--show-toplevel' }, dir)
   if r.code ~= 0 then return nil end
   return vim.trim(r.stdout)
+end
+
+-- The repo a user gesture acts on: the current buffer's file, else nvim's cwd.
+function M.current_root()
+  return M.root(vim.api.nvim_buf_get_name(0)) or M.root(vim.fn.getcwd())
 end
 
 function M.common_dir(root)

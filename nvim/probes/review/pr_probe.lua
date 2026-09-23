@@ -10,11 +10,23 @@ P.eq(pr.root(file), fx.root, 'root from file path')
 P.eq(pr.root(fx.root .. '/sub/dir'), fx.root, 'root from dir path')
 P.eq(pr.relpath(fx.root, file), 'sub/dir/file.txt', 'relpath is repo-relative')
 P.eq(pr.relpath(fx.root, '/definitely/elsewhere/z.txt'), nil, 'relpath nil outside root')
+
+-- Scheme buffer names are not paths: root must return nil, not throw, or the
+-- cwd fallback at every call site never runs.
+P.eq(pr.root('diffview:///panels/1'), nil, 'root nil for a diffview panel name')
+P.eq(pr.root('term://foo'), nil, 'root nil for a terminal buffer name')
 P.ok(pr.common_dir(fx.root):match('/%.git$') ~= nil, 'common_dir ends in .git')
 
 -- cwd must not matter: chdir into the subdir and resolve again
 vim.fn.chdir(fx.root .. '/sub/dir')
 P.eq(pr.relpath(pr.root(file), file), 'sub/dir/file.txt', 'relpath independent of cwd')
+
+-- current_root reads the buffer first: cwd here is a non-repo directory.
+local outside = vim.fn.tempname()
+vim.fn.mkdir(outside, 'p')
+vim.fn.chdir(outside)
+vim.cmd('edit ' .. vim.fn.fnameescape(file))
+P.eq(pr.current_root(), fx.root, 'current_root resolves from the buffer, not cwd')
 
 local info, err = pr.info(fx.root)
 P.ok(info ~= nil, 'info resolves without a PR: ' .. tostring(err))
