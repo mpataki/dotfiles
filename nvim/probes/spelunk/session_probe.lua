@@ -194,9 +194,14 @@ vim.cmd('SpelunkStart broken')
 P.wait(5000, function() return spelunk.name() == 'broken' end)
 vim.cmd('SpelunkNote one')
 vim.cmd('SpelunkNote two')
-vim.notify = notify
 local failures = vim.tbl_filter(function(m) return m:find('export failed') end, notes)
 P.eq(#failures, 1, 'export: failed write notifies once, not per change')
+notes = {}
+vim.cmd('SpelunkExport')
+vim.cmd('SpelunkExport')
+vim.notify = notify
+failures = vim.tbl_filter(function(m) return m:find('export failed: .* — set export_dir via setup%(%)') end, notes)
+P.eq(#failures, 2, ':SpelunkExport: an explicit export that fails always notifies, naming the fix')
 P.ok((read(first_export) or ''):find('dive-one', 1, true), 'replace: previous export stays on disk')
 
 spelunk.setup({ export_dir = dir })

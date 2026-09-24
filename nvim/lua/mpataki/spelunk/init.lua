@@ -102,26 +102,35 @@ function M.name()
   return session and session.name
 end
 
--- One notify per failure streak: every graph change retries the write, and a
--- read-only dir would otherwise notify on each navigation step.
-function M.export()
-  if not session then return false end
+local function write_export()
   local path = M.export_path()
-  local ok, err = pcall(function()
+  local ok = pcall(function()
     vim.fn.mkdir(session.dir, 'p')
     local lines = vim.split(render().markdown(session.g, session.name), '\n', { plain = true })
     if lines[#lines] == '' then lines[#lines] = nil end
     if vim.fn.writefile(lines, path) ~= 0 then error('cannot write ' .. path) end
   end)
-  if ok then
-    session.write_failed = false
-    return true
+  if not ok then
+    return false, 'export failed: ' .. path .. ' — set export_dir via setup()'
   end
-  if not session.write_failed then
-    session.write_failed = true
-    notify('export failed: ' .. tostring(err), vim.log.levels.WARN)
-  end
-  return false
+  return true
+end
+
+-- Explicit export (:SpelunkExport): a failure always notifies.
+function M.export()
+  if not session then return false end
+  local ok, msg = write_export()
+  if not ok then notify(msg, vim.log.levels.WARN) end
+  session.write_failed = not ok
+  return ok
+end
+
+-- Automatic export on every graph change: one notify per failure streak, or
+-- a read-only dir would notify on each navigation step.
+local function auto_export()
+  local ok, msg = write_export()
+  if not ok and not session.write_failed then notify(msg, vim.log.levels.WARN) end
+  session.write_failed = not ok
 end
 
 local function split_open()
@@ -156,7 +165,7 @@ end
 
 local function changed()
   M.render()
-  M.export()
+  auto_export()
 end
 
 function M.start(root, name)
