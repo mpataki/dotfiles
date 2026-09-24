@@ -283,6 +283,31 @@ render.clear(code_buf)
 vim.cmd('doautocmd BufWinEnter')
 P.eq(comment_marks(code_buf), 3, 'BufWinEnter renders pending entries')
 
+-- :ReviewToggle hides every mark the review draws and brings them all back.
+-- Every extmark in the namespace, not just comment_marks: the range tints are
+-- decoration too, and leaving them behind would be a half-hidden render.
+local pre_toggle = comment_marks(code_buf)
+P.ok(pre_toggle > 0, 'marks are drawn before the toggle')
+local tmark = #require('notify').history()
+review.toggle()
+P.eq(#vim.api.nvim_buf_get_extmarks(code_buf, render.ns, 0, -1, {}), 0,
+  'toggle off clears every review extmark, tints included')
+P.wait(500, function() return notified():find('rendering off', 1, true) ~= nil end)
+local tlevel
+for i = tmark + 1, #require('notify').history() do
+  local rec = require('notify').history()[i]
+  if table.concat(rec.message, ' '):find('rendering off', 1, true) then tlevel = rec.level end
+end
+P.eq(tlevel, 'INFO', 'toggling off notifies at INFO')
+review.render_current()
+P.eq(#vim.api.nvim_buf_get_extmarks(code_buf, render.ns, 0, -1, {}), 0,
+  'render_current draws nothing while rendering is off')
+review.toggle()
+P.wait(500, function() return notified():find('rendering on', 1, true) ~= nil end)
+P.ok(notified():find('rendering on', 1, true) ~= nil, 'toggling on is reported')
+P.eq(comment_marks(code_buf), pre_toggle, 'toggling on restores every mark')
+P.ok(vim.fn.exists(':ReviewToggle') == 2, ':ReviewToggle exists')
+
 -- A write that cannot land must keep the float open with the draft in it: the
 -- old silent store.write closed the float and reported nothing, losing the
 -- comment. Read-only file, so mkdir succeeds and writefile is what refuses.

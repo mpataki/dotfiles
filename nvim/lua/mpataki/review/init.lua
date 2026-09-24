@@ -16,6 +16,8 @@
 --   :ReviewBrowse   open the PR in the browser
 --   :ReviewOpen     edit the draft file directly (escape hatch)
 --   :ReviewRender   re-render comments in this buffer
+--   :ReviewToggle   hide/show every review decoration; pushes, pulls and saves
+--                   keep working while it is off, so toggling back on shows all
 --   :ReviewRefresh  drop the cached PR identity and re-render — after a rebase,
 --                   or when the PR is opened mid-session
 --
@@ -30,6 +32,13 @@ local render = require('mpataki.review.render')
 local capture = require('mpataki.review.capture')
 
 local M = {}
+
+-- Every decoration this module draws goes through M.render_buf, so one flag in
+-- front of it (and in front of the passive hook) hides the whole render. Data
+-- flow is deliberately not gated: float saves, push and pull still write their
+-- files and still call render_buf, which draws nothing, so the next toggle-on
+-- shows everything that accumulated while it was off.
+local enabled = true
 
 local function notify_err(msg)
   vim.notify('review: ' .. msg, vim.log.levels.ERROR)
@@ -91,12 +100,14 @@ end
 -- threads, redraw. Exported because sync.rerender runs it per window after a
 -- pull, and drifting copies of it would draw two different pictures.
 function M.render_buf(bufnr, ctx)
+  if not enabled then return end
   if not vim.api.nvim_buf_is_valid(bufnr) then return end
   local doc = store.read(ctx.file)
   render.render(bufnr, ctx.relpath, doc.entries, M.load_threads(ctx))
 end
 
 function M.render_current()
+  if not enabled then return end
   local bufnr = vim.api.nvim_get_current_buf()
   local ctx, err = M.context(bufnr)
   if not ctx then return notify_err(err) end
@@ -197,26 +208,61 @@ function M.browse()
   vim.ui.open(url)
 end
 
--- Passive render on every window entry. Gated on the reviews dir existing so a
--- repo with no review files never pays for `gh pr view` on its first file open
--- (that call is a network round-trip that blocks the editor). What is left is
--- one `git rev-parse` per entry: common_dir is memoized per root, and context
--- is handed the root resolved here instead of resolving it a second time.
+-- The context for a buffer nobody asked about — the passive render path and
+-- toggle-on both walk buffers they were not pointed at, so both need the same
+-- cheap refusals. Gated on the reviews dir existing so a repo with no review
+-- files never pays for `gh pr view` on its first file open (that call is a
+-- network round-trip that blocks the editor). What is left is one `git
+-- rev-parse` per entry: common_dir is memoized per root, and context is handed
+-- the root resolved here instead of resolving it a second time. nil, not an
+-- error: there being nothing to draw here is the normal case.
+local function passive_context(buf)
+  if vim.bo[buf].buftype ~= '' then return nil end
+  local root = pr.root(vim.api.nvim_buf_get_name(buf))
+  if not root then return nil end
+  if vim.fn.isdirectory(pr.common_dir(root) .. '/reviews') == 0 then return nil end
+  local ctx = M.context(buf, root)
+  if not ctx then return nil end
+  if vim.fn.filereadable(ctx.file) ~= 1 and vim.fn.filereadable(ctx.remote_file) ~= 1 then return nil end
+  return ctx
+end
+
+-- Passive render on every window entry.
 local function on_buf_win_enter(ev)
-  if vim.bo[ev.buf].buftype ~= '' then return end
-  local root = pr.root(vim.api.nvim_buf_get_name(ev.buf))
-  if not root then return end
-  if vim.fn.isdirectory(pr.common_dir(root) .. '/reviews') == 0 then return end
-  local ctx = M.context(ev.buf, root)
-  if not ctx then return end
-  if vim.fn.filereadable(ctx.file) ~= 1 and vim.fn.filereadable(ctx.remote_file) ~= 1 then return end
-  M.render_buf(ev.buf, ctx)
+  if not enabled then return end
+  local ctx = passive_context(ev.buf)
+  if ctx then M.render_buf(ev.buf, ctx) end
+end
+
+-- Off clears every buffer that carries marks, not just the current one: marks
+-- left in a background buffer would reappear the moment you switched to it,
+-- which is not "off". On re-renders only what is on screen; everything else
+-- draws on its next BufWinEnter, which is the same path that drew it first.
+function M.toggle()
+  enabled = not enabled
+  if not enabled then
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_is_loaded(buf)
+        and #vim.api.nvim_buf_get_extmarks(buf, render.ns, 0, -1, { limit = 1 }) > 0 then
+        render.clear(buf)
+      end
+    end
+    vim.notify('review: rendering off', vim.log.levels.INFO)
+    return
+  end
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    local ctx = passive_context(buf)
+    if ctx then M.render_buf(buf, ctx) end
+  end
+  vim.notify('review: rendering on', vim.log.levels.INFO)
 end
 
 function M.setup()
   local cmd = vim.api.nvim_create_user_command
   cmd('ReviewComment', M.comment, { range = true, desc = 'Review: comment at cursor/selection' })
   cmd('ReviewRender', M.render_current, { desc = 'Review: re-render comments in buffer' })
+  cmd('ReviewToggle', M.toggle, { desc = 'Review: hide/show review rendering' })
   cmd('ReviewRefresh', M.refresh, { desc = 'Review: drop cached PR identity and re-render' })
   cmd('ReviewQuickfix', M.quickfix, { desc = 'Review: comments → quickfix' })
   cmd('ReviewOpen', M.open_file, { desc = 'Review: open pending comments file' })
