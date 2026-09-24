@@ -137,4 +137,54 @@ P.eq(vim.inspect(g3:children(pfi)), vim.inspect(g2:children(pfi)), 'deserialize 
 P.eq(g3:info(rows).note, 'n', 'deserialize keeps notes')
 P.eq(g3:visit(fwd), 'explored', 'deserialized graph keeps working')
 
+-- decision 3: echoes are the same fact drawn twice; dedupe by fact
+local function entries(gr, sym, target)
+  local out = {}
+  for _, c in ipairs(gr:children(sym)) do
+    if graph.key(c.sym) == graph.key(target) then out[#out + 1] = c end
+  end
+  return out
+end
+local pf, ipf, npod = S('pf', 'a/pod.go', 66), S('ipf', 'a/fwd.go', 57), S('np', 'a/pod.go', 50)
+local g4 = graph.new(pf)
+g4:expand(pf, 'callee', { ipf })
+g4:visit(ipf)
+g4:expand(ipf, 'caller', { pf, S('show', 'a/pf.go', 68) })
+P.eq(#entries(g4, ipf, pf), 0, 'decision 3: callers naming the tree parent are the same fact as its callee, skipped')
+P.eq(#g4:children(ipf), 1, 'decision 3: the rest of the answer still lands')
+g4:expand(ipf, 'impl', { ipf })
+P.eq(#entries(g4, ipf, ipf), 0, 'decision 3: an entry never points at its own node (child == from)')
+g4:visit(pf)
+g4:expand(pf, 'caller', { npod })
+g4:visit(npod)
+g4:expand(npod, 'callee', { pf })
+P.eq(#entries(g4, npod, pf), 0, 'decision 3: callee answer naming the node you came up from is skipped')
+local g5 = graph.deserialize(vim.json.decode(vim.json.encode(g4:serialize())))
+g5:expand(ipf, 'caller', { pf })
+P.eq(#entries(g5, ipf, pf), 0, 'decision 3: facts survive serialize/deserialize')
+
+-- the dispatch case: run's callers and callees both name exec — two facts
+local run, exec = S('run', 'v/command.go', 141), S('exec', 'v/command.go', 298)
+local gd = graph.new(run)
+gd:expand(run, 'caller', { exec, S('goto', 'v/app.go', 693) })
+gd:expand(run, 'callee', { exec, S('inject', 'v/app.go', 700) })
+P.eq(#entries(gd, run, exec), 2, 'decision 3: run->exec and exec->run are two facts, both kept')
+gd:visit(exec)
+local tree = entries(gd, run, exec)
+P.ok(#tree == 1 and tree[1].tree, 'decision 3: exec has one tree line under run')
+local cyc = entries(gd, exec, run)
+P.ok(#cyc == 1 and cyc[1].back and cyc[1].edge == 'callee',
+  'decision 3: exec->run (from run\'s callers) moves under exec as a back-edge')
+gd:expand(exec, 'callee', { run, S('Init', 'v/types.go', 57) })
+P.eq(#entries(gd, exec, run), 1, 'decision 3: exec\'s callees naming run add no second line')
+
+-- decision 6: glyph from the edge actually walked (most recent expand wins)
+P.eq(tree[1].edge, 'callee', 'decision 6: visit walks the most recent pending entry (callee over caller)')
+local g6 = graph.new(run)
+g6:expand(run, 'callee', { exec })
+g6:expand(run, 'caller', { exec })
+g6 = graph.deserialize(vim.json.decode(vim.json.encode(g6:serialize())))
+g6:visit(exec)
+P.eq(entries(g6, run, exec)[1].edge, 'caller', 'decision 6: pending stamps survive serialize/deserialize')
+
 P.done()

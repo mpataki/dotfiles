@@ -3,13 +3,22 @@
 -- data — no vim.lsp, no buffers — so render and the probes drive it directly.
 --
 -- Invariants the rest of the module leans on:
---   * every non-root node has exactly one tree entry (explored, not back) in its
---     parent's list; render walks those to draw the tree.
+--   * every non-root node has a tree entry (explored, not back) in its parent's
+--     list; the earliest-`at` one is the tree edge render walks. Other entries
+--     between the same pair are either same-direction duplicates (folded out
+--     of children()) or run the other way and live under the child instead
+--     (see facts).
 --   * an entry whose target is already a node is never 'unexplored'. Targets that
 --     become nodes later are swept: under the tree parent they are duplicates,
 --     anywhere else they turn into back-edges (the LSP told us about a loop).
 --   * entries get `at` (a global sequence number) when they become explored, so
---     sorting by it replays first-visit order.
+--     sorting by it replays first-visit order; pending entries get `born` at
+--     creation, so the most recent expand is the one a visit walks.
+--   * facts: a caller/callee/def/impl entry is one directed code relation
+--     (`call|<caller>|<callee>`, `def|<from>|<to>`, `impl|<from>|<to>`), and no
+--     two entries anywhere hold the same fact: B's callers naming A is the
+--     same fact as A's callees naming B, and is dropped at expand. No entry
+--     points at its own node. `_facts` is derived from the entries.
 local M = {}
 
 local Graph = {}
@@ -28,6 +37,18 @@ local function tick(self)
   return self._seq
 end
 
+-- nil for 'jump': navigation is not a code relation.
+local function fact(from, edge, to)
+  if edge == 'caller' then return 'call|' .. to .. '|' .. from end
+  if edge == 'callee' then return 'call|' .. from .. '|' .. to end
+  if edge == 'def' or edge == 'impl' then return edge .. '|' .. from .. '|' .. to end
+end
+
+local function record(self, from, e)
+  local f = fact(from, e.edge, e.key)
+  if f then self._facts[f] = true end
+end
+
 local function add_node(self, sym, parent)
   local k = M.key(sym)
   self._nodes[k] = { sym = copy_sym(sym), parent = parent, pruned = false, order = tick(self) }
@@ -36,7 +57,7 @@ local function add_node(self, sym, parent)
 end
 
 function M.new(root)
-  local self = setmetatable({ _nodes = {}, _kids = {}, _notes = {}, _seq = 0 }, Graph)
+  local self = setmetatable({ _nodes = {}, _kids = {}, _notes = {}, _facts = {}, _seq = 0 }, Graph)
   self._root = add_node(self, root, nil)
   self._cur = self._root
   return self
@@ -49,8 +70,55 @@ local function find_entry(list, k, edge)
 end
 
 local function explored_entry(self, k, sym, edge, back)
+  local now = tick(self)
   return { key = k, sym = copy_sym(sym), edge = edge, count = 1,
-    state = 'explored', back = back, at = tick(self) }
+    state = 'explored', back = back, at = now, born = now }
+end
+
+-- The pending entry for k a visit walks: the most recently born one.
+local function latest_pending(list, k)
+  local best
+  for _, e in ipairs(list) do
+    if e.key == k and e.state == 'unexplored' and (not best or (e.born or 0) > (best.born or 0)) then
+      best = e
+    end
+  end
+  return best
+end
+
+-- The entry render descends through from parent to its tree child k.
+local function tree_entry(self, parent, k)
+  local best
+  for _, e in ipairs(self._kids[parent]) do
+    if e.key == k and e.state == 'explored' and not e.back and (not best or e.at < best.at) then
+      best = e
+    end
+  end
+  return best
+end
+
+local FLIP = { caller = 'callee', callee = 'caller' }
+
+local function up(edge) return edge == 'caller' end
+
+-- A call entry between parent and its tree child k that runs against the tree
+-- edge (run's callers naming exec, when exec is run's callee) is a different
+-- fact the tree does not show: move it under the child, flipped, as a
+-- back-edge (exec's callee run). Same-direction duplicates stay and fold out.
+local function settle(self, parent, k)
+  local tree = tree_entry(self, parent, k)
+  if not tree then return end
+  local list, keep = self._kids[parent], {}
+  for _, e in ipairs(list) do
+    if e.key == k and e ~= tree and e.state == 'explored' and FLIP[e.edge] and up(e.edge) ~= up(tree.edge) then
+      local kids = self._kids[k]
+      kids[#kids + 1] = { key = parent, sym = copy_sym(self._nodes[parent].sym), edge = FLIP[e.edge],
+        count = e.count, state = 'explored', back = true, at = tick(self), born = e.born }
+    else
+      keep[#keep + 1] = e
+    end
+  end
+  self._kids[parent] = keep
 end
 
 -- Tree children in first-visit order, for DFS walks.
@@ -84,21 +152,24 @@ end
 function Graph:expand(from, edge, children)
   local fk = M.key(from)
   if not self._nodes[fk] then self:visit(from) end
-  local list = self._kids[fk]
   for _, c in ipairs(children or {}) do
     local ck = M.key(c)
-    local e = find_entry(list, ck, edge)
+    local e = ck ~= fk and find_entry(self._kids[fk], ck, edge)
     if e then
       e.count = math.max(e.count, c.count or 1)
-    else
+    elseif ck ~= fk and not self._facts[fact(fk, edge, ck)] then
       local n = self._nodes[ck]
       if n then
         e = explored_entry(self, ck, c, edge, n.parent ~= fk)
       else
-        e = { key = ck, sym = copy_sym(c), edge = edge, state = 'unexplored', back = false }
+        e = { key = ck, sym = copy_sym(c), edge = edge, state = 'unexplored', back = false,
+          born = tick(self) }
       end
       e.count = c.count or 1
+      local list = self._kids[fk]
       list[#list + 1] = e
+      record(self, fk, e)
+      if n and n.parent == fk then settle(self, fk, ck) end
     end
   end
 end
@@ -122,8 +193,7 @@ local function pending_parent(self, k)
   local found
   walk(self, function(nk)
     if found then return false end
-    local e = find_entry(self._kids[nk], k)
-    if e and e.state == 'unexplored' then found = nk; return false end
+    if latest_pending(self._kids[nk], k) then found = nk; return false end
   end)
   return found
 end
@@ -157,8 +227,7 @@ function Graph:visit(sym)
   end
 
   local parent, result = prev, 'jump'
-  local own = find_entry(self._kids[prev], k)
-  if own and own.state == 'unexplored' then
+  if latest_pending(self._kids[prev], k) then
     result = 'explored'
   else
     local elsewhere = pending_parent(self, k)
@@ -170,7 +239,7 @@ function Graph:visit(sym)
     local list = self._kids[prev]
     list[#list + 1] = explored_entry(self, k, sym, 'jump', false)
   else
-    local tree = find_entry(self._kids[parent], k)
+    local tree = latest_pending(self._kids[parent], k)
     tree.state, tree.back, tree.at = 'explored', false, tick(self)
     if parent ~= prev then
       local list = self._kids[prev]
@@ -178,6 +247,7 @@ function Graph:visit(sym)
     end
   end
   sweep(self, k, parent)
+  settle(self, parent, k)
   self._cur = k
   return result
 end
@@ -282,7 +352,7 @@ function Graph:serialize()
     local entries = {}
     for _, e in ipairs(self._kids[k]) do
       entries[#entries + 1] = { key = e.key, sym = copy_sym(e.sym), edge = e.edge,
-        count = e.count, state = e.state, back = e.back, at = e.at }
+        count = e.count, state = e.state, back = e.back, at = e.at, born = e.born }
     end
     nodes[#nodes + 1] = { key = k, sym = copy_sym(n.sym), parent = n.parent,
       pruned = n.pruned, order = n.order, entries = entries }
@@ -296,14 +366,16 @@ function Graph:serialize()
 end
 
 function M.deserialize(t)
-  local self = setmetatable({ _nodes = {}, _kids = {}, _notes = {}, _seq = t.seq or 0 }, Graph)
+  local self = setmetatable({ _nodes = {}, _kids = {}, _notes = {}, _facts = {}, _seq = t.seq or 0 }, Graph)
   for _, n in ipairs(t.nodes or {}) do
     self._nodes[n.key] = { sym = copy_sym(n.sym), parent = n.parent,
       pruned = n.pruned == true, order = n.order }
     local list = {}
     for _, e in ipairs(n.entries or {}) do
+      -- Sessions saved before `born` existed: 0 lets list order break ties.
       list[#list + 1] = { key = e.key, sym = copy_sym(e.sym), edge = e.edge,
-        count = e.count or 1, state = e.state, back = e.back == true, at = e.at }
+        count = e.count or 1, state = e.state, back = e.back == true, at = e.at, born = e.born or 0 }
+      record(self, n.key, list[#list])
     end
     self._kids[n.key] = list
   end

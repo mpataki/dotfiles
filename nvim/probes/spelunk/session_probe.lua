@@ -109,7 +109,7 @@ P.ok(l and l:find('→ IsPodForwarded') and l:find('forwarders%.go:57') and l:fi
   'jump: explored callee drawn with → and marked current — ' .. tostring(l))
 
 vim.lsp.buf.incoming_calls()
-P.wait(15000, function() return find('↩ portForwardIndicator') ~= nil end)
+P.wait(15000, function() return find('%? .*caller$') ~= nil end)
 P.wait(SETTLE)
 vim.cmd('cclose')
 local got = lines()
@@ -117,7 +117,8 @@ P.ok(got[1]:find('^portForwardIndicator%s+view/pod%.go:66') and not got[1]:find(
   'scenario: line 1 is the root, no longer current — ' .. got[1])
 P.ok(find('IsPodForwarded.*YOU ARE HERE') == i, 'scenario: explored callee still current')
 P.ok(find('^└─%? 5 unexplored callees$'), 'scenario: root shows frontier count for the 5 remaining callees')
-P.ok(find('↩ portForwardIndicator.*%(loop%)'), 'scenario: caller that is already a node drawn as a back-edge')
+P.ok(not find('↩ portForwardIndicator'),
+  'decision 3: incoming calls naming the tree parent are the same fact as its callee, not echoed')
 P.ok(#vim.tbl_filter(function(s) return s:find('%? .*caller$') end, got) >= 1,
   'scenario: other callers pending individually under the current node')
 local md = read(first_export) or ''
