@@ -13,6 +13,7 @@
 --   :ReviewPull     fetch remote threads + my pending review, then re-render
 --   :ReviewPush[!]  create/replace my pending review on GitHub; `!` skips the
 --                   clobber guard (push over a pending review that has drifted)
+--   <leader>gP      open the PR in the browser (:ReviewBrowse)
 --   :ReviewOpen     edit the draft file directly (escape hatch)
 --   :ReviewRender   re-render comments in this buffer
 --   :ReviewRefresh  drop the cached PR identity and re-render — after a rebase,
@@ -182,6 +183,20 @@ function M.open_file()
   vim.cmd('edit ' .. vim.fn.fnameescape(ctx.file))
 end
 
+-- The review is finished in the browser (submit the verdict, retire a pending
+-- review), so getting there is a gesture of its own rather than a copy out of
+-- the push notification. current_context, like push: the buffer in front of you
+-- when you reach for it is as likely to be the comments file as a source file.
+function M.browse()
+  local ctx, err = M.current_context()
+  if not ctx then return notify_err(err) end
+  local url = ctx.info.url
+  if not url or url == '' then
+    return notify_err(('no PR url for #%s; :ReviewRefresh to re-resolve it'):format(tostring(ctx.info.number)))
+  end
+  vim.ui.open(url)
+end
+
 -- Passive render on every window entry. Gated on the reviews dir existing so a
 -- repo with no review files never pays for `gh pr view` on its first file open
 -- (that call is a network round-trip that blocks the editor). What is left is
@@ -205,6 +220,7 @@ function M.setup()
   cmd('ReviewRefresh', M.refresh, { desc = 'Review: drop cached PR identity and re-render' })
   cmd('ReviewQuickfix', M.quickfix, { desc = 'Review: comments → quickfix' })
   cmd('ReviewOpen', M.open_file, { desc = 'Review: open pending comments file' })
+  cmd('ReviewBrowse', M.browse, { desc = 'Review: open the PR in the browser' })
   cmd('ReviewPush', function(o) require('mpataki.review.sync').push(o.bang) end,
     { bang = true, desc = 'Review: push pending comments as a draft GitHub review' })
   cmd('ReviewPull', function() require('mpataki.review.sync').pull() end,
@@ -214,6 +230,7 @@ function M.setup()
   -- ':' from visual mode supplies the '<,'> range; <Cmd> would not.
   vim.keymap.set('x', '<leader>gc', ':ReviewComment<CR>', { silent = true, desc = 'Review comment on selection' })
   vim.keymap.set('n', '<leader>gC', M.quickfix, { desc = 'Review comments → quickfix' })
+  vim.keymap.set('n', '<leader>gP', M.browse, { desc = 'Open PR in browser' })
 
   local group = vim.api.nvim_create_augroup('MpatakiReview', { clear = true })
   vim.api.nvim_create_autocmd('BufWinEnter', { group = group, callback = on_buf_win_enter })

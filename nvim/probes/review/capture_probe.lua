@@ -318,6 +318,34 @@ P.ok(spawns <= 1, 'BufWinEnter in a reviewed repo spawns at most one process, go
 P.eq(gh_calls, 0, '…and never gh')
 vim.api.nvim_set_current_buf(code_buf)
 
+-- :ReviewBrowse hands the PR url to vim.ui.open (the verdict is submitted in
+-- the browser). No url is an error, never a silent no-op: the gesture did
+-- nothing and the user is waiting on a tab.
+local real_open = vim.ui.open
+local opened = {}
+vim.ui.open = function(url) table.insert(opened, url) end
+review.browse()
+P.eq(opened[1], 'https://example.invalid/pr/7', ':ReviewBrowse opens the PR url')
+
+info.url = nil
+local before_open = #opened
+local bmark = #require('notify').history()
+review.browse()
+P.wait(500, function() return notified():find('no PR url', 1, true) ~= nil end)
+P.ok(notified():find('no PR url', 1, true) ~= nil, 'a missing url is reported: ' .. notified())
+local blevel
+for i = bmark + 1, #require('notify').history() do
+  local rec = require('notify').history()[i]
+  if table.concat(rec.message, ' '):find('no PR url', 1, true) then blevel = rec.level end
+end
+P.eq(blevel, 'ERROR', '…at ERROR')
+P.eq(#opened, before_open, 'nothing is opened without a url')
+vim.ui.open = real_open
+info.url = 'https://example.invalid/pr/7'
+
+P.ok(vim.fn.maparg('<leader>gP', 'n') ~= '', '<leader>gP mapped (n)')
+P.ok(vim.fn.exists(':ReviewBrowse') == 2, ':ReviewBrowse exists')
+
 P.ok(vim.fn.maparg('<leader>gc', 'n') ~= '', '<leader>gc mapped (n)')
 P.ok(vim.fn.maparg('<leader>gc', 'x') ~= '', '<leader>gc mapped (v)')
 P.ok(vim.fn.maparg('<leader>gC', 'n') ~= '', '<leader>gC mapped (n)')
