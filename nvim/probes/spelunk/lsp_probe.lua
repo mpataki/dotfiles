@@ -9,6 +9,10 @@ if vim.fn.isdirectory(K9S) == 0 then
   P.done()
 end
 vim.cmd.cd(K9S)
+-- Other lanes open the same k9s files concurrently. A swap-file ATTENTION
+-- prompt reads stdin and hangs the probe forever when stdin is a terminal.
+vim.o.swapfile = false
+vim.opt.shortmess:append('A')
 local lsp = require('mpataki.spelunk.lsp')
 local Client = require('vim.lsp.client')
 
@@ -162,6 +166,54 @@ P.wait(200)
 vim.cmd('stopinsert')
 vim.api.nvim_set_current_buf(buf)
 
+-- from = the asked-about symbol -------------------------------------------
+-- Cursor on the call `ff.IsPodForwarded(...)` inside portForwardIndicator.
+local CALL = { 76, 9 }
+local FWD_FROM = FWD .. ':57:IsPodForwarded'
+vim.api.nvim_win_set_cursor(0, CALL)
+ex = expand_after(function() vim.lsp.buf.references() end)
+P.eq(#ex, 1, 'references at a call site: exactly one expand')
+P.eq(key(ex[1] and ex[1].from), FWD_FROM, 'references at a call site: from = definition IsPodForwarded, not the enclosing function')
+P.eq(ex[1] and ex[1].edge, 'caller', 'references at a call site: edge caller')
+local pfi = child(ex[1], 'portForwardIndicator')
+P.eq(key(pfi), FROM, 'references at a call site: referrer portForwardIndicator is a child')
+P.eq(pfi and pfi.count, 1, 'references at a call site: the call collapses into its function')
+vim.cmd('cclose')
+vim.api.nvim_set_current_buf(buf)
+
+-- Whatever gopls prepares at the call site is the item; from must be it.
+local prep = c:request_sync('textDocument/prepareCallHierarchy',
+  { textDocument = { uri = uri }, position = { line = CALL[1] - 1, character = CALL[2] } }, 5000, buf)
+local item = prep and prep.result and prep.result[1]
+local item_key = item and (vim.uri_to_fname(item.uri):sub(#vim.fn.getcwd() + 2) .. ':' ..
+  (item.range.start.line + 1) .. ':' .. item.name) or 'no item'
+vim.api.nvim_win_set_cursor(0, CALL)
+ex = expand_after(function() vim.lsp.buf.incoming_calls() end)
+P.eq(#ex, 1, 'incoming_calls at a call site: exactly one expand')
+P.eq(key(ex[1] and ex[1].from), item_key, 'incoming_calls at a call site: from = the prepared item')
+P.eq(item_key, FWD_FROM, 'incoming_calls at a call site: gopls prepares the callee, not the enclosing function')
+P.ok(child(ex[1], 'portForwardIndicator') ~= nil, 'incoming_calls at a call site: portForwardIndicator among the callers')
+vim.cmd('cclose')
+vim.api.nvim_set_current_buf(buf)
+
+-- implementation on the embedded interface: hangs off the interface.
+vim.api.nvim_win_set_cursor(0, { 46, 1 })
+ex = expand_after(function() vim.lsp.buf.implementation() end)
+P.eq(#ex, 1, 'implementation: exactly one expand')
+P.eq(ex[1] and ex[1].from.name, 'ResourceViewer', 'implementation: from = the interface under the cursor')
+P.eq(ex[1] and ex[1].from.path, 'internal/view/types.go', 'implementation: from resolved in the defining file')
+P.eq(ex[1] and ex[1].edge, 'impl', 'implementation: edge impl')
+P.ok(ex[1] and #ex[1].children > 1, 'implementation: implementers are children')
+vim.cmd('cclose')
+vim.api.nvim_set_current_buf(buf)
+
+-- definition keeps the enclosing symbol even at a call site.
+vim.api.nvim_win_set_cursor(0, CALL)
+ex = expand_after(function() vim.lsp.buf.definition() end)
+P.eq(key(ex[1] and ex[1].from), FROM, 'definition at a call site: from stays the enclosing function')
+vim.cmd('edit ' .. POD)
+vim.api.nvim_set_current_buf(buf)
+
 -- pass-through ---------------------------------------------------------------
 local refs = { textDocument = { uri = uri }, position = { line = 65, character = 17 },
   context = { includeDeclaration = true } }
@@ -264,6 +316,19 @@ local flat = {
   { name = 'Outer', kind = 5, location = { uri = furi, range = rng(0, 10) } },
   { name = 'inner', kind = 6, containerName = 'Outer', location = { uri = furi, range = rng(2, 5) } },
 }
+local def_mode = 'empty'
+local function fake_answer(method)
+  if method == 'initialize' then
+    return nil, { capabilities = { documentSymbolProvider = true, definitionProvider = true, referencesProvider = true } }
+  elseif method == 'textDocument/documentSymbol' then
+    return nil, flat
+  elseif method == 'textDocument/definition' then
+    if def_mode == 'error' then return { code = -32603, message = 'probe: definition fails' }, nil end
+    return nil, {}
+  elseif method == 'textDocument/references' then
+    return nil, { { uri = furi, range = rng(8, 8) }, { uri = furi, range = rng(9, 9) } }
+  end
+end
 local id = 0
 vim.lsp.start({
   name = 'spelunk-fake',
@@ -272,9 +337,8 @@ vim.lsp.start({
     return {
       request = function(method, _, cb)
         id = id + 1
-        local res = method == 'initialize' and { capabilities = { documentSymbolProvider = true } }
-          or method == 'textDocument/documentSymbol' and flat or nil
-        vim.schedule(function() cb(nil, res) end)
+        local err, res = fake_answer(method)
+        vim.schedule(function() cb(err, res) end)
         return true, id
       end,
       notify = function() return true end,
@@ -287,6 +351,19 @@ P.wait(5000, function() return #vim.lsp.get_clients({ bufnr = fbuf, name = 'spel
 P.eq(key(resolve(fbuf, 4, 0)), 'flat.fake:3:inner', 'flat SymbolInformation: innermost by range')
 P.eq(key(resolve(fbuf, 9, 0)), 'flat.fake:1:Outer', 'flat SymbolInformation: outer when only it contains')
 P.eq(key(resolve(fbuf, 13, 0)), 'flat.fake:1:flat.fake', 'flat SymbolInformation: outside all -> file-level sym')
+
+
+-- references fallback: the definition lookup yields nothing, or errors.
+for _, mode in ipairs({ 'empty', 'error' }) do
+  def_mode = mode
+  vim.api.nvim_set_current_buf(fbuf)
+  vim.api.nvim_win_set_cursor(0, { 4, 0 })
+  ex = expand_after(function() vim.lsp.buf.references() end)
+  P.eq(#ex, 1, 'references fallback (' .. mode .. ' definition): one expand')
+  P.eq(key(ex[1] and ex[1].from), 'flat.fake:3:inner', 'references fallback (' .. mode .. ' definition): from = enclosing symbol')
+  P.eq(key(ex[1] and ex[1].children[1]), 'flat.fake:1:Outer', 'references fallback (' .. mode .. ' definition): children still resolved')
+  vim.cmd('cclose')
+end
 
 P.eq(package.loaded['mpataki.spelunk.graph'], nil, 'module stays graph-free (graph never loaded)')
 P.done()

@@ -7,6 +7,9 @@
 --   { type = 'expand', from = sym, edge = 'caller'|'callee'|'def'|'impl', children = { sym, ... } }
 --   { type = 'visit',  sym = sym }
 -- Children are de-duplicated by key (path:line:name) and carry `count`.
+-- `from` is what the question is about: the call-hierarchy item, the
+-- definition of the identifier under the cursor (references, implementation),
+-- or the cursor's enclosing symbol (definition, typeDefinition, declaration).
 --
 -- Observation wraps each attached client's `request` field. vim.lsp.buf.* and
 -- telescope pass their own handlers (or none, meaning client.handlers /
@@ -248,13 +251,31 @@ local function resolve_all(client, locs, req_buf, cb)
   end
 end
 
--- Starts resolving `from` at request time (the cursor may move before the
--- response). Returns nil when the request is not the user's: its bufnr is not
--- the current buffer (diagnostics, background work).
-local function begin(client, method, params, bufnr)
+-- The question these methods ask is about the identifier under the cursor,
+-- not the function the cursor sits in: `gr` on a use of X inside Y lists X's
+-- referrers, so they hang off X.
+local ABOUT_IDENTIFIER = {
+  ['textDocument/references'] = true,
+  ['textDocument/implementation'] = true,
+}
+
+-- Resolves `from` at request time (the cursor may move before the response)
+-- and returns the observation, or nil when the request is not the user's: its
+-- bufnr is not the current buffer (diagnostics, background work). `orig` is
+-- the unwrapped request, so the definition lookup is never itself observed.
+local function begin(client, orig, method, params, bufnr)
   local cur = vim.api.nvim_get_current_buf()
   if ((bufnr == nil or bufnr == 0) and cur or bufnr) ~= cur then return nil end
   local obs = { client = client, method = method, edge = EDGES[method], buf = cur }
+  local function set_from(sym)
+    obs.from = sym
+    if obs.on_from then obs.on_from() end
+  end
+  if method:find('^callHierarchy/') and type(params) == 'table' and params.item then
+    local it = params.item
+    set_from(make_sym(it.name, it.kind, it.uri, it.range, it.selectionRange, client))
+    return obs
+  end
   local uri, pos
   if type(params) == 'table' and params.position and params.textDocument then
     uri, pos = params.textDocument.uri, params.position
@@ -262,10 +283,20 @@ local function begin(client, method, params, bufnr)
     local c = vim.api.nvim_win_get_cursor(0)
     uri, pos = vim.uri_from_bufnr(cur), lsp_position(cur, c[1], c[2], client)
   end
-  resolve_uri(client, uri, pos, cur, function(sym)
-    obs.from = sym
-    if obs.on_from then obs.on_from() end
-  end)
+  local function enclosing() resolve_uri(client, uri, pos, cur, set_from) end
+  if not ABOUT_IDENTIFIER[method] then
+    enclosing()
+    return obs
+  end
+  -- On the declaration itself the definition is the declaration, which
+  -- resolves to the same sym as the enclosing one.
+  local sent = orig(client, 'textDocument/definition',
+    { textDocument = { uri = uri }, position = pos },
+    function(err, result)
+      local loc = not err and locations(result)[1]
+      if loc then resolve_uri(client, loc.uri, loc.pos, cur, set_from) else enclosing() end
+    end, cur)
+  if not sent then enclosing() end
   return obs
 end
 
@@ -299,7 +330,7 @@ local function wrap(client)
     -- A nil handler means "use the configured default"; resolve it the same
     -- way Client:request does so the response can be observed on the way.
     local target = handler or self.handlers[method] or vim.lsp.handlers[method]
-    local ok, obs = pcall(begin, self, method, params, bufnr)
+    local ok, obs = pcall(begin, self, orig, method, params, bufnr)
     if not (ok and obs and target) then return orig(self, method, params, handler, bufnr) end
     return orig(self, method, params, function(err, result, ctx, config)
       local snap_ok, snap = false, nil
