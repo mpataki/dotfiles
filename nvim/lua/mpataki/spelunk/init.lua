@@ -43,8 +43,7 @@ M.WIDTH = 40
 
 local config = {}
 
--- { g, name, base, dir, write_failed }. `base` is the directory repo-relative
--- sym paths hang off; `dir` the export directory, both fixed at start.
+-- { g, name, dir, write_failed }. `dir` is the export directory, fixed at start.
 local session
 
 -- The split: { win, buf, index } while open.
@@ -59,19 +58,12 @@ local function sanitize(name)
   return s
 end
 
--- Sym paths are relative to the LSP client's root_dir (lsp.lua), not nvim's
--- cwd: find the client root that actually holds the file.
-local function base_for(sym)
-  if sym.path:sub(1, 1) == '/' then return nil end
-  for _, c in ipairs(vim.lsp.get_clients()) do
-    if c.root_dir and vim.uv.fs_stat(c.root_dir .. '/' .. sym.path) then return c.root_dir end
-  end
-  return pr.current_root() or vim.fn.getcwd()
-end
-
+-- Where a sym's file is on disk. lsp.lua puts it on the sym (`abs`); a sym
+-- without one (made by hand, saved before `abs` existed) hangs off the cwd.
 local function abs_path(sym)
-  if sym.path:sub(1, 1) == '/' or not session then return sym.path end
-  return session.base .. '/' .. sym.path
+  if sym.abs then return sym.abs end
+  if sym.path:sub(1, 1) == '/' then return sym.path end
+  return vim.fn.getcwd() .. '/' .. sym.path
 end
 
 -- Export directory for a dive rooted at `sym` (the current root when omitted):
@@ -80,8 +72,7 @@ end
 function M.export_dir(sym)
   if config.export_dir then return vim.fs.normalize(config.export_dir) end
   sym = sym or (session and session.g:root())
-  local git_root = sym and pr.root(sym.path:sub(1, 1) == '/' and sym.path
-    or (base_for(sym) or vim.fn.getcwd()) .. '/' .. sym.path)
+  local git_root = sym and pr.root(abs_path(sym))
   git_root = git_root or pr.current_root()
   if git_root then return pr.common_dir(git_root) .. '/spelunk' end
   return vim.fn.stdpath('state') .. '/spelunk'
@@ -174,7 +165,6 @@ function M.start(root, name)
   session = {
     g = graph().new(root),
     name = name,
-    base = base_for(root) or vim.fn.getcwd(),
     dir = M.export_dir(root),
     write_failed = false,
   }

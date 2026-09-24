@@ -136,6 +136,10 @@ P.eq(vim.inspect(g3:frontier()), vim.inspect(g2:frontier()), 'deserialize keeps 
 P.eq(vim.inspect(g3:children(pfi)), vim.inspect(g2:children(pfi)), 'deserialize keeps children')
 P.eq(g3:info(rows).note, 'n', 'deserialize keeps notes')
 P.eq(g3:visit(fwd), 'explored', 'deserialized graph keeps working')
+local withabs = { name = 'A' .. tag, kind = 12, path = 'a.go', line = 1, abs = '/r/a.go' }
+local ga = graph.deserialize(vim.json.decode(vim.json.encode(graph.new(withabs):serialize())))
+P.eq(ga:root().abs, '/r/a.go', 'sym abs survives serialize/deserialize')
+P.eq(graph.key(ga:root()), 'a.go:1:A' .. tag, 'sym abs is not part of the key')
 
 -- decision 3: echoes are the same fact drawn twice; dedupe by fact
 local function entries(gr, sym, target)

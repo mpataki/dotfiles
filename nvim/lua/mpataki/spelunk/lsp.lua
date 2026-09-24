@@ -7,6 +7,10 @@
 --   { type = 'expand', from = sym, edge = 'caller'|'callee'|'def'|'impl', children = { sym, ... } }
 --   { type = 'visit',  sym = sym }
 -- Children are de-duplicated by key (path:line:name) and carry `count`.
+-- A sym is { name, kind, path, line, col, abs }: `path` is relative to the
+-- LSP client root (absolute only outside it) and is what keys and renders;
+-- `abs` is the absolute file path, for opening the file without asking which
+-- root `path` hangs off. Not part of the key.
 -- `from` is what the question is about: the call-hierarchy item, the
 -- definition of the identifier under the cursor (references, implementation),
 -- or the cursor's enclosing symbol (definition, typeDefinition, declaration).
@@ -83,7 +87,8 @@ end
 
 local function file_sym(uri, client)
   local path = path_of(uri, client)
-  return { name = vim.fs.basename(path), kind = 1, path = path, line = 1 }
+  return { name = vim.fs.basename(path), kind = 1, path = path, line = 1,
+    abs = vim.fs.normalize(vim.uri_to_fname(uri)) }
 end
 
 -- gopls names methods '(*Pod).portForwardIndicator' in documentSymbol but
@@ -100,6 +105,7 @@ local function make_sym(name, kind, uri, range, sel, client)
     path = path_of(uri, client),
     line = range.start.line + 1,
     col = (sel or range).start.character + 1,
+    abs = vim.fs.normalize(vim.uri_to_fname(uri)),
   }
 end
 

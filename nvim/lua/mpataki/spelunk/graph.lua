@@ -29,7 +29,7 @@ function M.key(sym)
 end
 
 local function copy_sym(s)
-  return { name = s.name, kind = s.kind, path = s.path, line = s.line, col = s.col }
+  return { name = s.name, kind = s.kind, path = s.path, line = s.line, col = s.col, abs = s.abs }
 end
 
 local function tick(self)

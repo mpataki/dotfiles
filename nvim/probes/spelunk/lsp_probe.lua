@@ -148,6 +148,8 @@ P.eq(key(ex[1] and ex[1].from), FROM, 'outgoing_calls: from = portForwardIndicat
 P.eq(ex[1] and ex[1].edge, 'callee', 'outgoing_calls: edge callee')
 P.eq(ex[1] and #ex[1].children, 6, 'outgoing_calls: six callees')
 P.eq(key(child(ex[1], 'IsPodForwarded')), FWD .. ':57:IsPodForwarded', 'outgoing_calls: IsPodForwarded@forwarders.go:57')
+P.eq(child(ex[1], 'IsPodForwarded') and child(ex[1], 'IsPodForwarded').abs,
+  vim.fs.normalize(vim.uv.fs_realpath(K9S) .. '/' .. FWD), 'outgoing_calls: child from another file carries its absolute path (abs)')
 P.eq(child(ex[1], 'App') and child(ex[1], 'App').count, 2, 'outgoing_calls: App called twice -> count 2')
 vim.cmd('cclose')
 
