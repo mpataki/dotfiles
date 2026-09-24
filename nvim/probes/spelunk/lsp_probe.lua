@@ -5,8 +5,8 @@ local P = require('probe')
 -- gopls must root in the corpus; run.sh starts from the dotfiles root.
 local K9S = vim.fn.expand('~/code/k9s')
 if vim.fn.isdirectory(K9S) == 0 then
-  P.ok(false, 'corpus missing: ' .. K9S)
-  P.done()
+  print('SKIP corpus missing: ' .. K9S)
+  return P.done()
 end
 vim.cmd.cd(K9S)
 -- Other lanes open the same k9s files concurrently. A swap-file ATTENTION
