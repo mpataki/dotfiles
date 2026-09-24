@@ -283,9 +283,18 @@ function M.open()
   if vim.api.nvim_win_is_valid(origin) then vim.api.nvim_set_current_win(origin) end
 end
 
+-- Closes the split in whichever tab holds it. The last window of the last
+-- tab cannot close, so it gets a fresh scratch buffer instead.
 function M.close()
   if split.win and vim.api.nvim_win_is_valid(split.win) then
-    if #vim.api.nvim_tabpage_list_wins(0) == 1 then vim.cmd('enew') else vim.api.nvim_win_close(split.win, true) end
+    local tab = vim.api.nvim_win_get_tabpage(split.win)
+    local wins = vim.tbl_filter(function(w) return vim.api.nvim_win_get_config(w).relative == '' end,
+      vim.api.nvim_tabpage_list_wins(tab))
+    if #wins == 1 and #vim.api.nvim_list_tabpages() == 1 then
+      vim.api.nvim_win_set_buf(split.win, vim.api.nvim_create_buf(false, true))
+    else
+      pcall(vim.api.nvim_win_close, split.win, true)
+    end
   end
   split.win, split.buf, split.index = nil, nil, nil
 end
