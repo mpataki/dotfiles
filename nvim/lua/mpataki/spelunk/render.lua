@@ -9,6 +9,7 @@ local M = {}
 M.WIDTH = 40 -- default split width the current node's line is fitted into
 M.LEFT_CAP = 28 -- left column (tree prefix + name) pads to at most this width
 M.NOTE_CAP = 60
+M.FRONTIER_CAP = 12 -- pending lines listed under the current node before '… N more'
 
 local HERE, GUTTER = '▶ ', '  ' -- 2-col gutter: marker on the current node only
 
@@ -26,11 +27,19 @@ local function truncate(s, cap)
   return vim.fn.strcharpart(s, 0, cap - 1) .. '…'
 end
 
--- Longest common directory prefix (ending in '/') over every sym in the graph,
--- pending children included, so the column does not shift when you walk.
+-- Sym paths are relative to the LSP client root; an absolute one is outside
+-- it (the module cache, GOROOT).
+local function external(sym)
+  return sym.path:sub(1, 1) == '/'
+end
+
+-- Longest common directory prefix (ending in '/') over every in-root sym in
+-- the graph, pending children included, so the column does not shift when you
+-- walk. External paths would collapse it to '/'.
 local function common_dir(g)
   local dir
   local function take(path)
+    if path:sub(1, 1) == '/' then return end
     local d = path:match('^(.*/)') or ''
     if dir == nil then dir = d; return end
     local i = 0
@@ -73,6 +82,7 @@ local function rows(g)
   local drop = common_dir(g)
   local function short(sym)
     local p = sym.path
+    if external(sym) then return (p:match('([^/]+/[^/]+)$') or p) .. ':' .. sym.line end
     if drop ~= '' and p:sub(1, #drop) == drop then p = p:sub(#drop + 1) end
     return p .. ':' .. sym.line
   end
@@ -85,24 +95,40 @@ local function rows(g)
     if info.pruned and not in_subtree(g, sym, g:current()) then
       kids[1] = { text = '… (pruned)' }
     else
-      local pending, order = {}, {}
-      local here = graph.key(sym) == cur
+      -- Pending children, one per sym (a sym pending under two edges is one
+      -- choice): first-listed position, latest entry's edge (the one a visit
+      -- walks). Externals only ever count.
+      local pend, at, ext, n_ext = {}, {}, {}, 0
       for _, c in ipairs(g:children(sym)) do
-        if c.state == 'unexplored' then
-          if here then
-            kids[#kids + 1] = { pending = c }
-          else
-            if not pending[c.edge] then pending[c.edge] = 0; order[#order + 1] = c.edge end
-            pending[c.edge] = pending[c.edge] + 1
-          end
-        else
+        local k = graph.key(c.sym)
+        if c.state ~= 'unexplored' then
           kids[#kids + 1] = { child = c }
+        elseif external(c.sym) then
+          if not ext[k] then ext[k], n_ext = true, n_ext + 1 end
+        elseif at[k] then
+          pend[at[k]] = c
+        else
+          pend[#pend + 1] = c
+          at[k] = #pend
         end
       end
-      for _, edge in ipairs(order) do
-        kids[#kids + 1] = { text = ('%d unexplored %s'):format(pending[edge], PLURAL[edge] or edge),
-          glyph = '?' }
+      if graph.key(sym) == cur then
+        for i = 1, math.min(#pend, M.FRONTIER_CAP) do kids[#kids + 1] = { pending = pend[i] } end
+        if #pend > M.FRONTIER_CAP then
+          kids[#kids + 1] = { text = ('%d more'):format(#pend - M.FRONTIER_CAP), glyph = '…' }
+        end
+      else
+        local count, order = {}, {}
+        for _, c in ipairs(pend) do
+          if not count[c.edge] then count[c.edge] = 0; order[#order + 1] = c.edge end
+          count[c.edge] = count[c.edge] + 1
+        end
+        for _, edge in ipairs(order) do
+          kids[#kids + 1] = { text = ('%d unexplored %s'):format(count[edge], PLURAL[edge] or edge),
+            glyph = '?' }
+        end
       end
+      if n_ext > 0 then kids[#kids + 1] = { text = n_ext .. ' external', glyph = '?' } end
     end
     for i, k in ipairs(kids) do
       local last = i == #kids

@@ -169,4 +169,48 @@ dl, _, dh = render.tree(deep)
 P.ok(dh == 1 and vim.fn.strdisplaywidth(dl[1]) <= render.WIDTH,
   'decision 1: tree returns the current line, fitted — ' .. dl[1])
 
+-- decision 5: externals collapse
+local zl = '/Users/x/go/pkg/mod/github.com/rs/zerolog@v1.32.0/event.go'
+local er = '/opt/homebrew/Cellar/go/1.26.7/libexec/src/errors/errors.go'
+local eroot = S('run', 'internal/view/command.go', 141)
+local ge = graph.new(eroot)
+ge:expand(eroot, 'callee', { S('exec', 'internal/view/command.go', 298), S('Msg', zl, 106),
+  S('Msgf', zl, 120), S('New', er, 64), S('inject', 'internal/view/app.go', 700) })
+ge:expand(eroot, 'caller', { S('Msg', zl, 106) })
+local el, ei = render.tree(ge)
+local xi, xl = find(el, '? 3 external')
+P.ok(xl and xl:find('└─%? 3 external$') and ei[xi] == nil,
+  'decision 5: pending externals are one "? N external" line (unique syms, index nil)')
+P.ok(not find(el, 'Msg' .. tag) and not find(el, 'New' .. tag), 'decision 5: externals never listed individually')
+P.eq(#ge:frontier(), 5, 'decision 5: externals stay in frontier()')
+P.ok(find(el, 'command.go:298') and not find(el, 'internal/', 1), 'decision 5: externals excluded from the common prefix')
+ge:visit(S('Msg', zl, 106))
+el = render.tree(ge)
+P.ok(find(el, 'zerolog@v1.32.0/event.go:106') and not find(el, '/Users/x'),
+  'decision 5: explored external node shows its last two path segments')
+ge:visit(eroot)
+el = render.tree(ge)
+P.ok(find(el, '? 2 external'), 'decision 5: explored external leaves the count')
+
+-- decision 8: the expanded frontier under current is capped
+local croot = S('hub', 'lib/hub.go', 1)
+local gcap = graph.new(croot)
+local many = {}
+for n = 1, 15 do many[n] = S('p' .. n, 'lib/p.go', n) end
+gcap:expand(croot, 'callee', many)
+gcap:expand(croot, 'caller', { many[1], many[2] })
+local cl, ci = render.tree(gcap)
+local listed = #vim.tbl_filter(function(l) return l:find('?←', 1, true) or l:find('?→', 1, true) end, cl)
+local mi, ml = find(cl, '… 3 more')
+P.ok(listed == render.FRONTIER_CAP and ml and ci[mi] == nil,
+  'decision 8: 12 pending lines under current, then one "… N more" line (index nil) — ' .. listed)
+P.ok(find(cl, '?← p1' .. tag) and not find(cl, '?→ p1' .. tag),
+  'decision 8: a sym pending under two edges is one line (latest edge)')
+local leaf = S('leaf', 'lib/leaf.go', 1)
+gcap:expand(croot, 'callee', { leaf })
+gcap:visit(leaf)
+cl = render.tree(gcap)
+P.ok(find(cl, '? 13 unexplored callees') and find(cl, '? 2 unexplored callers'),
+  'decision 8: collapsed counts count unique syms (15 = 13 + 2, not 17)')
+
 P.done()
