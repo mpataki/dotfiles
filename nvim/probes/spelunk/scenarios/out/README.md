@@ -185,3 +185,124 @@ pending children floods the split.
 - portforward: no cycle exists, so "loop back to NewPod" is gd on
   `p.portForwardIndicator` inside NewPod, and it renders as an echo (see above).
 - Every seed line behaved as given at `61851153`.
+
+## After readability pass
+
+Same three drives and seeds, re-run after the readability pass (task
+`spelunk-readability`, decisions 1 to 9). The drives and step logs are unchanged.
+Current-node line width at 40 cols: portforward 38, dispatch 40, daomodel 40.
+Lines still wider than 40: 9/13, 10/28 and 4/15. Those are other nodes' paths,
+which nowrap cuts off; the names stay visible.
+
+### portforward
+
+```
+▶ portForwardIndicator  view/pod.go:66
+  ├─→ IsPodForwarded    watch/forwarders.go:57
+  │   · the real check: prefix match on fqn + "|"
+  │   ├─← showPFCmd     view/pf_extender.go:68
+  │   └─? 1 unexplored callers
+  ├─← NewPod            view/pod.go:50
+  │   · SetDecorateFn wires the indicator
+  │   └─↩ portForwardIndicator (cycle)  view/pod.go:66
+  ├─?→ RowsRange        model1/table_data.go:98
+  ├─?→ IndexOfHeader    model1/table_data.go:299
+  ├─?→ decorateCpuMemHeaderRows  view/helpers.go:222
+  ├─?→ App              view/types.go:66
+  └─?→ Forwarders       watch/factory.go:263
+```
+
+### dispatch
+
+```
+▶ run                view/command.go:141
+  ├─← gotoResource   view/app.go:693
+  │   ├─← gotoCmd    view/app.go:630
+  │   │   · the : prompt Enter handler; dispatch starts here
+  │   └─? 10 unexplored callers
+  ├─→ exec           view/command.go:298
+  │   ├─↩ run (cycle)  view/command.go:141
+  │   ├─→ inject     view/app.go:700
+  │   │   └─→ Init   model/types.go:57
+  │   │       ├─→ Init  view/browser.go:61
+  │   │       │   · :pods lands in the generic Browser
+  │   │       └─? 17 unexplored implementations
+  │   ├─? 11 unexplored callees
+  │   └─? 7 external
+  ├─?← defaultCmd    view/command.go:199
+  ├─?→ NewGVR        client/gvr.go:26
+  ├─?→ ActiveNamespace  config/config.go:130
+  ├─?→ ActiveContextName  config/config.go:203
+  ├─?→ Save          config/config.go:237
+  ├─?→ AccessorFor   dao/registry.go:64
+  ├─?→ Switch        dao/types.go:138
+  ├─?→ SetFilter     model/types.go:99
+  ├─?→ SetLabelFilter  model/types.go:100
+  ├─?→ switchNS      view/app.go:423
+  ├─?→ switchContext  view/app.go:437
+  ├─?→ FilterArg     view/cmd/interpreter.go:197
+  ├─… 7 more
+  └─? 6 external
+```
+
+### daomodel
+
+```
+  List                 dao/pod.go:80
+  ├─→ List             dao/types.go:69
+  │   · the dao contract every resource implements
+  │   ├─↩ List (cycle)  dao/pod.go:80
+  │   ├─→ List         dao/generic.go:40
+  │   │   · fallback for resources without a typed dao
+  │   │   ├─← check    model/pulse_health.go:103
+  │   │   └─? 2 unexplored callers
+  │   ├─↩ List (cycle)  dao/pod.go:80
+  │   ├─↩ check (seen)  model/pulse_health.go:103
+▶ │   ├─← list         model/pulse.go:92
+  │   │   · model asks dao for rows here
+  │   ├─? 20 unexplored implementations
+  │   └─? 12 unexplored callers
+  └─? 1 unexplored implementations
+```
+
+### Ranked findings: closed / open
+
+1. **"Where am I" at 40 cols: closed.** `▶` sits in the gutter, and the path
+   column moves left so the current node's line fits. The split cursor snaps to
+   the current node unless you are in the split. Notes are `·` lines under their node.
+2. **Echoes drawn as loops: closed for same-fact echoes, open for echoes that
+   come from a different fact.** Gone: `IsPodForwarded ↩ portForwardIndicator`
+   (same fact as the tree edge) and `Init ↩ Init` (a node never lists itself). Kept on
+   purpose: `exec ↩ run (cycle)`, the real back-edge, and `↩ check (seen)`,
+   the convergence. **Still there:**
+   - `NewPod ↩ portForwardIndicator (cycle)`. gd records the fact
+     `def|NewPod|pfi`, and the tree edge is `call|NewPod|pfi`. Decision 3 keys
+     on the kind, so these count as two facts.
+   - Two `↩ List (cycle) dao/pod.go:80` lines under Lister.List. One is
+     `impl|Lister|Pod` (gi asked from the interface side; the tree edge is
+     `impl|Pod|Lister`), the other is `call|Pod|Lister` from gr. That makes three
+     different facts, but both lines read the same.
+3. **Identity on every line: mostly closed.** `↩` lines carry a path, and
+   `(cycle)` (the target is an ancestor) is labelled separately from `(seen)`
+   (two paths meet). **Open:** receiver names (`Pod.List`) were not in scope,
+   so the four `List`s can only be told apart by path.
+4. **Externals out of the frontier listing: closed.** dispatch shows
+   `? 6 external` under run and `? 7 external` under exec. The common-prefix
+   trim ignores absolute paths, so dispatch now drops `internal/` like the
+   other two trees.
+5. **Glyph from the walked edge: closed** (`→ exec`, export `run -->|def| exec`).
+   **Phantom current: half-closed.** gi on `c.Init` now records the fact as
+   `inject -->|def| Init` instead of a jump. Decision 7 keeps the asked-about
+   symbol as current, though, so the step log still reads
+   `current=Init@internal/model/types.go:57` while the cursor is in inject.
+
+Lower priority:
+- Flooding: **closed.** At most 12 pending lines under the current node, then
+  `… N more`. dispatch went from 37 lines to 28.
+- `?` counts vs `frontier()`: **partly closed.** Within a node, a sym now
+  counts once (daomodel: 33 rendered vs 32 in the frontier, was 38). A sym
+  pending under two different nodes still counts once per node (dispatch: 70
+  vs 65, unchanged: 5 syms are pending under two nodes, probably the
+  externals that run and exec both call; not checked).
+- Callers drawn below their callee, and impl from concrete to interface
+  drawn "down": **open**, not in scope.
