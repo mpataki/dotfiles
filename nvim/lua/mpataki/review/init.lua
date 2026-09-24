@@ -64,7 +64,10 @@ function M.load_threads(ctx)
   return data
 end
 
-local function render_buf(bufnr, ctx)
+-- The whole render sequence for one buffer: current draft, current remote
+-- threads, redraw. Exported because sync.rerender runs it per window after a
+-- pull, and drifting copies of it would draw two different pictures.
+function M.render_buf(bufnr, ctx)
   if not vim.api.nvim_buf_is_valid(bufnr) then return end
   local doc = store.read(ctx.file)
   render.render(bufnr, ctx.relpath, doc.entries, M.load_threads(ctx))
@@ -74,7 +77,7 @@ function M.render_current()
   local bufnr = vim.api.nvim_get_current_buf()
   local ctx, err = M.context(bufnr)
   if not ctx then return notify_err(err) end
-  render_buf(bufnr, ctx)
+  M.render_buf(bufnr, ctx)
 end
 
 function M.refresh()
@@ -89,15 +92,6 @@ local function anchor_from_range(range)
   local s, e = range.line1, range.line2
   if s == e then return e, nil end
   return e, s
-end
-
--- Every line of a range must sit in a hunk, not just its ends: GitHub rejects
--- a range that bridges the gap between two hunks.
-local function first_line_outside(ranges, line, start_line)
-  for l = start_line or line, line do
-    if not pr.in_ranges(ranges, l) then return l end
-  end
-  return nil
 end
 
 -- opts: command opts (range/line1/line2) or nil for a plain call.
@@ -121,10 +115,9 @@ function M.comment(opts)
   local head = ctx.info.head or 'HEAD'
   local ranges, derr = pr.diff_ranges(ctx.root, ctx.info.base_sha, head, ctx.relpath)
   if not ranges then
-    return notify_err(('no diff for %s against PR head %s: %s — fetch the PR branch?'):format(
-      ctx.relpath, head:sub(1, 8), derr))
+    return notify_err(pr.no_diff_message(ctx.relpath, head, derr))
   end
-  local outside = first_line_outside(ranges, line, start_line)
+  local outside = pr.first_line_outside(ranges, start_line, line)
   if outside then
     return notify_err(('line %d is not in the PR diff; GitHub only anchors comments inside hunks (+3 context)'):format(outside))
   end
@@ -146,7 +139,7 @@ function M.comment(opts)
         notify_err(werr)
         return false
       end
-      render_buf(bufnr, ctx)
+      M.render_buf(bufnr, ctx)
       return true
     end,
   })
@@ -180,7 +173,7 @@ local function on_buf_win_enter(ev)
   local ctx = M.context(ev.buf, root)
   if not ctx then return end
   if vim.fn.filereadable(ctx.file) ~= 1 and vim.fn.filereadable(ctx.remote_file) ~= 1 then return end
-  render_buf(ev.buf, ctx)
+  M.render_buf(ev.buf, ctx)
 end
 
 function M.setup()

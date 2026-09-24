@@ -6,6 +6,14 @@
 --   body until next "## "
 local M = {}
 
+-- The one-line form of a body, for a notification or a quickfix entry. Trimmed
+-- and CR-free because the three sources disagree: the comments file is
+-- hand-edited, git and gh write to stderr, and GitHub hands back bodies with
+-- CRLF endings (a trailing '\r' renders as a literal '^M').
+function M.first_line(s)
+  return (vim.trim(s or ''):gsub('\r', ''):match('^[^\n]*'))
+end
+
 function M.path(common_dir, number)
   return common_dir .. '/reviews/' .. tostring(number) .. '.md'
 end

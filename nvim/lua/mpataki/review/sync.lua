@@ -5,7 +5,6 @@
 local pr = require('mpataki.review.pr')
 local store = require('mpataki.review.store')
 local gh = require('mpataki.review.gh')
-local render = require('mpataki.review.render')
 local review = require('mpataki.review')
 
 local M = {}
@@ -17,11 +16,6 @@ end
 -- Every refusal ends here: nothing about a push is worth a silent no-op.
 local function fail(msg)
   notify(msg, vim.log.levels.ERROR)
-end
-
--- Bodies arrive from GitHub with CRLF endings; a notification wants one line.
-local function first_line(body)
-  return (((body or ''):gsub('\r', '')):match('^[^\n]*'))
 end
 
 local function short(sha)
@@ -58,17 +52,6 @@ local function anchored(comments)
   return (split_anchored(comments))
 end
 
--- Every line of a range must sit in a hunk, not just its ends: GitHub rejects a
--- range that bridges the gap between two hunks, and the whole batch with it.
--- Same rule review.comment applies when the entry is made; re-checked here
--- because the file is hand-editable between the two.
-local function line_outside(ranges, entry)
-  for l = entry.start_line or entry.line, entry.line do
-    if not pr.in_ranges(ranges, l) then return l end
-  end
-  return nil
-end
-
 -- ok, err. Pure enough to exercise without gh: `pending` (my pending review as
 -- the server has it, or nil to skip the clobber guard) and `head` (the local
 -- checkout's sha) are arguments. `ranges` is an optional path -> ranges cache
@@ -98,15 +81,12 @@ function M.check_push(ctx, doc, pending, head, ranges)
   for _, e in ipairs(doc.entries) do
     if ranges[e.path] == nil then
       local r, derr = pr.diff_ranges(ctx.root, ctx.info.base_sha, ctx.info.head, e.path)
-      -- A diff that failed is not "no hunks": blaming the comment would send
-      -- the user editing a file when the fix is to fetch the PR branch.
       if not r then
-        return false, ('cannot diff %s against PR head %s: %s — fetch the PR branch?')
-          :format(e.path, short(ctx.info.head), derr or 'git diff failed')
+        return false, pr.no_diff_message(e.path, ctx.info.head, derr)
       end
       ranges[e.path] = r
     end
-    local bad = line_outside(ranges[e.path], e)
+    local bad = pr.first_line_outside(ranges[e.path], e.start_line, e.line)
     if bad then
       return false, ('%s is outside the PR diff (line %d); GitHub would reject the whole batch — move it into a hunk or delete it from %s')
         :format(store.key(e), bad, ctx.file)
@@ -177,12 +157,35 @@ local function foreign_buffer(ctx, command)
     :format(command, ctx.root)
 end
 
+-- The repo a push or pull acts on, or nil once the refusal has been reported.
+-- current_context, not context: both are repo gestures, and the most likely
+-- buffer to fire one from is the comments file itself, which has no repo of its
+-- own (it lives under .git).
+local function resolve(command)
+  local ctx, err = review.current_context()
+  if not ctx then return fail(err) end
+  local wrong = foreign_buffer(ctx, command)
+  if wrong then return fail(wrong) end
+  return ctx
+end
+
+-- My login and my pending review as the server has it, or nil once the refusal
+-- has been reported. Not folded into resolve: push refuses on its local guards
+-- before anything reaches the network (see the guard order in M.push). `pending`
+-- nil with no error is "no pending review of mine"; an error is one I must not
+-- step on.
+local function resolve_pending(ctx)
+  local login, lerr = gh.login(ctx.root)
+  if not login then return fail(lerr) end
+  local pending, perr = gh.pending_review(ctx.root, ctx.info.number, login)
+  if perr then return fail(perr) end
+  return login, pending
+end
+
 -- Redraw every window on a file belonging to this review. One buffer can hold
 -- several windows (render replaces the whole namespace, so once is enough), and
 -- a window can hold a buffer with no file and no context at all.
 local function rerender(ctx)
-  local doc = store.read(ctx.file)
-  local threads = review.load_threads(ctx)
   local seen = {}
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     local buf = vim.api.nvim_win_get_buf(win)
@@ -190,7 +193,7 @@ local function rerender(ctx)
       seen[buf] = true
       local bctx = review.context(buf)
       if bctx and bctx.file == ctx.file then
-        render.render(buf, bctx.relpath, doc.entries, threads)
+        review.render_buf(buf, bctx)
       end
     end
   end
@@ -198,13 +201,8 @@ end
 
 -- :ReviewPush[!]. bang skips only the clobber guard.
 function M.push(bang)
-  -- current_context, not context: a push is a repo gesture, and the most likely
-  -- buffer to fire it from is the comments file itself, which has no repo of
-  -- its own (it lives under .git).
-  local ctx, err = review.current_context()
-  if not ctx then return fail(err) end
-  local wrong = foreign_buffer(ctx, ':ReviewPush')
-  if wrong then return fail(wrong) end
+  local ctx = resolve(':ReviewPush')
+  if not ctx then return end
   if unsaved(ctx) then
     return fail(('%s has unwritten changes: write the comments file first (:w)'):format(ctx.file))
   end
@@ -218,11 +216,8 @@ function M.push(bang)
   local ok, cerr = M.check_push(ctx, doc, nil, head, ranges)
   if not ok then return fail(cerr) end
 
-  local login, lerr = gh.login(ctx.root)
-  if not login then return fail(lerr) end
-  -- nil, nil is "no pending review of mine"; nil, err is one I must not step on.
-  local pending, perr = gh.pending_review(ctx.root, ctx.info.number, login)
-  if perr then return fail(perr) end
+  local login, pending = resolve_pending(ctx)
+  if not login then return end
 
   if pending and not bang then
     local dok, derr = M.check_push(ctx, doc, pending, head, ranges)
@@ -263,10 +258,8 @@ end
 
 -- :ReviewPull. Overwrites both local caches from the server.
 function M.pull()
-  local ctx, err = review.current_context()
-  if not ctx then return fail(err) end
-  local wrong = foreign_buffer(ctx, ':ReviewPull')
-  if wrong then return fail(wrong) end
+  local ctx = resolve(':ReviewPull')
+  if not ctx then return end
   -- Pull overwrites the comments file from the server. Doing that under a
   -- buffer holding unwritten edits loses them on the next :e, with no warning
   -- and nothing to recover from — the push side refuses for the same reason.
@@ -275,10 +268,8 @@ function M.pull()
       :format(ctx.file))
   end
 
-  local login, lerr = gh.login(ctx.root)
-  if not login then return fail(lerr) end
-  local pending, perr = gh.pending_review(ctx.root, ctx.info.number, login)
-  if perr then return fail(perr) end
+  local login, pending = resolve_pending(ctx)
+  if not login then return end
 
   local threads, terr = gh.threads(ctx.root, ctx.info.number)
   if not threads then return fail(terr) end
@@ -306,7 +297,7 @@ function M.pull()
     local lines = { ('%d pending comment(s) GitHub no longer anchors to a line:'):format(#dropped) }
     for _, c in ipairs(dropped) do
       table.insert(lines, ('dropped unanchored pending comment %s: %s')
-        :format(c.path or '?', first_line(c.body)))
+        :format(c.path or '?', store.first_line(c.body)))
     end
     notify(table.concat(lines, '\n'), vim.log.levels.WARN)
   end

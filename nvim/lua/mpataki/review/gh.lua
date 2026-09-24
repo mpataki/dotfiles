@@ -2,6 +2,8 @@
 -- injectable so probes substitute a fake; nothing here is exercised against
 -- GitHub in tests. `{owner}/{repo}` placeholders resolve from the cwd's remote,
 -- which is why every call runs with cwd = repo root.
+local store = require('mpataki.review.store')
+
 local M = {}
 
 -- env: forced color (CLICOLOR_FORCE, set in agent sessions) makes gh emit
@@ -35,10 +37,6 @@ function M.runner(argv, opts)
     stderr = timed_out(stderr)
   end
   return { code = r.code, stdout = r.stdout or '', stderr = stderr }
-end
-
-local function first_line(s)
-  return (vim.trim(s or ''):match('^[^\n]*'))
 end
 
 -- JSON null decodes to vim.NIL, a *userdata* — truthy, and it throws when
@@ -80,11 +78,11 @@ function M.api(root, args, opts)
   end
   local r = M.runner(argv, { cwd = root, stdin = stdin })
   if r.code ~= 0 then
-    return nil, ('gh api %s: %s'):format(endpoint_of(args), first_line(r.stderr))
+    return nil, ('gh api %s: %s'):format(endpoint_of(args), store.first_line(r.stderr))
   end
   if vim.trim(r.stdout) == '' then return {}, nil end
   local ok, data = pcall(vim.json.decode, r.stdout)
-  if not ok then return nil, 'gh api: bad JSON: ' .. first_line(r.stdout) end
+  if not ok then return nil, 'gh api: bad JSON: ' .. store.first_line(r.stdout) end
   if opts.paginate then
     -- --slurp wraps every page in an outer array. A list endpoint's pages are
     -- arrays to splice; an object endpoint yields one object per page, which has

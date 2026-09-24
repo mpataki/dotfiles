@@ -193,4 +193,23 @@ function M.in_ranges(ranges, line)
   return false
 end
 
+-- The first line of [start_line, line] that sits in no hunk, or nil when all of
+-- them do. Every line of a range must be in a hunk, not just its ends: GitHub
+-- rejects a range that bridges two hunks, and the whole batch with it. Checked
+-- both when a comment is made and when it is pushed — the file is hand-editable
+-- in between.
+function M.first_line_outside(ranges, start_line, line)
+  for l = start_line or line, line do
+    if not M.in_ranges(ranges, l) then return l end
+  end
+  return nil
+end
+
+-- A diff that *failed* is not "no hunks": blaming the comment would send the
+-- user editing a file when the fix is to fetch the PR branch.
+function M.no_diff_message(relpath, head, err)
+  return ('no diff for %s against PR head %s: %s — fetch the PR branch?')
+    :format(relpath, (head or '?'):sub(1, 8), err or 'git diff failed')
+end
+
 return M

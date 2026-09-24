@@ -1,6 +1,9 @@
 -- Draws pending and remote comments as virtual lines under their anchor line,
 -- a gutter sign on every line they cover, and fills the quickfix list. Pure
--- presentation: no git, no gh, no file IO.
+-- presentation: no git, no gh, no file IO — store is required for its pure
+-- one-line-body helper, nothing else.
+local store = require('mpataki.review.store')
+
 local M = {}
 
 M.ns = vim.api.nvim_create_namespace('mpataki_review')
@@ -72,10 +75,6 @@ function M.render(buf, relpath, entries, threads)
   end
 end
 
-local function first_line(s)
-  return body_lines(s)[1]
-end
-
 -- A trailing slash would build '/root//a.go', which nvim keeps as a buffer
 -- distinct from '/root/a.go': jumping from the quickfix list would open a
 -- second buffer for the same file, with none of the review's extmarks in it.
@@ -92,10 +91,10 @@ function M.quickfix(root, entries, threads)
     table.insert(items, { filename = join(root, path), lnum = line or 1, text = text })
   end
   for _, e in ipairs(entries or {}) do
-    add(e.path, e.line, '[pending] ' .. first_line(e.body))
+    add(e.path, e.line, '[pending] ' .. store.first_line(e.body))
   end
   for _, t in ipairs(threads or {}) do
-    add(t.path, t.line, '@' .. t.author .. ': ' .. first_line(t.body))
+    add(t.path, t.line, '@' .. t.author .. ': ' .. store.first_line(t.body))
   end
   vim.fn.setqflist({}, ' ', { title = 'PR review comments', items = items })
 end
