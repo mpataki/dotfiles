@@ -147,11 +147,15 @@ local function walk(self, fn, k)
   for _, e in ipairs(tree_kids(self, k)) do walk(self, fn, e.key) end
 end
 
--- Asking the LSP from a symbol that is not yet a node means the cursor is
--- standing there: record the visit first so the children have a parent.
+-- Asking the LSP about a symbol that is not yet a node means you were reading
+-- it from the current node: it enters as a 'def' child of current (the thing
+-- you asked about) and becomes current, so the children have a parent.
 function Graph:expand(from, edge, children)
   local fk = M.key(from)
-  if not self._nodes[fk] then self:visit(from) end
+  if not self._nodes[fk] then
+    self:expand(self._nodes[self._cur].sym, 'def', { from })
+    self:visit(from)
+  end
   for _, c in ipairs(children or {}) do
     local ck = M.key(c)
     local e = ck ~= fk and find_entry(self._kids[fk], ck, edge)

@@ -187,4 +187,14 @@ g6 = graph.deserialize(vim.json.decode(vim.json.encode(g6:serialize())))
 g6:visit(exec)
 P.eq(entries(g6, run, exec)[1].edge, 'caller', 'decision 6: pending stamps survive serialize/deserialize')
 
+-- decision 7: the asked-about symbol enters as def, not jump
+local inject, init = S('inject', 'v/app.go', 700), S('Init', 'm/types.go', 57)
+local g7 = graph.new(inject)
+g7:expand(init, 'impl', { S('BInit', 'v/browser.go', 61) })
+local asked = entries(g7, inject, init)
+P.ok(#asked == 1 and asked[1].edge == 'def' and asked[1].tree,
+  'decision 7: expand from a non-node adds it under current as def')
+P.eq(graph.key(g7:current()), graph.key(init), 'decision 7: the asked-about sym becomes current')
+P.eq(#g7:children(init), 1, 'decision 7: the answer hangs off the asked-about sym')
+
 P.done()
