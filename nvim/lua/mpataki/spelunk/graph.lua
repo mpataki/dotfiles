@@ -214,6 +214,17 @@ function Graph:info(sym)
   }
 end
 
+-- Known = a node, or named as a child anywhere (pending, pruned or not). What
+-- lsp's visit detection asks before counting a same-buffer move as a jump.
+function Graph:has(sym)
+  local k = M.key(sym)
+  if self._nodes[k] then return true end
+  for _, list in pairs(self._kids) do
+    if find_entry(list, k) then return true end
+  end
+  return false
+end
+
 -- Unexplored children, DFS order, one per sym. Pruned subtrees are skipped:
 -- pruning is how you tell the frontier you are not going there.
 function Graph:frontier()
