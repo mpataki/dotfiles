@@ -252,7 +252,10 @@ function M.push(bang)
     return fail(('pushed as pending review %s, but %s'):format(tostring(id), werr))
   end
   reload_file_buffers()
-  notify(('pushed %d comment(s) as pending review %s — %s')
+  -- The url goes on its own line: nvim-notify does not wrap, so a url trailing
+  -- the sentence is the part that gets cut off — and the url is what the user
+  -- came for (the verdict is submitted in the browser).
+  notify(('pushed %d comment(s) as pending review %s\n%s')
     :format(#doc.entries, tostring(id), ctx.info.url or '(no url)'))
 end
 

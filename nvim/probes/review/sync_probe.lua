@@ -44,6 +44,18 @@ local function level_of(n, text)
   end
 end
 
+-- nvim-notify stores `message` as a list of lines, and the push toast puts the
+-- PR url on its own last line (nvim-notify does not wrap, so a url appended to
+-- the sentence gets truncated). The space-joined helpers above cannot tell
+-- where the lines break, so assert on the record's lines themselves.
+local function note_lines(n, text)
+  for i = n + 1, #history() do
+    local rec = history()[i]
+    if table.concat(rec.message, ' '):find(text, 1, true) then return rec.message end
+  end
+  return {}
+end
+
 local function sh(argv, cwd)
   local r = vim.system(argv, { cwd = cwd, text = true }):wait()
   assert(r.code == 0, table.concat(argv, ' ') .. ': ' .. (r.stderr or ''))
@@ -170,7 +182,10 @@ P.eq(posted and #posted.comments, 1, 'one comment posted')
 local after = store.read(ctx.file)
 P.eq(after.header.pushed, store.fingerprint(after.entries), 'header pushed updated')
 P.eq(after.header.head, fx.head_sha, 'header head updated')
-P.ok(wait_note(m, 'pushed'):find('example.invalid/pr/7', 1, true) ~= nil, 'PR URL printed')
+wait_note(m, 'pushed 1 comment')
+local pushed_note = note_lines(m, 'pushed 1 comment')
+P.eq(#pushed_note, 2, 'the push toast is two lines: ' .. vim.inspect(pushed_note))
+P.eq(pushed_note[#pushed_note], 'https://example.invalid/pr/7', 'the PR url is the last line, bare')
 
 -- Second push with a server pending review that matches: DELETE then POST.
 canned['pulls/7/reviews'] = json({ { { id = 501, state = 'PENDING', node_id = 'R_501', user = { login = 'mpataki' } } } })
