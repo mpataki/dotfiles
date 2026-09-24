@@ -11,7 +11,7 @@ local render = require('mpataki.review.render')
 local review = require('mpataki.review')
 local sync = require('mpataki.review.sync')
 
--- One virt_lines mark per rendered comment; the range signs sharing the
+-- One virt_lines mark per rendered comment; the range tints sharing the
 -- namespace would otherwise inflate a count of "how many comments are drawn".
 local function comment_marks(buf)
   local n = 0
