@@ -14,7 +14,9 @@ trap 'rm -f "$out"' EXIT
 
 for p in probes/spelunk/*_probe.lua; do
   echo "== $p"
-  nvim --headless -c "luafile $p" -c 'qa' >"$out" 2>&1
+  # noswapfile: two headless nvims opening the same corpus file would otherwise
+  # block on the swap-file prompt (stdin) and hang the run.
+  nvim --headless --cmd 'set noswapfile shortmess+=A' -c "luafile $p" -c 'qa' >"$out" 2>&1 </dev/null
   summary=$(grep -E '^probe: [0-9]+ passed, [0-9]+ failed' "$out" | tail -1)
   if [ -z "$summary" ]; then
     echo "   no probe summary (crashed?); last output:"
