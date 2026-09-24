@@ -120,6 +120,7 @@ info.head = fx.head_sha
 -- assert the resolved shape: below the cursor line, in the code window.
 vim.api.nvim_win_set_cursor(code_win, { 5, 0 })
 local cursor_row = vim.fn.winline() - 1
+local code_spell = vim.wo[code_win].spell
 review.comment()
 local float_win = vim.api.nvim_get_current_win()
 P.ok(float_win ~= code_win, 'float opened')
@@ -128,6 +129,11 @@ P.eq(cfg.win, code_win, 'anchored in the code window')
 P.eq(cfg.anchor, 'NW', 'opens below the cursor when there is room')
 P.eq(cfg.row, cursor_row + 1, 'anchored one row under the cursor line')
 P.eq(vim.bo.filetype, 'markdown', 'float is markdown')
+-- ftplugin/markdown.lua sets window-local 'spell'. Set the filetype before the
+-- window exists and that setting goes to a throwaway autocmd window, leaving
+-- the prose float unchecked.
+P.ok(vim.wo[float_win].spell, 'float has spell on')
+P.eq(vim.wo[code_win].spell, code_spell, "opening the float left the code window's spell alone")
 vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'looks wrong', '', 'see above' })
 local ok_write, write_err = pcall(vim.cmd, 'write')
 P.ok(ok_write, ':write in the float raises no error: ' .. tostring(write_err))

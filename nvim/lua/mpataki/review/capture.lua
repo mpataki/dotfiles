@@ -58,7 +58,6 @@ function M.open(opts)
   -- be hidden. Marking it clean up front instead (QuitPre) breaks `:wqa`/`:xa`,
   -- which only write *changed* buffers. So it hides, and BufHidden wipes it.
   vim.bo[buf].bufhidden = 'hide'
-  vim.bo[buf].filetype = 'markdown'
   vim.api.nvim_buf_set_name(buf, name)
   local lines = vim.split(opts.body or '', '\n', { plain = true })
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
@@ -77,6 +76,13 @@ function M.open(opts)
     title = ' ' .. opts.title .. ' ',
     title_pos = 'left',
   })
+  -- Filetype *after* the window is open and focused: setting it on a buffer no
+  -- window shows sends the FileType autocmd through a temporary autocmd window,
+  -- where ftplugin/markdown.lua's window-local 'spell' is set and then thrown
+  -- away with that window. Set it here and the ftplugin lands on the float.
+  vim.bo[buf].filetype = 'markdown'
+  -- Explicit anyway: prose belongs spell-checked, ftplugin or not.
+  vim.wo[win].spell = true
   vim.wo[win].wrap = true
   vim.wo[win].linebreak = true
 
