@@ -1,6 +1,28 @@
--- Review comments from nvim: commands, keymaps, and glue between pr/store/
--- render/capture. Push and pull live in sync.lua (Task 7) but are registered
--- here so the command surface is in one place.
+-- PR review comments from nvim: draft inline comments on the PR's changed
+-- lines, see everyone's threads as virtual text, push a pending GitHub review.
+-- Commands, keymaps and glue between pr/store/render/capture; push and pull
+-- live in sync.lua but register here so the command surface is in one place.
+--
+-- Usage: `gh pr checkout N` (or a worktree on the PR branch), open nvim there.
+--   <leader>gS      pick a file changed in the PR
+--   <leader>go      toggle the inline diff overlay (against the PR base)
+--   <leader>gc      comment at the cursor or on the visual range; `:w` saves,
+--                   `q` cancels, an empty body deletes the comment
+--   <leader>gC      every comment, mine and remote, into the quickfix list
+--   ]q / [q         walk that quickfix list (Neovim defaults)
+--   :ReviewPull     fetch remote threads + my pending review, then re-render
+--   :ReviewPush[!]  create/replace my pending review on GitHub; `!` skips the
+--                   clobber guard (push over a pending review that has drifted)
+--   :ReviewOpen     edit the draft file directly (escape hatch)
+--   :ReviewRender   re-render comments in this buffer
+--   :ReviewRefresh  drop the cached PR identity and re-render — after a rebase,
+--                   or when the PR is opened mid-session
+--
+-- Drafts live outside the worktree, in <git-common-dir>/reviews/<N>.md.
+--
+-- The review is meant to be finished in the browser, and two steps only happen
+-- there: retiring a pending review (emptying the draft and pushing is refused,
+-- so delete the review in the browser) and submitting the verdict.
 local pr = require('mpataki.review.pr')
 local store = require('mpataki.review.store')
 local render = require('mpataki.review.render')
