@@ -1,0 +1,129 @@
+local P = require('probe')
+local graph = require('mpataki.spelunk.graph')
+
+-- Random suffix keeps every sym unique to this run.
+local tag = tostring(math.random(1e6))
+local function S(name, path, line)
+  return { name = name .. tag, kind = 12, path = path, line = line, col = 1 }
+end
+
+local root = S('NewPod', 'internal/view/pod.go', 50)
+local pfi = S('portForwardIndicator', 'internal/view/pod.go', 66)
+local rows = S('RowsRange', 'internal/model1/table_data.go', 98)
+local fwd = S('IsPodForwarded', 'internal/watch/forwarders.go', 57)
+local caller = S('Caller', 'internal/view/browser.go', 10)
+
+P.eq(graph.key(root), 'internal/view/pod.go:50:' .. root.name, 'key is path:line:name')
+
+local g = graph.new(root)
+P.eq(graph.key(g:current()), graph.key(root), 'new: root is current')
+for _, m in ipairs({ 'expand', 'visit', 'note', 'prune', 'current', 'frontier', 'children', 'serialize' }) do
+  P.eq(type(g[m]), 'function', 'api method g:' .. m)
+end
+P.eq(type(graph.deserialize), 'function', 'api graph.deserialize')
+
+-- expand + idempotency
+g:expand(root, 'callee', { pfi, S('Other', 'internal/view/pod.go', 90) })
+g:expand(root, 'caller', { caller })
+P.eq(#g:children(root), 3, 'expand adds pending children')
+P.eq(#g:frontier(), 3, 'frontier lists every pending child')
+g:expand(root, 'callee', { pfi, S('Other', 'internal/view/pod.go', 90) })
+P.eq(#g:children(root), 3, 'expand idempotent: repeat adds no duplicates')
+g:expand(root, 'caller', { pfi })
+P.eq(#g:children(root), 4, 'expand keys on (from, edge, child): new edge kind is a new entry')
+
+-- visit: explored
+P.eq(g:visit(pfi), 'explored', "visit pending child of current -> 'explored'")
+P.eq(graph.key(g:current()), graph.key(pfi), 'explored child becomes current')
+local st
+for _, c in ipairs(g:children(root)) do
+  if graph.key(c.sym) == graph.key(pfi) then st = c.state end
+end
+P.eq(st, 'explored', 'explored child state flips under its parent')
+P.eq(#g:children(root), 3, 'duplicate tree entry (second edge kind) folded out of children')
+
+g:expand(root, 'callee', { pfi })
+local tree_entries = 0
+for _, c in ipairs(g:children(root)) do
+  if graph.key(c.sym) == graph.key(pfi) then
+    tree_entries = tree_entries + 1
+    P.eq(c.state, 'explored', 'expand after explore does not reset explored state')
+  end
+end
+P.eq(tree_entries, 1, 'expand after explore does not duplicate child')
+
+P.eq(g:visit(pfi), 'noop', "visit current -> 'noop'")
+
+-- visit: jump (unknown)
+g:expand(pfi, 'callee', { rows, fwd, S('A', 'internal/x/a.go', 1), S('B', 'internal/x/b.go', 2) })
+P.eq(g:visit(fwd), 'explored', 'visit second pending child')
+local unknown = S('Grepped', 'internal/y/grep.go', 7)
+P.eq(g:visit(unknown), 'jump', "visit unknown sym -> 'jump'")
+local jc = g:children(fwd)
+P.ok(#jc == 1 and jc[1].edge == 'jump' and jc[1].tree, 'jump: new node under previous current via jump edge')
+
+-- visit: back
+P.eq(g:visit(root), 'back', "visit existing node elsewhere -> 'back'")
+local back_edge
+for _, c in ipairs(g:children(unknown)) do
+  if graph.key(c.sym) == graph.key(root) and c.back then back_edge = c end
+end
+P.ok(back_edge ~= nil, 'back: back=true edge from previous current')
+P.eq(graph.key(g:current()), graph.key(root), 'back target becomes current')
+local before = #g:children(root)
+P.eq(g:visit(pfi), 'back', 'walking a tree edge down is still back')
+P.eq(#g:children(root), before, 'tree-edge navigation adds no edge')
+
+-- visit: pending child of a non-current node
+local g2 = graph.new(root)
+g2:expand(root, 'callee', { pfi, fwd })
+g2:visit(pfi)
+g2:expand(pfi, 'callee', { rows })
+g2:visit(root) -- back to root via tree edge
+P.eq(g2:visit(rows), 'explored', 'non-current pending: visit reports explored')
+local info = g2:info(rows)
+P.eq(info and graph.key(info.parent), graph.key(pfi), 'non-current pending: explored under its own parent')
+local jump
+for _, c in ipairs(g2:children(root)) do
+  if graph.key(c.sym) == graph.key(rows) then jump = c end
+end
+P.ok(jump and jump.edge == 'jump' and jump.state == 'explored', 'non-current pending: jump edge from current')
+P.eq(graph.key(g2:current()), graph.key(rows), 'non-current pending: becomes current')
+
+-- loops reported by the LSP are back-edges, not frontier
+g2:expand(rows, 'caller', { root })
+local loop = g2:children(rows)[1]
+P.ok(loop.back and loop.state == 'explored', 'expand to an existing node records a back-edge')
+local in_frontier = false
+for _, s in ipairs(g2:frontier()) do
+  if graph.key(s) == graph.key(root) then in_frontier = true end
+end
+P.ok(not in_frontier, 'existing node never counts as frontier')
+
+-- note / prune
+g2:note(pfi, 'first\nsecond')
+P.eq(g2:info(pfi).note, 'first', 'note keeps one line')
+g2:note(pfi, 'replaced')
+P.eq(g2:info(pfi).note, 'replaced', 'note replaces')
+g2:note(pfi, '  ')
+P.eq(g2:info(pfi).note, nil, 'blank note clears')
+g2:expand(pfi, 'callee', { S('Hidden', 'internal/z/h.go', 3) })
+local n0 = #g2:frontier()
+g2:prune(pfi)
+P.ok(g2:info(pfi).pruned, 'prune sets pruned flag')
+P.ok(#g2:frontier() < n0, 'pruned subtree leaves frontier')
+P.eq(#g2:children(pfi), 2, 'prune keeps data')
+g2:prune(pfi, false)
+P.ok(not g2:info(pfi).pruned, 'prune(sym, false) unprunes')
+
+-- serialize is JSON-safe
+g2:note(rows, 'n')
+local t = vim.json.decode(vim.json.encode(g2:serialize()))
+local g3 = graph.deserialize(t)
+P.eq(graph.key(g3:current()), graph.key(g2:current()), 'deserialize keeps current')
+P.eq(vim.inspect(g3:frontier()), vim.inspect(g2:frontier()), 'deserialize keeps frontier')
+P.eq(vim.inspect(g3:children(pfi)), vim.inspect(g2:children(pfi)), 'deserialize keeps children')
+P.eq(g3:info(rows).note, 'n', 'deserialize keeps notes')
+P.eq(g3:visit(fwd), 'explored', 'deserialized graph keeps working')
+
+P.done()
