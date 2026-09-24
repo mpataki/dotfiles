@@ -29,9 +29,10 @@
 --
 -- No global keymaps yet; <leader>s* is the suggested prefix once a real dive
 -- shows which of these get used.
+
 -- graph and render load on first session, not at startup: the config calls
--- setup() on every launch and most launches never dive. lsp_probe also holds
--- lsp.lua to being usable with graph.lua never loaded.
+-- setup() on every launch and most launches never dive. lsp.lua never
+-- requires graph.lua; membership goes through set_known().
 local function graph() return require('mpataki.spelunk.graph') end
 local function render() return require('mpataki.spelunk.render') end
 local lsp = require('mpataki.spelunk.lsp')
@@ -40,6 +41,8 @@ local pr = require('mpataki.review.pr')
 local M = {}
 
 M.WIDTH = 40
+
+local NO_SESSION = 'no session — :SpelunkStart [name] or :SpelunkMark on a symbol'
 
 local config = {}
 
@@ -193,7 +196,7 @@ local function on_event(ev)
 end
 
 function M.note(text, sym)
-  if not session then return notify('no session', vim.log.levels.WARN) end
+  if not session then return notify(NO_SESSION, vim.log.levels.WARN) end
   sym = sym or session.g:current()
   local function apply(t)
     if t == nil then return end
@@ -258,7 +261,7 @@ local function map_split(buf)
 end
 
 function M.open()
-  if not session then return notify('no session', vim.log.levels.WARN) end
+  if not session then return notify(NO_SESSION, vim.log.levels.WARN) end
   if split_open() then return end
   local origin = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_create_buf(false, true)
@@ -318,7 +321,7 @@ local function commands()
     if session then lsp.mark() else cursor_sym(function(sym) M.start(sym) end) end
   end, { desc = 'spelunk: record the cursor symbol as a visit' })
   cmd('SpelunkExport', function()
-    if not session then return notify('no session', vim.log.levels.WARN) end
+    if not session then return notify(NO_SESSION, vim.log.levels.WARN) end
     if M.export() then notify('wrote ' .. M.export_path()) end
   end, { desc = 'spelunk: write the export now' })
 end
