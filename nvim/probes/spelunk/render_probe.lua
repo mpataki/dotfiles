@@ -1,0 +1,127 @@
+local P = require('probe')
+local graph = require('mpataki.spelunk.graph')
+local render = require('mpataki.spelunk.render')
+
+local tag = tostring(math.random(1e6))
+local function S(name, path, line)
+  return { name = name .. tag, kind = 12, path = path, line = line }
+end
+local function find(lines, pat)
+  for i, l in ipairs(lines) do
+    if l:find(pat, 1, true) then return i, l end
+  end
+end
+
+local root = S('NewPod', 'internal/view/pod.go', 50)
+local pfi = S('portForwardIndicator', 'internal/view/pod.go', 66)
+local rows = S('RowsRange', 'internal/model1/table_data.go', 98)
+local fwd = S('IsPodForwarded', 'internal/watch/forwarders.go', 57)
+
+local g = graph.new(root)
+g:expand(root, 'callee', { pfi })
+g:expand(root, 'caller', { S('C1', 'internal/a/c.go', 1), S('C2', 'internal/a/d.go', 2) })
+g:visit(pfi)
+g:expand(pfi, 'callee', { rows, fwd, S('X1', 'internal/x/x.go', 1), S('X2', 'internal/x/x.go', 9),
+  S('X3', 'internal/x/y.go', 1), S('X4', 'internal/x/z.go', 1) })
+-- Walk fwd before rows: the tree must follow visit order, not expand order.
+g:visit(fwd)
+g:note(fwd, 'the real check')
+g:expand(fwd, 'caller', { root })
+g:visit(pfi)
+g:visit(rows)
+
+local lines, index = render.tree(g)
+-- index has nil holes, so # is meaningless on it; check every slot instead.
+local parallel = table.maxn(index) <= #lines
+for i = 1, #lines do
+  if index[i] ~= nil and type(index[i].name) ~= 'string' then parallel = false end
+end
+P.ok(parallel, 'index parallel to lines (sym or nil per line)')
+
+-- DFS first-visit order
+local ir, lr = find(lines, rows.name)
+local iff, lf = find(lines, fwd.name)
+P.ok(iff and ir and iff < ir, 'tree: DFS in first-visit order (fwd walked before rows)')
+P.eq(lines[1]:match('^%S+'), root.name, 'tree: root on line 1, no connector')
+
+-- glyphs
+P.ok(lf:find('├─→ ' .. fwd.name, 1, true) ~= nil, 'tree: → glyph for callee')
+local il, ll = find(lines, '↩ ' .. root.name)
+P.ok(ll and ll:find('(loop)', 1, true) ~= nil, 'tree: ↩ glyph + (loop) for back-edge')
+P.ok(il and il == iff + 1, 'tree: back-edge drawn under the node it came from')
+P.eq(index[il] and graph.key(index[il]), graph.key(root), 'index: back-edge line maps to target sym')
+local ic, lc = find(lines, '2 unexplored callers')
+P.ok(lc and lc:find('└─? ', 1, true) ~= nil, 'tree: ? glyph + count for collapsed frontier')
+P.eq(index[ic], nil, 'index: count line is nil')
+P.ok(lr:find('> YOU ARE HERE', 1, true) ~= nil, 'tree: > YOU ARE HERE on current node')
+local _, x1 = find(lines, 'X1' .. tag)
+P.eq(x1, nil, 'tree: sibling frontier of pfi not individually listed when rows is current')
+
+-- current's own frontier expands to individual children
+g:expand(rows, 'callee', { S('R1', 'internal/q/r.go', 4), S('R2', 'internal/q/r.go', 8) })
+lines, index = render.tree(g)
+local i1, l1 = find(lines, '? R1' .. tag)
+P.ok(l1 ~= nil and find(lines, '2 unexplored callees') == nil,
+  'tree: frontier under current expands to individual unexplored children')
+P.eq(index[i1] and graph.key(index[i1]), graph.key(S('R1', 'internal/q/r.go', 4)),
+  'index: expanded frontier line maps to its sym')
+P.ok(find(lines, '4 unexplored callees') ~= nil, 'tree: non-current frontier collapsed to a count')
+
+-- note inline, path prefix dropped
+local _, nl = find(lines, fwd.name)
+P.ok(nl:find('watch/forwarders.go:57%s+note: the real check') ~= nil, 'tree: note inline after path')
+P.ok(nl:find('internal/', 1, true) == nil and lines[1]:find('view/pod.go:50', 1, true) ~= nil,
+  'tree: common path prefix dropped')
+local gi = graph.new(S('A', 'lib/a.go', 1))
+gi:visit(S('B', 'cmd/b.go', 1))
+P.ok(render.tree(gi)[1]:find('lib/a.go:1', 1, true) ~= nil, 'tree: no common prefix keeps full paths')
+
+-- index maps node lines to syms
+local ip = find(lines, pfi.name)
+P.eq(graph.key(index[ip]), graph.key(pfi), 'index: node line maps to its sym')
+P.eq(graph.key(index[1]), graph.key(root), 'index: root line maps to root')
+
+-- pruned subtree is one line
+g:visit(root)
+g:prune(pfi)
+lines, index = render.tree(g)
+local pl = find(lines, '… (pruned)')
+P.ok(pl ~= nil and find(lines, rows.name) == nil and find(lines, fwd.name) == nil,
+  'tree: pruned subtree renders as one … (pruned) line')
+P.eq(pl and index[pl], nil, 'index: pruned line is nil')
+P.eq(graph.key(index[pl - 1]), graph.key(pfi), 'tree: pruned node itself still listed')
+g:prune(pfi, false)
+
+-- round-trip renders identical lines
+local want = render.tree(g)
+local back = graph.deserialize(vim.json.decode(vim.json.encode(g:serialize())))
+P.eq(table.concat(render.tree(back), '\n'), table.concat(want, '\n'),
+  'round-trip: deserialize(serialize(g)) renders identical lines')
+P.eq(render.markdown(back, 's'), render.markdown(g, 's'), 'round-trip: identical markdown')
+
+-- markdown
+g:visit(pfi)
+g:note(pfi, 'hub')
+local md = render.markdown(g, 'dive-1')
+P.ok(md:find('^# spelunk: dive%-1\n') ~= nil, 'markdown: # spelunk: <session> header')
+P.ok(md:find('```mermaid\ngraph TD\n', 1, true) ~= nil, 'markdown: mermaid graph TD block')
+local fid, rid = md:match('\n  (n%x+) %-%.%->|caller| (n%x+)\n')
+P.ok(fid ~= nil and fid ~= rid, 'markdown: back-edge dashed with edge-kind label')
+P.ok(md:find('%-%->|callee|') ~= nil, 'markdown: tree edge solid with edge-kind label')
+local cid = md:match('\n  (n%x+)%["' .. pfi.name .. '"%]')
+P.ok(cid ~= nil, 'markdown: node id safe (n + hex), label = name')
+P.ok(md:find('\n  style ' .. cid .. ' ', 1, true) ~= nil, 'markdown: current node styled')
+P.ok(md:find('```text\n' .. table.concat(render.tree(g), '\n') .. '\n```', 1, true) ~= nil,
+  'markdown: tree in a fenced block')
+P.ok(md:find('\n## Notes\n', 1, true) ~= nil, 'markdown: ## Notes section')
+P.ok(md:find('\n- **' .. fwd.name .. '** internal/watch/forwarders.go:57 — the real check\n', 1, true) ~= nil,
+  'markdown: note as - **name** path:line — note')
+P.ok(md:find('\n- **' .. pfi.name .. '** internal/view/pod.go:66 — hub\n', 1, true) ~= nil,
+  'markdown: every noted node listed')
+
+local q = graph.new({ name = 'Pod."x" [y]', kind = 6, path = 'a.go', line = 1 })
+local qmd = render.markdown(q, 'q')
+P.ok(qmd:find('["Pod.#quot;x#quot; [y]"]', 1, true) ~= nil, 'markdown: quotes in label escaped')
+P.ok(qmd:find('_(none)_', 1, true) ~= nil, 'markdown: empty notes placeholder')
+
+P.done()
