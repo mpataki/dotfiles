@@ -103,8 +103,18 @@ function Graph:expand(from, edge, children)
   end
 end
 
-local function adjacent(self, a, b)
-  return self._nodes[a].parent == b or self._nodes[b].parent == a
+local function is_ancestor(self, a, b)
+  local p = self._nodes[b].parent
+  while p do
+    if p == a then return true end
+    p = self._nodes[p].parent
+  end
+  return false
+end
+
+-- Same root-to-leaf path: one is an ancestor of the other.
+local function related(self, a, b)
+  return is_ancestor(self, a, b) or is_ancestor(self, b, a)
 end
 
 -- First node, DFS order, holding a pending entry for k.
@@ -134,9 +144,11 @@ function Graph:visit(sym)
   if k == prev then return 'noop' end
 
   if self._nodes[k] then
-    -- Walking an existing tree edge (back up to the parent, down to a child you
-    -- already explored) is navigation, not a loop; it adds no edge.
-    if not adjacent(self, prev, k) and not find_entry(self._kids[prev], k) then
+    -- Retreating up your own path (<C-o> to any ancestor) or going back down
+    -- it is navigation, not a loop; it adds no edge. Loops the code itself
+    -- forms are already caught at expand time. Only landing in another
+    -- subtree draws a cross edge.
+    if not related(self, prev, k) and not find_entry(self._kids[prev], k) then
       local list = self._kids[prev]
       list[#list + 1] = explored_entry(self, k, sym, 'jump', true)
     end

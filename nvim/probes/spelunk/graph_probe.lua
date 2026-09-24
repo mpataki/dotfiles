@@ -63,16 +63,25 @@ local jc = g:children(fwd)
 P.ok(#jc == 1 and jc[1].edge == 'jump' and jc[1].tree, 'jump: new node under previous current via jump edge')
 
 -- visit: back
-P.eq(g:visit(root), 'back', "visit existing node elsewhere -> 'back'")
-local back_edge
-for _, c in ipairs(g:children(unknown)) do
-  if graph.key(c.sym) == graph.key(root) and c.back then back_edge = c end
-end
-P.ok(back_edge ~= nil, 'back: back=true edge from previous current')
+local n_unknown = #g:children(unknown)
+P.eq(g:visit(root), 'back', "visit an ancestor -> 'back'")
+P.eq(#g:children(unknown), n_unknown, 'retreat to an ancestor adds no edge')
 P.eq(graph.key(g:current()), graph.key(root), 'back target becomes current')
 local before = #g:children(root)
 P.eq(g:visit(pfi), 'back', 'walking a tree edge down is still back')
 P.eq(#g:children(root), before, 'tree-edge navigation adds no edge')
+-- a node in another subtree is a real cross edge
+g:visit(root)
+local other = S('Other', 'internal/z/other.go', 3)
+g:expand(root, 'caller', { other })
+P.eq(g:visit(other), 'explored', 'second subtree under root')
+P.eq(g:visit(fwd), 'back', "visit existing node in another subtree -> 'back'")
+local back_edge
+for _, c in ipairs(g:children(other)) do
+  if graph.key(c.sym) == graph.key(fwd) and c.back then back_edge = c end
+end
+P.ok(back_edge ~= nil, 'back: back=true edge from previous current')
+P.eq(graph.key(g:current()), graph.key(fwd), 'cross target becomes current')
 
 -- visit: pending child of a non-current node
 local g2 = graph.new(root)
