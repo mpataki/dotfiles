@@ -213,4 +213,17 @@ cl = render.tree(gcap)
 P.ok(find(cl, '? 13 unexplored callees') and find(cl, '? 2 unexplored callers'),
   'decision 8: collapsed counts count unique syms (15 = 13 + 2, not 17)')
 
+-- two back-edges onto the same node from one place read as one line
+local fa, fb, fc = S('A', 'x/a.go', 1), S('B', 'x/b.go', 2), S('C', 'x/c.go', 3)
+local gb = graph.new(fa)
+gb:expand(fa, 'callee', { fb, fc })
+gb:visit(fb)
+gb:visit(fc)                             -- jump edge fb -> fc
+gb:expand(fc, 'impl', { fb })            -- a second, different fact onto fb
+local bl = 0
+for _, l in ipairs((render.tree(gb))) do
+  if l:find('↩ B', 1, true) then bl = bl + 1 end
+end
+P.eq(bl, 1, 'back-edges onto the same target under one node fold into one ↩ line')
+
 P.done()

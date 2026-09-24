@@ -14,11 +14,13 @@
 --   * entries get `at` (a global sequence number) when they become explored, so
 --     sorting by it replays first-visit order; pending entries get `born` at
 --     creation, so the most recent expand is the one a visit walks.
---   * facts: a caller/callee/def/impl entry is one directed code relation
---     (`call|<caller>|<callee>`, `def|<from>|<to>`, `impl|<from>|<to>`), and no
---     two entries anywhere hold the same fact: B's callers naming A is the
---     same fact as A's callees naming B, and is dropped at expand. No entry
---     points at its own node. `_facts` is derived from the entries.
+--   * facts: a caller/callee/def/impl entry is one code relation
+--     (`call|<caller>|<callee>`, `impl|<a>|<b>` with a < b), and no two entries
+--     anywhere hold the same fact: B's callers naming A is the same fact as A's
+--     callees naming B, gd on B from inside A is the same fact as A calling B,
+--     and gi answered from either side of an interface is the same fact. Each
+--     is dropped at expand. No entry points at its own node. `_facts` is
+--     derived from the entries.
 local M = {}
 
 local Graph = {}
@@ -40,8 +42,11 @@ end
 -- nil for 'jump': navigation is not a code relation.
 local function fact(from, edge, to)
   if edge == 'caller' then return 'call|' .. to .. '|' .. from end
-  if edge == 'callee' then return 'call|' .. from .. '|' .. to end
-  if edge == 'def' or edge == 'impl' then return edge .. '|' .. from .. '|' .. to end
+  if edge == 'callee' or edge == 'def' then return 'call|' .. from .. '|' .. to end
+  if edge == 'impl' then
+    if to < from then from, to = to, from end
+    return 'impl|' .. from .. '|' .. to
+  end
 end
 
 local function record(self, from, e)

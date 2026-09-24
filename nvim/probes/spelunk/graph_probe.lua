@@ -179,6 +179,23 @@ P.ok(#cyc == 1 and cyc[1].back and cyc[1].edge == 'callee',
 gd:expand(exec, 'callee', { run, S('Init', 'v/types.go', 57) })
 P.eq(#entries(gd, exec, run), 1, 'decision 3: exec\'s callees naming run add no second line')
 
+-- gd on a callee you came down to is the call you walked; gi is the same fact
+-- from either side of the interface
+local gn = graph.new(pf)
+gn:expand(pf, 'caller', { npod })
+gn:visit(npod)
+gn:expand(npod, 'def', { pf })
+P.eq(#entries(gn, npod, pf), 0, 'gd from a caller onto the callee you came up from is the same fact, skipped')
+gn:expand(pf, 'def', { npod })
+P.eq(#entries(gn, pf, npod), 1, 'gd the other way (pf uses npod) is a new fact and stays')
+local iface, impl = S('Lister.List', 'd/types.go', 69), S('Pod.List', 'd/pod.go', 80)
+local gi = graph.new(impl)
+gi:expand(impl, 'impl', { iface })
+gi:visit(iface)
+gi:expand(iface, 'impl', { impl, S('Generic.List', 'd/generic.go', 40) })
+P.eq(#entries(gi, iface, impl), 0, 'impl is undirected: the interface naming its implementer is the same fact')
+P.eq(#gi:children(iface), 1, '…and the other implementer still lands')
+
 -- decision 6: glyph from the edge actually walked (most recent expand wins)
 P.eq(tree[1].edge, 'callee', 'decision 6: visit walks the most recent pending entry (callee over caller)')
 local g6 = graph.new(run)

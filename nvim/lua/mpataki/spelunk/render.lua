@@ -98,11 +98,14 @@ local function rows(g)
       -- Pending children, one per sym (a sym pending under two edges is one
       -- choice): first-listed position, latest entry's edge (the one a visit
       -- walks). Externals only ever count.
-      local pend, at, ext, n_ext = {}, {}, {}, 0
+      -- Back-edges fold by target too: two facts reaching the same known node
+      -- from here are one thing to read ("this leads back to X").
+      local pend, at, ext, n_ext, seen_back = {}, {}, {}, 0, {}
       for _, c in ipairs(g:children(sym)) do
         local k = graph.key(c.sym)
         if c.state ~= 'unexplored' then
-          kids[#kids + 1] = { child = c }
+          if c.tree or not seen_back[k] then kids[#kids + 1] = { child = c } end
+          if not c.tree then seen_back[k] = true end
         elseif external(c.sym) then
           if not ext[k] then ext[k], n_ext = true, n_ext + 1 end
         elseif at[k] then
