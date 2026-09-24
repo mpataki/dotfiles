@@ -42,34 +42,44 @@ P.ok(parallel, 'index parallel to lines (sym or nil per line)')
 local ir, lr = find(lines, rows.name)
 local iff, lf = find(lines, fwd.name)
 P.ok(iff and ir and iff < ir, 'tree: DFS in first-visit order (fwd walked before rows)')
-P.eq(lines[1]:match('^%S+'), root.name, 'tree: root on line 1, no connector')
+P.eq(lines[1]:match('^  (%S+)'), root.name, 'tree: root on line 1, no connector (after the gutter)')
 
 -- glyphs
 P.ok(lf:find('├─→ ' .. fwd.name, 1, true) ~= nil, 'tree: → glyph for callee')
 local il, ll = find(lines, '↩ ' .. root.name)
-P.ok(ll and ll:find('(loop)', 1, true) ~= nil, 'tree: ↩ glyph + (loop) for back-edge')
-P.ok(il and il == iff + 1, 'tree: back-edge drawn under the node it came from')
+P.ok(ll and ll:find('↩ ' .. root.name .. ' (cycle)', 1, true) ~= nil,
+  'decision 4: ↩ onto an ancestor is labelled (cycle)')
+P.ok(ll and ll:find('view/pod.go:50', 1, true) ~= nil, 'decision 4: ↩ line carries the target path')
+P.ok(il and il == iff + 2, 'tree: back-edge drawn under the node it came from (decision 2: after its note line)')
 P.eq(index[il] and graph.key(index[il]), graph.key(root), 'index: back-edge line maps to target sym')
 local ic, lc = find(lines, '2 unexplored callers')
 P.ok(lc and lc:find('└─? ', 1, true) ~= nil, 'tree: ? glyph + count for collapsed frontier')
 P.eq(index[ic], nil, 'index: count line is nil')
-P.ok(lr:find('> YOU ARE HERE', 1, true) ~= nil, 'tree: > YOU ARE HERE on current node')
+P.ok(lr:find('^▶ ') ~= nil, 'decision 1: ▶ in the gutter on the current node')
+local marked, gutters = 0, true
+for _, l in ipairs(lines) do
+  if l:find('^▶ ') then marked = marked + 1 elseif not l:find('^  ') then gutters = false end
+end
+P.ok(marked == 1 and gutters, 'decision 1: every line starts with a 2-col gutter, ▶ on one line only')
+P.ok(not table.concat(lines, '\n'):find('YOU ARE HERE', 1, true), 'decision 1: no > YOU ARE HERE suffix')
 local _, x1 = find(lines, 'X1' .. tag)
 P.eq(x1, nil, 'tree: sibling frontier of pfi not individually listed when rows is current')
 
 -- current's own frontier expands to individual children
 g:expand(rows, 'callee', { S('R1', 'internal/q/r.go', 4), S('R2', 'internal/q/r.go', 8) })
 lines, index = render.tree(g)
-local i1, l1 = find(lines, '? R1' .. tag)
+local i1, l1 = find(lines, '?→ R1' .. tag)
 P.ok(l1 ~= nil and find(lines, '2 unexplored callees') == nil,
   'tree: frontier under current expands to individual unexplored children')
 P.eq(index[i1] and graph.key(index[i1]), graph.key(S('R1', 'internal/q/r.go', 4)),
   'index: expanded frontier line maps to its sym')
 P.ok(find(lines, '4 unexplored callees') ~= nil, 'tree: non-current frontier collapsed to a count')
 
--- note inline, path prefix dropped
-local _, nl = find(lines, fwd.name)
-P.ok(nl:find('watch/forwarders.go:57%s+note: the real check') ~= nil, 'tree: note inline after path')
+-- note on its own line, path prefix dropped
+local ni, nl = find(lines, fwd.name)
+P.ok(nl:find('watch/forwarders.go:57$') ~= nil, 'decision 2: nothing past the path column on a node line')
+P.eq(lines[ni + 1], '  │   │   · the real check', 'decision 2: note on its own line, indented past the connector')
+P.eq(index[ni + 1], nil, 'decision 2: note line index is nil')
 P.ok(nl:find('internal/', 1, true) == nil and lines[1]:find('view/pod.go:50', 1, true) ~= nil,
   'tree: common path prefix dropped')
 local gi = graph.new(S('A', 'lib/a.go', 1))
@@ -123,5 +133,40 @@ local q = graph.new({ name = 'Pod."x" [y]', kind = 6, path = 'a.go', line = 1 })
 local qmd = render.markdown(q, 'q')
 P.ok(qmd:find('["Pod.#quot;x#quot; [y]"]', 1, true) ~= nil, 'markdown: quotes in label escaped')
 P.ok(qmd:find('_(none)_', 1, true) ~= nil, 'markdown: empty notes placeholder')
+
+-- decision 4: two paths meeting is (seen), not a cycle
+local ra, rb, rc = S('RA', 'lib/a.go', 1), S('RB', 'lib/b.go', 1), S('RC', 'lib/c.go', 1)
+local gc = graph.new(ra)
+gc:expand(ra, 'callee', { rb, rc })
+gc:visit(rb)
+gc:expand(rb, 'callee', { S('RD', 'lib/d.go', 1) })
+gc:visit(S('RD', 'lib/d.go', 1))
+gc:visit(ra)
+gc:visit(rc)
+gc:expand(rc, 'caller', { S('RD', 'lib/d.go', 1) })
+local _, seen = find(render.tree(gc), '↩ RD' .. tag)
+P.ok(seen and seen:find('(seen)', 1, true) and seen:find('d.go:1', 1, true),
+  'decision 4: ↩ onto a node elsewhere is labelled (seen), with its path')
+
+-- decision 1: the path column moves left so the current node's line fits,
+-- even when deeper rows would pad it past the split width
+local top = S('Top', 'v/app.go', 10)
+local deep = graph.new(top)
+local at, lvl1 = top, nil
+for d = 1, 4 do
+  local n = S('Nested' .. d, 'm/lvl.go', 100 + d)
+  deep:expand(at, 'callee', { n })
+  deep:visit(n)
+  lvl1 = lvl1 or n
+  at = n
+end
+deep:visit(lvl1)
+local dl, _, dh = render.tree(deep)
+P.ok(dh and dl[dh]:find('^▶ ') and vim.fn.strdisplaywidth(dl[dh]) <= render.WIDTH,
+  'decision 1: current node line <= ' .. render.WIDTH .. ' cells — ' .. tostring(dh and dl[dh]))
+deep:visit(top)
+dl, _, dh = render.tree(deep)
+P.ok(dh == 1 and vim.fn.strdisplaywidth(dl[1]) <= render.WIDTH,
+  'decision 1: tree returns the current line, fitted — ' .. dl[1])
 
 P.done()

@@ -90,36 +90,36 @@ P.eq(vim.bo[sb].buftype, 'nofile', 'open: scratch buffer')
 P.eq(vim.bo[sb].modifiable, false, 'open: nomodifiable')
 P.eq(vim.wo[sw].wrap, false, 'open: nowrap')
 P.eq(vim.wo[sw].cursorline, true, 'open: cursorline')
-P.ok((lines()[1] or ''):find('^portForwardIndicator.*YOU ARE HERE'), 'open: root rendered as current')
+P.ok((lines()[1] or ''):find('^▶ portForwardIndicator'), 'open: root rendered as current (decision 1: ▶ gutter)')
 
 -- AC scenario: outgoing, jump to a callee, incoming there ---------------------
 vim.lsp.buf.outgoing_calls()
 P.wait(15000, function() return #lines() >= 7 end)
 vim.cmd('cclose')
 P.eq(#lines(), 7, 'outgoing: current root lists its six callees individually')
-P.ok(find('%? IsPodForwarded'), 'outgoing: IsPodForwarded pending under the current node')
+P.ok(find('%?→ IsPodForwarded'), 'outgoing: IsPodForwarded pending under the current node')
 
 vim.cmd('edit ' .. FWD)
 -- On the method name: call hierarchy on the receiver asks about Forwarders.
 move(57, 22)
-P.wait(10000, function() return find('IsPodForwarded.*YOU ARE HERE') ~= nil end)
+P.wait(10000, function() return find('^▶ .*IsPodForwarded') ~= nil end)
 P.wait(SETTLE)
 local i, l = find('IsPodForwarded')
-P.ok(l and l:find('→ IsPodForwarded') and l:find('forwarders%.go:57') and l:find('YOU ARE HERE'),
+P.ok(l and l:find('→ IsPodForwarded') and l:find('forwarders%.go:57') and l:find('^▶ '),
   'jump: explored callee drawn with → and marked current — ' .. tostring(l))
 
 vim.lsp.buf.incoming_calls()
-P.wait(15000, function() return find('%? .*caller$') ~= nil end)
+P.wait(15000, function() return find('%?← ') ~= nil end)
 P.wait(SETTLE)
 vim.cmd('cclose')
 local got = lines()
-P.ok(got[1]:find('^portForwardIndicator%s+view/pod%.go:66') and not got[1]:find('YOU ARE HERE'),
+P.ok(got[1]:find('^  portForwardIndicator%s+view/pod%.go:66'),
   'scenario: line 1 is the root, no longer current — ' .. got[1])
-P.ok(find('IsPodForwarded.*YOU ARE HERE') == i, 'scenario: explored callee still current')
-P.ok(find('^└─%? 5 unexplored callees$'), 'scenario: root shows frontier count for the 5 remaining callees')
+P.ok(find('^▶ .*IsPodForwarded') == i, 'scenario: explored callee still current')
+P.ok(find('^  └─%? 5 unexplored callees$'), 'scenario: root shows frontier count for the 5 remaining callees')
 P.ok(not find('↩ portForwardIndicator'),
   'decision 3: incoming calls naming the tree parent are the same fact as its callee, not echoed')
-P.ok(#vim.tbl_filter(function(s) return s:find('%? .*caller$') end, got) >= 1,
+P.ok(#vim.tbl_filter(function(s) return s:find('%?← ') end, got) >= 1,
   'scenario: other callers pending individually under the current node')
 local md = read(first_export) or ''
 P.ok(md:find('```mermaid\ngraph TD', 1, true), 'export: file exists with a mermaid block')
@@ -127,21 +127,22 @@ P.ok(md:find('# spelunk: dive-one', 1, true) and md:find('portForwardIndicator',
   'export: session title and root name present')
 
 -- cursor stability, note, prune, <CR> ------------------------------------------
-vim.api.nvim_win_set_cursor(sw, { i, 0 })
+vim.api.nvim_win_set_cursor(sw, { 1, 0 })
 vim.cmd('SpelunkNote the real check')
-P.ok(find('IsPodForwarded.*note: the real check'), ':SpelunkNote text: note on the current node')
-P.eq(lines()[vim.api.nvim_win_get_cursor(sw)[1]]:find('IsPodForwarded') ~= nil, true,
-  're-render: split cursor stays on the same node')
+P.eq(lines()[i + 1], '  │   · the real check', ':SpelunkNote text: note on its own line under the current node')
+P.eq(vim.api.nvim_win_get_cursor(sw)[1], i,
+  'decision 1: re-render snaps the split cursor to the current node when focus is elsewhere')
 local input = vim.ui.input
 vim.ui.input = function(_, cb) cb('prompted') end
 vim.cmd('SpelunkNote')
-P.ok(find('IsPodForwarded.*note: prompted'), ':SpelunkNote no args: prompts')
+P.eq(lines()[i + 1], '  │   · prompted', ':SpelunkNote no args: prompts')
 vim.api.nvim_set_current_win(sw)
 vim.api.nvim_win_set_cursor(sw, { 1, 0 })
 vim.ui.input = function(_, cb) cb('root note') end
 vim.cmd('normal n')
 vim.ui.input = input
-P.ok((lines()[1] or ''):find('note: root note'), 'split n: prompts a note for the node under the cursor')
+P.eq(lines()[2], '  · root note', 'split n: prompts a note for the node under the cursor')
+P.eq(vim.api.nvim_win_get_cursor(sw)[1], 1, 'decision 1: cursor in the split stays where the user put it')
 P.ok((read(first_export) or ''):find('root note', 1, true), 'export: rewritten on change')
 
 vim.api.nvim_win_set_cursor(sw, { 1, 0 })
@@ -150,8 +151,8 @@ P.eq(vim.api.nvim_get_current_win(), origin, '<CR>: jumps in the previous window
 P.eq(vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ':.'), POD, '<CR>: opened the node file')
 P.eq(vim.api.nvim_win_get_cursor(0)[1], 66, '<CR>: at the node line')
 vim.api.nvim_exec_autocmds('CursorMoved', { buffer = vim.api.nvim_get_current_buf() })
-P.wait(SETTLE * 2, function() return (lines()[1] or ''):find('YOU ARE HERE') ~= nil end)
-P.ok((lines()[1] or ''):find('YOU ARE HERE'), '<CR>: lsp visit detection moved current to the root')
+P.wait(SETTLE * 2, function() return (lines()[1] or ''):find('^▶ ') ~= nil end)
+P.ok((lines()[1] or ''):find('^▶ '), '<CR>: lsp visit detection moved current to the root')
 local jumps = vim.tbl_filter(function(s) return s:find('%(jump%)') end, lines())
 P.eq(#jumps, 0, '<CR>: retreat to an ancestor adds no edge')
 
@@ -161,7 +162,7 @@ vim.api.nvim_set_current_win(sw)
 local pi = find('→ IsPodForwarded')
 vim.api.nvim_win_set_cursor(sw, { pi, 0 })
 vim.cmd('normal p')
-P.ok((lines()[pi + 1] or ''):find('└─… %(pruned%)$'), 'split p: prunes the subtree under the cursor node')
+P.ok((lines()[pi + 2] or ''):find('└─… %(pruned%)$'), 'split p: prunes the subtree under the cursor node')
 vim.cmd('normal p')
 P.ok(find('→ IsPodForwarded') == pi and not find('%(pruned%)'), 'split p again: unprunes')
 vim.api.nvim_set_current_win(origin)
@@ -172,7 +173,7 @@ P.wait(SETTLE)
 local before = #lines()
 vim.cmd('SpelunkMark')
 P.wait(5000, function() return #lines() > before end)
-P.ok(find('→ .*YOU ARE HERE'), ':SpelunkMark: cursor sym becomes the current node')
+P.ok(find('^▶ .*→ '), ':SpelunkMark: cursor sym becomes the current node')
 
 -- q, export failure, replace, stop, auto-start ----------------------------------
 vim.api.nvim_set_current_win(sw)

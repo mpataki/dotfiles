@@ -129,19 +129,23 @@ local function split_open()
     and split.buf and vim.api.nvim_buf_is_valid(split.buf)
 end
 
--- Keeps the cursor on the same sym across re-renders; falls back to the same
--- line number when that sym's line is gone.
+-- The split's cursor follows the current node, unless you are in the split
+-- browsing it: then it stays on the same sym (the same line number when that
+-- sym's line is gone). A fresh split always starts on the current node.
 function M.render()
   if not (split_open() and session) then return end
-  local lines, index = render().tree(session.g)
+  local lines, index, here = render().tree(session.g, { width = vim.api.nvim_win_get_width(split.win) })
   local row = vim.api.nvim_win_get_cursor(split.win)[1]
   local was = split.index and split.index[row]
+  local browsing = split.index ~= nil and vim.api.nvim_get_current_win() == split.win
   vim.bo[split.buf].modifiable = true
   vim.api.nvim_buf_set_lines(split.buf, 0, -1, false, lines)
   vim.bo[split.buf].modifiable = false
   split.index = index
   local target = math.min(row, #lines)
-  if was then
+  if not browsing then
+    target = here or target
+  elseif was then
     local k = graph().key(was)
     for i = 1, #lines do
       if index[i] and graph().key(index[i]) == k then target = i break end

@@ -6,18 +6,19 @@ local graph = require('mpataki.spelunk.graph')
 
 local M = {}
 
+M.WIDTH = 40 -- default split width the current node's line is fitted into
 M.LEFT_CAP = 28 -- left column (tree prefix + name) pads to at most this width
-M.PATH_CAP = 32
 M.NOTE_CAP = 60
+
+local HERE, GUTTER = '▶ ', '  ' -- 2-col gutter: marker on the current node only
 
 local PLURAL = { caller = 'callers', callee = 'callees', def = 'definitions',
   impl = 'implementations', jump = 'jumps' }
 
 local width = vim.fn.strdisplaywidth
 
-local function glyph(c)
-  if not c.tree then return '↩' end
-  return c.edge == 'caller' and '←' or '→'
+local function arrow(edge)
+  return edge == 'caller' and '←' or '→'
 end
 
 local function truncate(s, cap)
@@ -57,7 +58,15 @@ local function in_subtree(g, top, sym)
   return false
 end
 
--- Rows are { left, path, tail, sym }; columns are padded once every row is known.
+-- A ↩ line under `at`: a cycle when the target is on the way up from `at`,
+-- a jump when you navigated there, else two paths meeting.
+local function back_label(g, at, c)
+  if in_subtree(g, c.sym, at) then return '(cycle)' end
+  return c.edge == 'jump' and '(jump)' or '(seen)'
+end
+
+-- Rows are { left, path, sym, here }; the path column is placed once every row
+-- is known. Note rows have no path and no sym.
 local function rows(g)
   local out = {}
   local cur = graph.key(g:current())
@@ -67,17 +76,11 @@ local function rows(g)
     if drop ~= '' and p:sub(1, #drop) == drop then p = p:sub(#drop + 1) end
     return p .. ':' .. sym.line
   end
-  local function node_tail(sym)
-    local parts = {}
-    if graph.key(sym) == cur then parts[#parts + 1] = '> YOU ARE HERE' end
-    local info = g:info(sym)
-    if info and info.note then parts[#parts + 1] = 'note: ' .. truncate(info.note, M.NOTE_CAP) end
-    return table.concat(parts, '  ')
-  end
 
   local function node(sym, prefix, head)
-    out[#out + 1] = { left = head .. sym.name, path = short(sym), tail = node_tail(sym), sym = sym }
     local info = g:info(sym)
+    out[#out + 1] = { left = head .. sym.name, path = short(sym), sym = sym, here = graph.key(sym) == cur }
+    if info.note then out[#out + 1] = { left = prefix .. '· ' .. truncate(info.note, M.NOTE_CAP), path = '' } end
     local kids = {}
     if info.pruned and not in_subtree(g, sym, g:current()) then
       kids[1] = { text = '… (pruned)' }
@@ -106,17 +109,16 @@ local function rows(g)
       local branch = prefix .. (last and '└─' or '├─')
       local cont = prefix .. (last and '    ' or '│   ')
       if k.child and k.child.tree then
-        node(k.child.sym, cont, branch .. glyph(k.child) .. ' ')
+        node(k.child.sym, cont, branch .. arrow(k.child.edge) .. ' ')
       elseif k.child then
-        out[#out + 1] = { left = branch .. '↩ ' .. k.child.sym.name, path = '',
-          tail = k.child.back and '(loop)' or '(jump)', sym = k.child.sym }
+        local s = k.child.sym
+        out[#out + 1] = { left = branch .. '↩ ' .. s.name .. ' ' .. back_label(g, sym, k.child),
+          path = short(s), sym = s }
       elseif k.pending then
         local s = k.pending.sym
-        out[#out + 1] = { left = branch .. '? ' .. s.name, path = short(s),
-          tail = k.pending.edge, sym = s }
+        out[#out + 1] = { left = branch .. '?' .. arrow(k.pending.edge) .. ' ' .. s.name, path = short(s), sym = s }
       else
-        out[#out + 1] = { left = branch .. (k.glyph and (k.glyph .. ' ') or '') .. k.text,
-          path = '', tail = '' }
+        out[#out + 1] = { left = branch .. (k.glyph and (k.glyph .. ' ') or '') .. k.text, path = '' }
       end
     end
   end
@@ -131,27 +133,30 @@ local function pad(s, w)
   return s .. string.rep(' ', w - sw + 2)
 end
 
-function M.tree(g)
+-- Returns lines, index (line -> sym, nil holes) and the current node's line.
+-- The path column sits where the current node's line still fits in
+-- opts.width (default M.WIDTH); rows whose left side is wider overflow it.
+function M.tree(g, opts)
+  local limit = (opts and opts.width) or M.WIDTH
   local rs = rows(g)
-  local lw, pw = 0, 0
-  for _, r in ipairs(rs) do
-    if r.path ~= '' or r.tail ~= '' then
+  local lw, here = 0, nil
+  for i, r in ipairs(rs) do
+    if r.here then here = i end
+    if r.path ~= '' then
       local w = width(r.left)
       if w <= M.LEFT_CAP and w > lw then lw = w end
-      w = width(r.path)
-      if w <= M.PATH_CAP and w > pw then pw = w end
     end
+  end
+  if here then
+    lw = math.min(lw, limit - width(HERE) - 2 - width(rs[here].path))
   end
   local lines, index = {}, {}
   for i, r in ipairs(rs) do
-    local line = r.left
-    if r.path ~= '' or r.tail ~= '' then
-      line = pad(r.left, lw) .. (r.tail ~= '' and pad(r.path, pw) .. r.tail or r.path)
-    end
-    lines[i] = (line:gsub('%s+$', ''))
+    local line = r.path ~= '' and pad(r.left, lw) .. r.path or r.left
+    lines[i] = ((r.here and HERE or GUTTER) .. line):gsub('%s+$', '')
     index[i] = r.sym
   end
-  return lines, index
+  return lines, index, here
 end
 
 local function mid(key)
