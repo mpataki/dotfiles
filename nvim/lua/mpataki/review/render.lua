@@ -1,5 +1,6 @@
--- Draws pending and remote comments as virtual lines under their anchor line
--- and fills the quickfix list. Pure presentation: no git, no gh, no file IO.
+-- Draws pending and remote comments as virtual lines under their anchor line,
+-- a gutter sign on every line they cover, and fills the quickfix list. Pure
+-- presentation: no git, no gh, no file IO.
 local M = {}
 
 M.ns = vim.api.nvim_create_namespace('mpataki_review')
@@ -39,6 +40,18 @@ local function mark(buf, line, lines)
   vim.api.nvim_buf_set_extmark(buf, M.ns, line - 1, 0, { virt_lines = lines })
 end
 
+-- Virtual lines hang under the *end* line only, so a multi-line comment reads as
+-- a comment on that one line. One sign per covered line is what makes the range
+-- visible as a range. Same gate as `mark`: lines outside the buffer draw nothing.
+local function range_signs(buf, start_line, line, hl)
+  if type(line) ~= 'number' then return end
+  local last = vim.api.nvim_buf_line_count(buf)
+  local from = type(start_line) == 'number' and start_line or line
+  for l = math.max(from, 1), math.min(line, last) do
+    vim.api.nvim_buf_set_extmark(buf, M.ns, l - 1, 0, { sign_text = '┃', sign_hl_group = hl })
+  end
+end
+
 function M.clear(buf)
   vim.api.nvim_buf_clear_namespace(buf, M.ns, 0, -1)
 end
@@ -47,11 +60,13 @@ function M.render(buf, relpath, entries, threads)
   M.clear(buf)
   for _, e in ipairs(entries or {}) do
     if e.path == relpath then
+      range_signs(buf, e.start_line, e.line, 'ReviewPending')
       mark(buf, e.line, virt_lines('  ┃ [pending] ', e.body, 'ReviewPending'))
     end
   end
   for _, t in ipairs(threads or {}) do
     if t.path == relpath and t.side ~= 'LEFT' then
+      range_signs(buf, t.start_line, t.line, 'ReviewRemote')
       mark(buf, t.line, virt_lines('  ┃ @' .. t.author .. ': ', t.body, 'ReviewRemote'))
     end
   end

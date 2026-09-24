@@ -4,6 +4,25 @@ local render = require('mpataki.review.render')
 local buf = vim.api.nvim_create_buf(false, true)
 vim.api.nvim_buf_set_lines(buf, 0, -1, false, { 'l1', 'l2', 'l3', 'l4', 'l5' })
 
+-- Signs and virtual lines share one namespace, so filter by what a mark carries
+-- rather than counting every extmark in it.
+local function virt_marks(b)
+  local out = {}
+  for _, m in ipairs(vim.api.nvim_buf_get_extmarks(b, render.ns, 0, -1, { details = true })) do
+    if m[4].virt_lines then table.insert(out, m) end
+  end
+  return out
+end
+
+local function sign_rows(b, hl)
+  local out = {}
+  for _, m in ipairs(vim.api.nvim_buf_get_extmarks(b, render.ns, 0, -1, { details = true })) do
+    if m[4].sign_text and (hl == nil or m[4].sign_hl_group == hl) then table.insert(out, m[2]) end
+  end
+  table.sort(out)
+  return out
+end
+
 local entries = {
   { path = 'a.go', line = 2, body = 'pending one\nsecond line' },
   { path = 'other.go', line = 2, body = 'not this file' },
@@ -15,7 +34,7 @@ local threads = {
 }
 
 render.render(buf, 'a.go', entries, threads)
-local marks = vim.api.nvim_buf_get_extmarks(buf, render.ns, 0, -1, { details = true })
+local marks = virt_marks(buf)
 P.eq(#marks, 2, 'one pending + one RIGHT remote rendered')
 
 local by_row = {}
@@ -49,7 +68,7 @@ P.eq(#vim.api.nvim_buf_get_extmarks(buf, render.ns, 0, -1, {}), 0, 'clear remove
 -- end of every line but the last -- so read the text back off the extmark, not
 -- off the input, to see it.
 render.render(buf, 'a.go', { { path = 'a.go', line = 1, body = 'crlf one\r\ncrlf two' } }, {})
-local crlf = vim.api.nvim_buf_get_extmarks(buf, render.ns, 0, -1, { details = true })
+local crlf = virt_marks(buf)
 P.eq(#crlf, 1, 'CRLF body renders one mark')
 P.eq(#crlf[1][4].virt_lines, 2, 'CRLF body splits into two virt lines')
 P.eq(crlf[1][4].virt_lines[1][1][1]:sub(-8), 'crlf one', 'CRLF first virt line ends at the body text')
@@ -60,7 +79,7 @@ P.eq(crlf[1][4].virt_lines[2][1][1]:sub(-8), 'crlf two', 'CRLF second virt line 
 -- its byte length: the prefix carries a multi-byte box-drawing glyph, so equal
 -- body lines must still line up on screen.
 render.render(buf, 'a.go', { { path = 'a.go', line = 1, body = 'ab\ncd' } }, {})
-local aligned = vim.api.nvim_buf_get_extmarks(buf, render.ns, 0, -1, { details = true })[1][4].virt_lines
+local aligned = virt_marks(buf)[1][4].virt_lines
 P.eq(vim.fn.strdisplaywidth(aligned[2][1][1]), vim.fn.strdisplaywidth(aligned[1][1][1]),
   'continuation line aligns under the first line')
 
@@ -71,7 +90,7 @@ local ok_nil = pcall(render.render, buf, 'a.go', {
   { path = 'a.go', line = 2, body = 'has line' },
 }, {})
 P.ok(ok_nil, 'entry with no line does not error')
-P.eq(#vim.api.nvim_buf_get_extmarks(buf, render.ns, 0, -1, {}), 1,
+P.eq(#virt_marks(buf), 1,
   'line-less entry skipped, its sibling still rendered')
 
 -- Deliberate: a comment anchored past the end of the buffer draws nothing.
@@ -83,7 +102,7 @@ P.eq(#vim.api.nvim_buf_get_extmarks(buf, render.ns, 0, -1, {}), 0,
 -- gh.threads defaults a null body to ''; the mark still has to say a comment is
 -- here rather than vanish.
 render.render(buf, 'a.go', {}, { { id = 9, path = 'a.go', line = 1, side = 'RIGHT', body = '', author = 'dee' } })
-local empty = vim.api.nvim_buf_get_extmarks(buf, render.ns, 0, -1, { details = true })
+local empty = virt_marks(buf)
 P.eq(#empty, 1, 'empty body still marks the line')
 P.eq(#empty[1][4].virt_lines, 1, 'empty body renders one virt line')
 P.ok(empty[1][4].virt_lines[1][1][1]:find('@dee', 1, true) ~= nil, 'empty body keeps the author prefix')
@@ -101,6 +120,45 @@ P.eq(vim.fn.getqflist()[1].lnum, 1, 'pending entry with no line lands on line 1'
 -- quickfix item with no filename cannot be jumped to, and building one throws.
 render.quickfix('/root', {}, { { id = 4, path = nil, line = 2, body = 'pathless', author = 'eve' } })
 P.eq(#vim.fn.getqflist(), 0, 'thread with no path is left out of the quickfix list')
+
+-- A multi-line comment rendered only under its end line is invisible *as* a
+-- range. One sign per covered line puts its extent in the gutter.
+local wide = vim.api.nvim_create_buf(false, true)
+local wide_lines = {}
+for i = 1, 14 do wide_lines[i] = 'w' .. i end
+vim.api.nvim_buf_set_lines(wide, 0, -1, false, wide_lines)
+
+render.render(wide, 'a.go', { { path = 'a.go', line = 12, start_line = 10, body = 'range' } }, {})
+P.eq(table.concat(sign_rows(wide, 'ReviewPending'), ','), '9,10,11', 'range 10-12 signs every covered row')
+P.eq(#sign_rows(wide), 3, '…and nothing outside it')
+local wide_virt = virt_marks(wide)
+P.eq(#wide_virt, 1, 'the range still renders one virt_lines mark')
+P.eq(wide_virt[1][2], 11, '…under its end line')
+local wide_sign = vim.api.nvim_buf_get_extmarks(wide, render.ns, { 9, 0 }, { 9, -1 }, { details = true })[1][4]
+P.ok(wide_sign.sign_text and wide_sign.sign_text:find('┃', 1, true) ~= nil,
+  'sign glyph is the box-drawing bar: ' .. tostring(wide_sign.sign_text))
+
+render.render(wide, 'a.go', { { path = 'a.go', line = 4, body = 'single' } }, {})
+P.eq(table.concat(sign_rows(wide, 'ReviewPending'), ','), '3', 'a single-line entry signs exactly its own line')
+
+-- A remote range reads the same way, in its own highlight.
+render.render(wide, 'a.go', {}, {
+  { id = 1, path = 'a.go', line = 8, start_line = 6, side = 'RIGHT', body = 'remote range', author = 'bob' },
+  { id = 2, path = 'a.go', line = 2, start_line = 1, side = 'LEFT', body = 'left range', author = 'amy' },
+})
+P.eq(table.concat(sign_rows(wide, 'ReviewRemote'), ','), '5,6,7', 'a remote range signs its covered rows')
+P.eq(#sign_rows(wide, 'ReviewPending'), 0, '…in ReviewRemote, not ReviewPending')
+P.eq(#sign_rows(wide), 3, 'a LEFT-side thread signs nothing')
+
+-- Signs live in the same namespace, so a re-render wipes them with everything else.
+render.render(wide, 'a.go', {}, {})
+P.eq(#vim.api.nvim_buf_get_extmarks(wide, render.ns, 0, -1, {}), 0, 're-render clears range signs')
+
+-- A range whose tail runs past the end of the buffer signs only the lines that
+-- exist, the same gate `mark` applies to the virtual lines.
+render.render(wide, 'a.go', { { path = 'a.go', line = 16, start_line = 13, body = 'over the edge' } }, {})
+P.eq(table.concat(sign_rows(wide, 'ReviewPending'), ','), '12,13', 'a range past EOF signs only real lines')
+render.clear(wide)
 
 -- `default = true` on the links is load-bearing: ':colorscheme' runs
 -- ':highlight clear', which wipes an explicit link but leaves a default one.

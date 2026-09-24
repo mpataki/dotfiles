@@ -42,7 +42,7 @@ New module tree `nvim/lua/mpataki/review/` (each file < 500 LOC):
 | `pr.lua` | PR identity: repo root, owner/repo, number, base ref, head SHA, merge-base. One helper replaces the 3 merge-base snippets. | `git`, `gh` |
 | `store.lua` | Pending comments file: parse / serialize / add / update / delete. Pure. | fs |
 | `gh.lua` | GitHub calls via `gh api`: fetch threads, fetch my pending review, delete pending, create pending. Runner injectable so tests use a fake. | `gh` |
-| `render.lua` | Extmarks (virtual lines) for pending + remote comments; quickfix population. | store, gh cache |
+| `render.lua` | Extmarks (virtual lines + range gutter signs) for pending + remote comments; quickfix population. | store, gh cache |
 | `capture.lua` | Anchored float editor for one comment. | store, render |
 | `init.lua` | User commands, keymaps, wiring. | all |
 
@@ -154,6 +154,10 @@ buffer, and refuse from a buffer belonging to another repo.
 - One namespace. Virtual lines below the anchored line: pending in
   `ReviewPending` highlight (default links to `DiagnosticVirtualTextWarn`),
   remote in `ReviewRemote` (links to `Comment`), prefixed `@author`.
+- Plus a `┃` gutter sign on every line a comment covers, in the same highlight:
+  virtual lines hang under the *end* line only, so without the signs a
+  multi-line comment reads as a comment on one line. Single-line entries get
+  one sign; lines outside the buffer get none.
 - Quickfix: one item per comment, text = `[@author] first line of body`,
   pending entries marked `[pending]`.
 

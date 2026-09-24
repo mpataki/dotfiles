@@ -11,6 +11,16 @@ local render = require('mpataki.review.render')
 local review = require('mpataki.review')
 local sync = require('mpataki.review.sync')
 
+-- One virt_lines mark per rendered comment; the range signs sharing the
+-- namespace would otherwise inflate a count of "how many comments are drawn".
+local function comment_marks(buf)
+  local n = 0
+  for _, m in ipairs(vim.api.nvim_buf_get_extmarks(buf, render.ns, 0, -1, { details = true })) do
+    if m[4].virt_lines then n = n + 1 end
+  end
+  return n
+end
+
 -- Keeps '-- INSERT --' and friends out of the headless transcript.
 vim.o.showmode = false
 
@@ -223,7 +233,7 @@ P.ok(notes_since(m):find('dropped unanchored pending comment sub/dir/file.txt: o
 P.eq(level_of(m, 'dropped unanchored pending comment'), 'WARN', 'dropped comments warn')
 P.eq(pulled.entries[1].body, 'from server', 'pending section replaced from server')
 P.eq(pulled.header.pushed, store.fingerprint(pulled.entries), 'pull sets pushed fingerprint to server state')
-P.eq(#vim.api.nvim_buf_get_extmarks(0, render.ns, 0, -1, {}), 2, 'pull re-rendered pending + remote')
+P.eq(comment_marks(0), 2, 'pull re-rendered pending + remote')
 
 -- …and the fingerprint the clobber guard compares against drops the same
 -- comment, or the next push refuses a review nobody touched.
@@ -240,7 +250,7 @@ P.wait(200)
 local emptied = store.read(ctx.file)
 P.eq(#emptied.entries, 0, 'pull with no server pending review empties the draft')
 P.eq(emptied.header.pushed, store.fingerprint({}), 'pushed matches an empty list')
-P.eq(#vim.api.nvim_buf_get_extmarks(0, render.ns, 0, -1, {}), 1, 'only the remote thread renders')
+P.eq(comment_marks(0), 1, 'only the remote thread renders')
 
 -- Other windows are re-rendered too, and a window holding a fileless buffer
 -- (no repo, no context) must be skipped rather than take the loop down.
@@ -253,7 +263,7 @@ render.clear(fbuf)
 local rok = pcall(sync.pull)
 P.wait(200)
 P.ok(rok, 'rerender skips a window with a fileless buffer')
-P.eq(#vim.api.nvim_buf_get_extmarks(fbuf, render.ns, 0, -1, {}), 1, 'the review file buffer is re-rendered')
+P.eq(comment_marks(fbuf), 1, 'the review file buffer is re-rendered')
 vim.cmd('only')
 
 -- The comments file lives under .git, where the buffer's own path resolves to

@@ -6,6 +6,16 @@ local store = require('mpataki.review.store')
 local render = require('mpataki.review.render')
 local review = require('mpataki.review')
 
+-- One virt_lines mark per rendered comment; the range signs sharing the
+-- namespace would otherwise inflate a count of "how many comments are drawn".
+local function comment_marks(buf)
+  local n = 0
+  for _, m in ipairs(vim.api.nvim_buf_get_extmarks(buf, render.ns, 0, -1, { details = true })) do
+    if m[4].virt_lines then n = n + 1 end
+  end
+  return n
+end
+
 -- startinsert/stopinsert echo '-- (insert) --' into headless output otherwise.
 vim.o.showmode = false
 
@@ -131,7 +141,7 @@ P.eq(#doc.entries, 1, 'entry saved')
 P.eq(doc.entries[1].line, 5, 'anchored line 5')
 P.eq(doc.entries[1].body, 'looks wrong\n\nsee above', 'body saved')
 P.eq(doc.header.repo, nil, 'header repo unset until push sets it')
-P.eq(#vim.api.nvim_buf_get_extmarks(code_buf, render.ns, 0, -1, {}), 1, 'rendered after save')
+P.eq(comment_marks(code_buf), 1, 'rendered after save')
 
 -- Reopen on the same line: body preloaded; q cancels without change.
 review.comment()
@@ -203,6 +213,7 @@ P.wait(200)
 local r = store.find(store.read(ctx.file), 'sub/dir/file.txt', 11, 9)
 P.ok(r ~= nil, 'range entry saved as 9-11')
 
+
 -- Empty body deletes.
 vim.api.nvim_win_set_cursor(code_win, { 5, 0 })
 review.comment()
@@ -244,7 +255,7 @@ vim.api.nvim_set_current_buf(code_buf)
 -- BufWinEnter renders once a review file exists.
 render.clear(code_buf)
 vim.cmd('doautocmd BufWinEnter')
-P.eq(#vim.api.nvim_buf_get_extmarks(code_buf, render.ns, 0, -1, {}), 3, 'BufWinEnter renders pending entries')
+P.eq(comment_marks(code_buf), 3, 'BufWinEnter renders pending entries')
 
 -- A write that cannot land must keep the float open with the draft in it: the
 -- old silent store.write closed the float and reported nothing, losing the
