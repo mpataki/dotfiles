@@ -13,7 +13,7 @@
 --   :ReviewPull     fetch remote threads + my pending review, then re-render
 --   :ReviewPush[!]  create/replace my pending review on GitHub; `!` skips the
 --                   clobber guard (push over a pending review that has drifted)
---   <leader>gP      open the PR in the browser (:ReviewBrowse)
+--   :ReviewBrowse   open the PR in the browser
 --   :ReviewOpen     edit the draft file directly (escape hatch)
 --   :ReviewRender   re-render comments in this buffer
 --   :ReviewRefresh  drop the cached PR identity and re-render — after a rebase,
@@ -230,7 +230,6 @@ function M.setup()
   -- ':' from visual mode supplies the '<,'> range; <Cmd> would not.
   vim.keymap.set('x', '<leader>gc', ':ReviewComment<CR>', { silent = true, desc = 'Review comment on selection' })
   vim.keymap.set('n', '<leader>gC', M.quickfix, { desc = 'Review comments → quickfix' })
-  vim.keymap.set('n', '<leader>gP', M.browse, { desc = 'Open PR in browser' })
 
   local group = vim.api.nvim_create_augroup('MpatakiReview', { clear = true })
   vim.api.nvim_create_autocmd('BufWinEnter', { group = group, callback = on_buf_win_enter })

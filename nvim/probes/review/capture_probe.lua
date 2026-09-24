@@ -343,7 +343,7 @@ P.eq(#opened, before_open, 'nothing is opened without a url')
 vim.ui.open = real_open
 info.url = 'https://example.invalid/pr/7'
 
-P.ok(vim.fn.maparg('<leader>gP', 'n') ~= '', '<leader>gP mapped (n)')
+P.ok(vim.fn.maparg('<leader>gP', 'n') == '', '<leader>gP intentionally unmapped')
 P.ok(vim.fn.exists(':ReviewBrowse') == 2, ':ReviewBrowse exists')
 
 P.ok(vim.fn.maparg('<leader>gc', 'n') ~= '', '<leader>gc mapped (n)')
