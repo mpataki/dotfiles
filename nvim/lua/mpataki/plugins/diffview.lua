@@ -49,14 +49,24 @@ return {
     })
 
     vim.api.nvim_create_user_command('DiffviewPR', function()
-      local base = vim.fn.system("git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null"):gsub("%s+", "")
-      if base == "" then
-        vim.notify("Could not find merge base", vim.log.levels.ERROR)
+      local pr = require('mpataki.review.pr')
+      local root = pr.current_root()
+      if not root then
+        vim.notify('DiffviewPR: not in a git repo', vim.log.levels.ERROR)
         return
       end
-      vim.cmd("DiffviewOpen " .. base .. "...HEAD")
-      vim.cmd("DiffPRBase")
-    end, { desc = "Open Diffview against base branch (PR diff)" })
+
+      -- DiffPRBase first: it refreshes the cached PR identity, and it runs while
+      -- the focused buffer is still a real file rather than a diffview panel.
+      vim.cmd('DiffPRBase')
+
+      local info, err = pr.info(root)
+      if not info then
+        vim.notify('DiffviewPR: ' .. err, vim.log.levels.ERROR)
+        return
+      end
+      vim.cmd('DiffviewOpen ' .. info.base_sha .. '...HEAD')
+    end, { desc = 'Open Diffview against base branch (PR diff)' })
 
     -- Set up keymaps
     vim.keymap.set('n', '<leader>gd', '<cmd>DiffviewOpen<CR>', { noremap = true, silent = true, desc = "Open Diffview" })

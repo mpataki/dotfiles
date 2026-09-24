@@ -30,7 +30,10 @@ return {
             diff.toggle_overlay()
         end, { desc = 'Toggle inline diff overlay' })
 
-        -- PR review mode: diff against merge-base instead of HEAD
+        -- PR review mode: diff against the PR's merge-base instead of HEAD.
+        -- Identity (base sha, repo root) comes from mpataki.review.pr so the
+        -- path handed to `git show` is repo-relative regardless of nvim's cwd.
+        local pr = require('mpataki.review.pr')
         local pr_review_group = nil
         local pr_base_ref = nil
         local pr_ref_applied = {} -- track which buffers already have the PR ref
@@ -46,32 +49,46 @@ return {
 
           local path = vim.api.nvim_buf_get_name(bufnr)
           if path == '' then return end
+          local root = pr.root(path)
+          if not root then return end
 
-          local rel = vim.fn.fnamemodify(path, ':.')
-          local content = vim.fn.system({ 'git', 'show', pr_base_ref .. ':' .. rel })
-          if vim.v.shell_error ~= 0 then
+          local rel = pr.relpath(root, path)
+          if not rel then return end
+
+          local r = pr.git(root, { 'show', pr_base_ref .. ':' .. rel })
+          if r.code ~= 0 then
             -- File didn't exist at base — use empty ref so all lines show as added
             diff.set_ref_text(bufnr, {})
           else
-            diff.set_ref_text(bufnr, content)
+            diff.set_ref_text(bufnr, r.stdout)
           end
           pr_ref_applied[bufnr] = true
         end
 
         vim.api.nvim_create_user_command('DiffPRBase', function(opts)
+          local root = pr.current_root()
+          if not root then
+            vim.notify('DiffPRBase: not in a git repo', vim.log.levels.ERROR)
+            return
+          end
+
           local base
-          if opts.args ~= "" then
-            base = vim.fn.system("git rev-parse " .. vim.fn.shellescape(opts.args) .. " 2>/dev/null"):gsub("%s+", "")
-            if base == "" then
-              vim.notify("Could not resolve ref: " .. opts.args, vim.log.levels.ERROR)
+          if opts.args ~= '' then
+            local r = pr.git(root, { 'rev-parse', opts.args })
+            if r.code ~= 0 then
+              vim.notify('Could not resolve ref: ' .. opts.args, vim.log.levels.ERROR)
               return
             end
+            base = vim.trim(r.stdout)
           else
-            base = vim.fn.system("git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null"):gsub("%s+", "")
-            if base == "" then
-              vim.notify("Could not find merge base", vim.log.levels.ERROR)
+            -- refresh: an explicit gesture re-resolves the base, so a session
+            -- does not freeze on a merge-base the branch has since moved past.
+            local info, err = pr.info(root, { refresh = true })
+            if not info then
+              vim.notify('DiffPRBase: ' .. err, vim.log.levels.ERROR)
               return
             end
+            base = info.base_sha
           end
 
           pr_base_ref = base
@@ -88,12 +105,13 @@ return {
             callback = function() set_pr_ref_for_buf(vim.api.nvim_get_current_buf()) end,
           })
 
-          vim.notify("mini.diff: reviewing against " .. base:sub(1, 8), vim.log.levels.INFO)
-        end, { desc = "Set mini.diff reference (defaults to PR merge-base)", nargs = "?" })
+          vim.notify('mini.diff: reviewing against ' .. base:sub(1, 8), vim.log.levels.INFO)
+        end, { desc = 'Set mini.diff reference (defaults to PR merge-base)', nargs = '?' })
 
         vim.api.nvim_create_user_command('DiffReset', function()
           pr_base_ref = nil
           pr_ref_applied = {}
+          pr.clear_cache()
 
           if pr_review_group then
             vim.api.nvim_del_augroup_by_id(pr_review_group)

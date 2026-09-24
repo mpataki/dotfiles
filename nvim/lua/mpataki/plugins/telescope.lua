@@ -179,17 +179,29 @@ return {
 			local conf = require('telescope.config').values
 			local previewers = require('telescope.previewers')
 
-			local base = vim.fn.system("git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null"):gsub("%s+", "")
-			if base == "" then
-				vim.notify("Could not find merge base", vim.log.levels.ERROR)
+			local pr = require('mpataki.review.pr')
+			local root = pr.current_root()
+			if not root then
+				vim.notify('PR files: not in a git repo', vim.log.levels.ERROR)
 				return
 			end
 
+			-- DiffPRBase first: it refreshes the cached PR identity this reads.
 			vim.cmd('DiffPRBase')
+
+			local info, err = pr.info(root)
+			if not info then
+				vim.notify('PR files: ' .. err, vim.log.levels.ERROR)
+				return
+			end
+			local base = info.base_sha
 
 			-- Fetch line stats per file
 			local numstat = {}
-			local stat_lines = vim.fn.systemlist({ 'git', 'diff', '--numstat', base .. '...HEAD' })
+			-- Every git call runs with -C root: nvim's cwd is routinely a
+			-- subdirectory of the repo (or another repo entirely), and a
+			-- cwd-relative `git diff` there lists the wrong files or none.
+			local stat_lines = vim.fn.systemlist({ 'git', '-C', root, 'diff', '--numstat', base .. '...HEAD' })
 			for _, sl in ipairs(stat_lines) do
 				local add, del, file = sl:match("^(%d+)\t(%d+)\t(.+)$")
 				if add and file then
@@ -202,7 +214,7 @@ return {
 				end
 			end
 
-			local output = vim.fn.systemlist({ 'git', 'diff', '--name-status', base .. '...HEAD' })
+			local output = vim.fn.systemlist({ 'git', '-C', root, 'diff', '--name-status', base .. '...HEAD' })
 			if vim.v.shell_error ~= 0 then
 				vim.notify("git diff failed", vim.log.levels.ERROR)
 				return
@@ -256,16 +268,21 @@ return {
 								})
 							end,
 							ordinal = entry.file,
-							path = entry.file,
+							-- Absolute: git names files relative to the repo
+							-- root, and telescope opens `path` relative to
+							-- nvim's cwd — a different directory most of the time.
+							path = root .. '/' .. entry.file,
 						}
 					end,
 				}),
 				previewer = previewers.new_termopen_previewer({
 					get_command = function(entry)
+						-- The paths stay repo-relative: they are arguments to a
+						-- git that already runs in `root`.
 						local paths = entry.value.old_file
 							and (vim.fn.shellescape(entry.value.old_file) .. ' ' .. vim.fn.shellescape(entry.value.file))
 							or vim.fn.shellescape(entry.value.file)
-						return { 'bash', '-c', 'git diff --no-color ' .. base .. '...HEAD -- ' .. paths
+						return { 'bash', '-c', 'git -C ' .. vim.fn.shellescape(root) .. ' diff --no-color ' .. base .. '...HEAD -- ' .. paths
 							.. ' | delta --no-gitconfig --dark --width=${COLUMNS:-80} --hunk-header-style=omit; cat' }
 					end,
 				}),
