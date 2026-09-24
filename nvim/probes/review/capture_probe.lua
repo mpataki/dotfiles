@@ -213,6 +213,26 @@ P.wait(200)
 local r = store.find(store.read(ctx.file), 'sub/dir/file.txt', 11, 9)
 P.ok(r ~= nil, 'range entry saved as 9-11')
 
+-- …and it reopens from *inside* the range: normal-mode <leader>gc on line 10
+-- used to key on the cursor line alone, so editing a range comment meant
+-- re-selecting the identical range or accreting a second comment on line 10.
+vim.api.nvim_win_set_cursor(code_win, { 10, 0 })
+review.comment()
+P.eq(vim.api.nvim_buf_get_name(0), 'review://sub/dir/file.txt:9-11',
+  'cursor inside a range reopens the range float')
+local rtitle = vim.api.nvim_win_get_config(0).title
+P.ok(vim.inspect(rtitle):find('sub/dir/file.txt:9-11', 1, true) ~= nil,
+  'the float title names the range: ' .. vim.inspect(rtitle))
+P.eq(table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n'), 'range note',
+  '…with the existing range body in it')
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'range note, edited' })
+vim.cmd('write')
+P.wait(200)
+local redited = store.read(ctx.file)
+P.eq(store.find(redited, 'sub/dir/file.txt', 11, 9).body, 'range note, edited',
+  'saving from inside the range updates the 9-11 entry')
+P.eq(store.find(redited, 'sub/dir/file.txt', 10), nil,
+  'and creates no single-line entry on the cursor line')
 
 -- Empty body deletes.
 vim.api.nvim_win_set_cursor(code_win, { 5, 0 })

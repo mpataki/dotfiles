@@ -82,13 +82,12 @@ function M.refresh()
   M.render_current()
 end
 
+-- nil when the gesture carried no range: normal mode resolves its own anchor
+-- against the comments already on the file (see M.comment).
 local function anchor_from_range(range)
-  if not range or range.range == 0 then
-    local line = vim.api.nvim_win_get_cursor(0)[1]
-    return line, nil
-  end
+  if not range or range.range == 0 then return nil, nil end
   local s, e = range.line1, range.line2
-  if s == e then return s, nil end
+  if s == e then return e, nil end
   return e, s
 end
 
@@ -107,7 +106,18 @@ function M.comment(opts)
   local ctx, err = M.context(bufnr)
   if not ctx then return notify_err(err) end
 
+  local doc = store.read(ctx.file)
   local line, start_line = anchor_from_range(opts)
+  -- Normal mode has only the cursor line to go on, and keying on it alone made a
+  -- range comment reachable only by re-selecting its exact range — every other
+  -- attempt started a second comment on one of its lines. Reopen the range that
+  -- covers the cursor instead. Visual mode is untouched: the selection *is* the
+  -- anchor, so it creates or replaces exactly that key.
+  if not line then
+    line = vim.api.nvim_win_get_cursor(0)[1]
+    local covering = store.covering(doc, ctx.relpath, line)
+    if covering then line, start_line = covering.line, covering.start_line end
+  end
   local head = ctx.info.head or 'HEAD'
   local ranges, derr = pr.diff_ranges(ctx.root, ctx.info.base_sha, head, ctx.relpath)
   if not ranges then
@@ -119,7 +129,6 @@ function M.comment(opts)
     return notify_err(('line %d is not in the PR diff; GitHub only anchors comments inside hunks (+3 context)'):format(outside))
   end
 
-  local doc = store.read(ctx.file)
   local existing = store.find(doc, ctx.relpath, line, start_line)
   local title = store.key({ path = ctx.relpath, line = line, start_line = start_line })
 

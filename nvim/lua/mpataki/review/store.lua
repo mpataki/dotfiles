@@ -115,6 +115,29 @@ function M.find(doc, path, line, start_line)
   return nil, nil
 end
 
+-- The entry a cursor-line gesture should reopen: the pending comment on `path`
+-- whose [start_line, line] span contains `line`. Innermost wins, so a comment
+-- nested inside another is still reachable; equal spans prefer the one ending on
+-- the cursor, then file order, so the answer never depends on table order.
+function M.covering(doc, path, line)
+  local best, best_span = nil, nil
+  for _, e in ipairs((doc or {}).entries or {}) do
+    if e.path == path and type(e.line) == 'number' then
+      local from = type(e.start_line) == 'number' and e.start_line or e.line
+      if line >= from and line <= e.line then
+        local span = e.line - from
+        local ends_here = e.line == line
+        if not best
+          or span < best_span
+          or (span == best_span and ends_here and best.line ~= line) then
+          best, best_span = e, span
+        end
+      end
+    end
+  end
+  return best
+end
+
 function M.remove(doc, path, line, start_line)
   local _, i = M.find(doc, path, line, start_line)
   if i then table.remove(doc.entries, i) end

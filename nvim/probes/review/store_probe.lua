@@ -73,6 +73,41 @@ local dup = store.parse('## a/b.go:9\n\nfirst\n\n## a/b.go:9\n\nsecond\n')
 P.eq(#dup.entries, 1, 'duplicate anchors collapse to one entry')
 P.eq(dup.entries[1] and dup.entries[1].body, 'second', 'last heading wins')
 
+-- `covering` is what lets normal-mode <leader>gc reopen a range comment from
+-- anywhere inside it, instead of dropping a second comment on one of its lines.
+local cov = store.parse(table.concat({
+  '## a/b.go:20-30', '', 'outer', '',
+  '## a/b.go:22-25', '', 'inner', '',
+  '## a/b.go:40', '', 'single', '',
+  '## other.go:20-30', '', 'other file', '',
+}, '\n'))
+local function cover_key(path, line)
+  local e = store.covering(cov, path, line)
+  return e and store.key(e) or nil
+end
+P.eq(cover_key('a/b.go', 28), 'a/b.go:20-30', 'a line inside a range finds the range')
+P.eq(cover_key('a/b.go', 20), 'a/b.go:20-30', 'the first line of a range is covered')
+P.eq(cover_key('a/b.go', 30), 'a/b.go:20-30', 'the last line of a range is covered')
+P.eq(cover_key('a/b.go', 40), 'a/b.go:40', 'a single-line entry covers its own line')
+P.eq(cover_key('a/b.go', 23), 'a/b.go:22-25', 'nested ranges resolve to the innermost')
+P.eq(cover_key('a/b.go', 35), nil, 'an uncovered line finds nothing')
+P.eq(cover_key('nope.go', 28), nil, 'another path finds nothing')
+P.eq(cover_key('other.go', 28), 'other.go:20-30', '…and each path sees only its own entries')
+
+-- Equal spans are not a coin toss: the one ending on the cursor wins, else the
+-- first in file order, so the answer does not depend on table order.
+local ties = store.parse('## t.go:10-12\n\na\n\n## t.go:8-10\n\nb\n')
+P.eq(store.key(store.covering(ties, 't.go', 10)), 't.go:8-10', 'equal spans: the range ending on the cursor wins')
+local order = store.parse('## t.go:1-5\n\na\n\n## t.go:2-6\n\nb\n')
+P.eq(store.key(store.covering(order, 't.go', 3)), 't.go:1-5', 'otherwise the first in file order wins')
+
+-- gh.pending_review yields line = nil when GitHub nils both `line` and
+-- `original_line`; such an entry must not take the lookup down.
+local nilline = { entries = { { path = 'a/b.go', line = nil, body = 'no line' } } }
+local nok, nres = pcall(store.covering, nilline, 'a/b.go', 3)
+P.ok(nok, 'a line-less entry does not error')
+P.eq(nok and nres, nil, '…and covers nothing')
+
 -- A write that cannot land was silent: callers cleared the float, stamped the
 -- header and reported success over a file that never changed. `afile` is a
 -- regular file, so mkdir throws (E739) on the directory this path needs.

@@ -143,7 +143,12 @@ buffer, and refuse from a buffer belonging to another repo.
   `filetype=markdown`, scratch buffer, enters insert mode.
 - `:w` / `<C-s>` → `store.upsert`, close, re-render. `q` (normal) → close, no
   change. Buffer-local mappings only.
-- Visual selection → range anchor.
+- Visual selection → range anchor: it creates or replaces exactly that key.
+- Normal mode has only the cursor line, so it first looks for a pending comment
+  whose range covers that line (`store.covering`, innermost wins) and reopens
+  it with the range intact. Otherwise a new single-line comment at the cursor.
+  Without this a range comment could only be edited by re-selecting the
+  identical range.
 - Refuses with a notify when the cursor line is not inside a diff hunk. The
   hunks come from `pr.diff_ranges` (`git diff -U3 <base> <head> -- <path>`),
   not from mini.diff's buffer data: the comment is anchored against the PR
