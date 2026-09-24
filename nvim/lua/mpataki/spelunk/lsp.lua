@@ -39,6 +39,17 @@ local inflight = {} -- uri .. stamp -> { cb, ... }
 local last = {}     -- last emitted visit: { buf, key }
 local timer
 
+-- Capture must never break the user's request, so failures fall through to
+-- the caller's handler; they still surface, once per method until setup().
+local warned = {}
+local function capture_failed(method, err)
+  if warned[method] then return end
+  warned[method] = true
+  vim.schedule(function()
+    vim.notify('spelunk: capture failed (' .. method .. '): ' .. tostring(err), vim.log.levels.WARN)
+  end)
+end
+
 local function emit(ev)
   if not listener then return end
   local ok, err = pcall(listener, ev)
@@ -331,12 +342,19 @@ local function wrap(client)
     -- way Client:request does so the response can be observed on the way.
     local target = handler or self.handlers[method] or vim.lsp.handlers[method]
     local ok, obs = pcall(begin, self, orig, method, params, bufnr)
+    if not ok then capture_failed(method, obs) end
     if not (ok and obs and target) then return orig(self, method, params, handler, bufnr) end
     return orig(self, method, params, function(err, result, ctx, config)
       local snap_ok, snap = false, nil
-      if not err then snap_ok, snap = pcall(snapshot, obs, result) end
+      if not err then
+        snap_ok, snap = pcall(snapshot, obs, result)
+        if not snap_ok then capture_failed(method, snap) end
+      end
       local ret = target(err, result, ctx, config)
-      if snap_ok then pcall(finish, obs, snap) end
+      if snap_ok then
+        local fin_ok, fin_err = pcall(finish, obs, snap)
+        if not fin_ok then capture_failed(method, fin_err) end
+      end
       return ret
     end, bufnr)
   end
@@ -388,6 +406,7 @@ function M.mark()
 end
 
 function M.setup()
+  warned = {}
   local group = vim.api.nvim_create_augroup('mpataki.spelunk.lsp', { clear = true })
   vim.api.nvim_create_autocmd('LspAttach', {
     group = group,

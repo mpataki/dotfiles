@@ -317,6 +317,7 @@ local flat = {
   { name = 'inner', kind = 6, containerName = 'Outer', location = { uri = furi, range = rng(2, 5) } },
 }
 local def_mode = 'empty'
+local refs_mode = 'good'
 local function fake_answer(method)
   if method == 'initialize' then
     return nil, { capabilities = { documentSymbolProvider = true, definitionProvider = true, referencesProvider = true } }
@@ -326,6 +327,8 @@ local function fake_answer(method)
     if def_mode == 'error' then return { code = -32603, message = 'probe: definition fails' }, nil end
     return nil, {}
   elseif method == 'textDocument/references' then
+    -- 'bad': a range with no start, so reading the result fails.
+    if refs_mode == 'bad' then return nil, { { uri = furi, range = {} } } end
     return nil, { { uri = furi, range = rng(8, 8) }, { uri = furi, range = rng(9, 9) } }
   end
 end
@@ -364,6 +367,24 @@ for _, mode in ipairs({ 'empty', 'error' }) do
   P.eq(key(ex[1] and ex[1].children[1]), 'flat.fake:1:Outer', 'references fallback (' .. mode .. ' definition): children still resolved')
   vim.cmd('cclose')
 end
+
+-- capture failure: surfaces once per method, the caller's handler still runs.
+refs_mode = 'bad'
+local warns, handled, notify = {}, 0, vim.notify
+vim.notify = function(msg, ...) warns[#warns + 1] = msg; return notify(msg, ...) end
+local fclient = vim.lsp.get_clients({ bufnr = fbuf, name = 'spelunk-fake' })[1]
+local rparams = { textDocument = { uri = furi }, position = { line = 3, character = 0 },
+  context = { includeDeclaration = true } }
+for _ = 1, 2 do
+  fclient:request('textDocument/references', rparams, function() handled = handled + 1 end, fbuf)
+end
+P.wait(5000, function() return handled == 2 end)
+P.wait(SETTLE)
+vim.notify = notify
+refs_mode = 'good'
+local capture = vim.tbl_filter(function(m) return m:find('capture failed (textDocument/references)', 1, true) end, warns)
+P.eq(handled, 2, 'capture failure: the caller\'s handler still runs')
+P.eq(#capture, 1, 'capture failure: notifies once per method')
 
 P.eq(package.loaded['mpataki.spelunk.graph'], nil, 'module stays graph-free (graph never loaded)')
 P.done()
