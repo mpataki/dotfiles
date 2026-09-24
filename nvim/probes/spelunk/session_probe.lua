@@ -92,7 +92,7 @@ P.eq(vim.wo[sw].wrap, false, 'open: nowrap')
 P.eq(vim.wo[sw].cursorline, true, 'open: cursorline')
 P.ok((lines()[1] or ''):find('^▶ portForwardIndicator'), 'open: root rendered as current (decision 1: ▶ gutter)')
 
--- AC scenario: outgoing, jump to a callee, incoming there ---------------------
+-- outgoing calls list callees; a jump explores one; incoming calls hang off it
 vim.lsp.buf.outgoing_calls()
 P.wait(15000, function() return #lines() >= 7 end)
 vim.cmd('cclose')

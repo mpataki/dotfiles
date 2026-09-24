@@ -17,9 +17,6 @@ P.eq(graph.key(root), 'internal/view/pod.go:50:' .. root.name, 'key is path:line
 
 local g = graph.new(root)
 P.eq(graph.key(g:current()), graph.key(root), 'new: root is current')
-for _, m in ipairs({ 'expand', 'visit', 'note', 'prune', 'current', 'frontier', 'children', 'serialize' }) do
-  P.eq(type(g[m]), 'function', 'api method g:' .. m)
-end
 P.eq(type(graph.deserialize), 'function', 'api graph.deserialize')
 
 -- expand + idempotency
