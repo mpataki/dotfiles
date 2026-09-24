@@ -7,3 +7,4 @@ require("mpataki.remap")
 require("mpataki.nvim_goto")
 
 require("mpataki.review").setup()
+require("mpataki.spelunk").setup()
