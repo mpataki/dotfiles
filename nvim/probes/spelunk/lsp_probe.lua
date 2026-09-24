@@ -1,7 +1,14 @@
 -- Tier 3: drives real vim.lsp.buf.* and telescope against gopls in ~/code/k9s
--- and asserts the events mpataki.spelunk.lsp emits. Run from the k9s checkout
--- so gopls roots there.
+-- and asserts the events mpataki.spelunk.lsp emits. It cds into the k9s
+-- checkout itself so gopls roots there whatever the caller's cwd.
 local P = require('probe')
+-- gopls must root in the corpus; run.sh starts from the dotfiles root.
+local K9S = vim.fn.expand('~/code/k9s')
+if vim.fn.isdirectory(K9S) == 0 then
+  P.ok(false, 'corpus missing: ' .. K9S)
+  P.done()
+end
+vim.cmd.cd(K9S)
 local lsp = require('mpataki.spelunk.lsp')
 local Client = require('vim.lsp.client')
 
