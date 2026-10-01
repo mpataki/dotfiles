@@ -31,9 +31,7 @@ local M = {}
 local Graph = {}
 Graph.__index = Graph
 
-function M.key(sym)
-  return sym.path .. ':' .. sym.line .. ':' .. sym.name
-end
+M.key = require('mpataki.spelunk.sym').key
 
 local function copy_sym(s)
   return { name = s.name, kind = s.kind, path = s.path, line = s.line, col = s.col, abs = s.abs }

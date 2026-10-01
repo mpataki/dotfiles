@@ -64,9 +64,7 @@ local function emit(ev)
   end
 end
 
-local function key(sym)
-  return sym.path .. ':' .. sym.line .. ':' .. sym.name
-end
+local key = require('mpataki.spelunk.sym').key
 
 local function strip_slash(p)
   return (p:gsub('/+$', ''))
