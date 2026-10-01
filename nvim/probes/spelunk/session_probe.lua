@@ -97,7 +97,7 @@ vim.lsp.buf.outgoing_calls()
 P.wait(15000, function() return #lines() >= 7 end)
 vim.cmd('cclose')
 P.eq(#lines(), 7, 'outgoing: current root lists its six callees individually')
-P.ok(find('%?→ IsPodForwarded'), 'outgoing: IsPodForwarded pending under the current node')
+P.ok(find('─%? IsPodForwarded'), 'outgoing: IsPodForwarded pending under the current node')
 
 vim.cmd('edit ' .. FWD)
 -- On the method name: call hierarchy on the receiver asks about Forwarders.
@@ -105,11 +105,11 @@ move(57, 22)
 P.wait(10000, function() return find('^▶ .*IsPodForwarded') ~= nil end)
 P.wait(SETTLE)
 local i, l = find('IsPodForwarded')
-P.ok(l and l:find('→ IsPodForwarded') and l:find('forwarders%.go:57') and l:find('^▶ '),
-  'jump: explored callee drawn with → and marked current — ' .. tostring(l))
+P.ok(l and l:find('─ IsPodForwarded') and l:find('forwarders%.go:57') and l:find('^▶ '),
+  'jump: explored callee nested (no arrow) and marked current — ' .. tostring(l))
 
 vim.lsp.buf.incoming_calls()
-P.wait(15000, function() return find('%?← ') ~= nil end)
+P.wait(15000, function() return find('%(caller%)') ~= nil end)
 P.wait(SETTLE)
 vim.cmd('cclose')
 local got = lines()
@@ -119,7 +119,7 @@ P.ok(find('^▶ .*IsPodForwarded') == i, 'scenario: explored callee still curren
 P.ok(find('^  └─%? 5 unexplored callees$'), 'scenario: root shows frontier count for the 5 remaining callees')
 P.ok(not find('↩ portForwardIndicator'),
   'decision 3: incoming calls naming the tree parent are the same fact as its callee, not echoed')
-P.ok(#vim.tbl_filter(function(s) return s:find('%?← ') end, got) >= 1,
+P.ok(#vim.tbl_filter(function(s) return s:find('%(caller%)') end, got) >= 1,
   'scenario: other callers pending individually under the current node')
 local md = read(first_export) or ''
 P.ok(md:find('```mermaid\ngraph TD', 1, true), 'export: file exists with a mermaid block')
@@ -159,12 +159,12 @@ P.eq(#jumps, 0, '<CR>: retreat to an ancestor adds no edge')
 -- Prune a node off the current path (pruning an ancestor of current renders
 -- nothing: you are standing inside it).
 vim.api.nvim_set_current_win(sw)
-local pi = find('→ IsPodForwarded')
+local pi = find('─ IsPodForwarded')
 vim.api.nvim_win_set_cursor(sw, { pi, 0 })
 vim.cmd('normal p')
 P.ok((lines()[pi + 2] or ''):find('└─… %(pruned%)$'), 'split p: prunes the subtree under the cursor node')
 vim.cmd('normal p')
-P.ok(find('→ IsPodForwarded') == pi and not find('%(pruned%)'), 'split p again: unprunes')
+P.ok(find('─ IsPodForwarded') == pi and not find('%(pruned%)'), 'split p again: unprunes')
 vim.api.nvim_set_current_win(origin)
 
 -- :SpelunkMark: a same-buffer move into an unknown sym is recorded only on ask.
@@ -173,7 +173,7 @@ P.wait(SETTLE)
 local before = #lines()
 vim.cmd('SpelunkMark')
 P.wait(5000, function() return #lines() > before end)
-P.ok(find('^▶ .*→ '), ':SpelunkMark: cursor sym becomes the current node')
+P.ok(find('^▶ .*%(jump%)'), ':SpelunkMark: cursor sym becomes the current node')
 
 -- q, export failure, replace, stop, auto-start ----------------------------------
 vim.api.nvim_set_current_win(sw)

@@ -18,9 +18,11 @@ local PLURAL = { caller = 'callers', callee = 'callees', def = 'definitions',
 
 local width = vim.fn.strdisplaywidth
 
-local function arrow(edge)
-  return edge == 'caller' and '←' or '→'
-end
+-- Nesting reads "parent calls child", so plain calls and defs carry no glyph;
+-- the edges that mean something else say so. Pending callers sit under the
+-- node they call until walked, when they move above it.
+local TREE_TAG = { impl = ' (impl)', jump = ' (jump)' }
+local PENDING_TAG = { caller = ' (caller)', impl = ' (impl)' }
 
 local function truncate(s, cap)
   if width(s) <= cap then return s end
@@ -52,7 +54,7 @@ local function common_dir(g)
       if c.tree then visit(c.sym) else take(c.sym.path) end
     end
   end
-  visit(g:root())
+  for _, r in ipairs(g:roots()) do visit(r) end
   return dir or ''
 end
 
@@ -87,9 +89,9 @@ local function rows(g)
     return p .. ':' .. sym.line
   end
 
-  local function node(sym, prefix, head)
+  local function node(sym, prefix, head, tag)
     local info = g:info(sym)
-    out[#out + 1] = { left = head .. sym.name, path = short(sym), sym = sym, here = graph.key(sym) == cur }
+    out[#out + 1] = { left = head .. sym.name .. (tag or ''), path = short(sym), sym = sym, here = graph.key(sym) == cur }
     if info.note then out[#out + 1] = { left = prefix .. '· ' .. truncate(info.note, M.NOTE_CAP), path = '' } end
     local kids = {}
     if info.pruned and not in_subtree(g, sym, g:current()) then
@@ -136,23 +138,25 @@ local function rows(g)
     for i, k in ipairs(kids) do
       local last = i == #kids
       local branch = prefix .. (last and '└─' or '├─')
-      local cont = prefix .. (last and '    ' or '│   ')
+      -- 3 wide: a child's connector sits under its parent's first letter.
+      local cont = prefix .. (last and '   ' or '│  ')
       if k.child and k.child.tree then
-        node(k.child.sym, cont, branch .. arrow(k.child.edge) .. ' ')
+        node(k.child.sym, cont, branch .. ' ', TREE_TAG[k.child.edge])
       elseif k.child then
         local s = k.child.sym
         out[#out + 1] = { left = branch .. '↩ ' .. s.name .. ' ' .. back_label(g, sym, k.child),
           path = short(s), sym = s }
       elseif k.pending then
         local s = k.pending.sym
-        out[#out + 1] = { left = branch .. '?' .. arrow(k.pending.edge) .. ' ' .. s.name, path = short(s), sym = s }
+        out[#out + 1] = { left = branch .. '? ' .. s.name .. (PENDING_TAG[k.pending.edge] or ''),
+          path = short(s), sym = s }
       else
         out[#out + 1] = { left = branch .. (k.glyph and (k.glyph .. ' ') or '') .. k.text, path = '' }
       end
     end
   end
 
-  node(g:root(), '', '')
+  for _, r in ipairs(g:roots()) do node(r, '', '') end
   return out
 end
 
@@ -216,7 +220,7 @@ local function mermaid(g)
       if c.tree then node(c.sym) end
     end
   end
-  node(g:root())
+  for _, r in ipairs(g:roots()) do node(r) end
   for _, sym in ipairs(order) do
     local from = graph.key(sym)
     local info = g:info(sym)

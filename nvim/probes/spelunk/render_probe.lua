@@ -26,7 +26,7 @@ g:expand(pfi, 'callee', { rows, fwd, S('X1', 'internal/x/x.go', 1), S('X2', 'int
 -- Walk fwd before rows: the tree must follow visit order, not expand order.
 g:visit(fwd)
 g:note(fwd, 'the real check')
-g:expand(fwd, 'caller', { root })
+g:expand(fwd, 'callee', { root })
 g:visit(pfi)
 g:visit(rows)
 
@@ -45,7 +45,9 @@ P.ok(iff and ir and iff < ir, 'tree: DFS in first-visit order (fwd walked before
 P.eq(lines[1]:match('^  (%S+)'), root.name, 'tree: root on line 1, no connector (after the gutter)')
 
 -- glyphs
-P.ok(lf:find('├─→ ' .. fwd.name, 1, true) ~= nil, 'tree: → glyph for callee')
+P.ok(lf:find('├─ ' .. fwd.name .. ' ', 1, true) ~= nil and not table.concat(lines):find('←', 1, true)
+  and not table.concat(lines):find('→', 1, true),
+  'tree: a nested callee has no arrow glyph')
 local il, ll = find(lines, '↩ ' .. root.name)
 P.ok(ll and ll:find('↩ ' .. root.name .. ' (cycle)', 1, true) ~= nil,
   'decision 4: ↩ onto an ancestor is labelled (cycle)')
@@ -68,7 +70,7 @@ P.eq(x1, nil, 'tree: sibling frontier of pfi not individually listed when rows i
 -- current's own frontier expands to individual children
 g:expand(rows, 'callee', { S('R1', 'internal/q/r.go', 4), S('R2', 'internal/q/r.go', 8) })
 lines, index = render.tree(g)
-local i1, l1 = find(lines, '?→ R1' .. tag)
+local i1, l1 = find(lines, '? R1' .. tag)
 P.ok(l1 ~= nil and find(lines, '2 unexplored callees') == nil,
   'tree: frontier under current expands to individual unexplored children')
 P.eq(index[i1] and graph.key(index[i1]), graph.key(S('R1', 'internal/q/r.go', 4)),
@@ -78,7 +80,7 @@ P.ok(find(lines, '4 unexplored callees') ~= nil, 'tree: non-current frontier col
 -- note on its own line, path prefix dropped
 local ni, nl = find(lines, fwd.name)
 P.ok(nl:find('watch/forwarders.go:57$') ~= nil, 'decision 2: nothing past the path column on a node line')
-P.eq(lines[ni + 1], '  │   │   · the real check', 'decision 2: note on its own line, indented past the connector')
+P.eq(lines[ni + 1], '  │  │  · the real check', 'decision 2: note on its own line, indented past the connector')
 P.eq(index[ni + 1], nil, 'decision 2: note line index is nil')
 P.ok(nl:find('internal/', 1, true) == nil and lines[1]:find('view/pod.go:50', 1, true) ~= nil,
   'tree: common path prefix dropped')
@@ -115,7 +117,7 @@ g:note(pfi, 'hub')
 local md = render.markdown(g, 'dive-1')
 P.ok(md:find('^# spelunk: dive%-1\n') ~= nil, 'markdown: # spelunk: <session> header')
 P.ok(md:find('```mermaid\ngraph TD\n', 1, true) ~= nil, 'markdown: mermaid graph TD block')
-local fid, rid = md:match('\n  (n%x+) %-%.%->|caller| (n%x+)\n')
+local fid, rid = md:match('\n  (n%x+) %-%.%->|callee| (n%x+)\n')
 P.ok(fid ~= nil and fid ~= rid, 'markdown: back-edge dashed with edge-kind label')
 P.ok(md:find('%-%->|callee|') ~= nil, 'markdown: tree edge solid with edge-kind label')
 local cid = md:match('\n  (n%x+)%["' .. pfi.name .. '"%]')
@@ -143,7 +145,7 @@ gc:expand(rb, 'callee', { S('RD', 'lib/d.go', 1) })
 gc:visit(S('RD', 'lib/d.go', 1))
 gc:visit(ra)
 gc:visit(rc)
-gc:expand(rc, 'caller', { S('RD', 'lib/d.go', 1) })
+gc:expand(rc, 'callee', { S('RD', 'lib/d.go', 1) })
 local _, seen = find(render.tree(gc), '↩ RD' .. tag)
 P.ok(seen and seen:find('(seen)', 1, true) and seen:find('d.go:1', 1, true),
   'decision 4: ↩ onto a node elsewhere is labelled (seen), with its path')
@@ -200,11 +202,11 @@ for n = 1, 15 do many[n] = S('p' .. n, 'lib/p.go', n) end
 gcap:expand(croot, 'callee', many)
 gcap:expand(croot, 'caller', { many[1], many[2] })
 local cl, ci = render.tree(gcap)
-local listed = #vim.tbl_filter(function(l) return l:find('?←', 1, true) or l:find('?→', 1, true) end, cl)
+local listed = #vim.tbl_filter(function(l) return l:find('─%? p%d') ~= nil end, cl)
 local mi, ml = find(cl, '… 3 more')
 P.ok(listed == render.FRONTIER_CAP and ml and ci[mi] == nil,
   'decision 8: 12 pending lines under current, then one "… N more" line (index nil) — ' .. listed)
-P.ok(find(cl, '?← p1' .. tag) and not find(cl, '?→ p1' .. tag),
+P.ok(find(cl, '? p1' .. tag .. ' (caller)') and #vim.tbl_filter(function(l) return l:find('p1' .. tag, 1, true) end, cl) == 1,
   'decision 8: a sym pending under two edges is one line (latest edge)')
 local leaf = S('leaf', 'lib/leaf.go', 1)
 gcap:expand(croot, 'callee', { leaf })
@@ -225,5 +227,44 @@ for _, l in ipairs((render.tree(gb))) do
   if l:find('↩ B', 1, true) then bl = bl + 1 end
 end
 P.eq(bl, 1, 'back-edges onto the same target under one node fold into one ↩ line')
+
+-- nesting reads "parent calls child": only edges that mean something else are tagged
+gcap:visit(croot)
+local _, p3 = find(render.tree(gcap), 'p3' .. tag)
+P.ok(p3 and not p3:find('(', 1, true), 'tags: a pending callee is untagged — ' .. tostring(p3))
+local ta, tb, tc = S('TA', 't/a.go', 1), S('TB', 't/b.go', 2), S('TC', 't/c.go', 3)
+local gt = graph.new(ta)
+gt:expand(ta, 'impl', { tb })
+gt:visit(tb)
+gt:visit(tc)
+local tl = render.tree(gt)
+P.ok(find(tl, '─ ' .. tb.name .. ' (impl)'), 'tags: a nested implementation reads (impl)')
+P.ok(find(tl, '─ ' .. tc.name .. ' (jump)'), 'tags: a nested jump reads (jump)')
+
+-- forest: every root starts at column 0, in roots() order
+local fsend, froutes = S('Send', 'h/send.go', 120), S('Routes', 's/routes.go', 15)
+local fmetric, fses, fhandle = S('Metric', 'm/m.go', 1), S('SES', 's/ses.go', 2), S('Handle', 's/h.go', 3)
+local gf = graph.new(fsend)
+gf:expand(fsend, 'caller', { froutes })
+gf:visit(froutes)
+gf:visit(fsend)
+gf:expand(fsend, 'callee', { fmetric })
+gf:visit(fmetric)
+gf:expand(fmetric, 'callee', { fses })
+gf:visit(fses)
+gf:expand(fses, 'caller', { fhandle })
+gf:visit(fhandle)
+local fl = render.tree(gf)
+local tops = {}
+for _, l in ipairs(fl) do
+  local body = l:gsub('^▶ ', ''):gsub('^  ', '')
+  if not body:find('^[│├└ ]') then tops[#tops + 1] = body:match('^(%S+)') end
+end
+P.eq(table.concat(tops, ' '), froutes.name .. ' ' .. fhandle.name,
+  'forest: each root starts a line at column 0, in roots() order — ' .. table.concat(fl, ' / '))
+P.ok(find(fl, '↩ ' .. fses.name .. ' (seen)'), 'forest: the second root shows the shared node as ↩ (seen)')
+local fmd = render.markdown(gf, 'forest')
+P.ok(not fmd:find('|caller|', 1, true) and fmd:find('%-%->|callee|') ~= nil,
+  'forest: mermaid edges always run caller -> callee')
 
 P.done()

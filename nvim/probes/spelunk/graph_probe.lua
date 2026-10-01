@@ -28,7 +28,7 @@ P.ok(g:has(root) and g:has(pfi) and g:has(caller), 'has: nodes and pending child
 P.ok(not g:has(fwd), 'has: a sym never named is unknown')
 g:expand(root, 'callee', { pfi, S('Other', 'internal/view/pod.go', 90) })
 P.eq(#g:children(root), 3, 'expand idempotent: repeat adds no duplicates')
-g:expand(root, 'caller', { pfi })
+g:expand(root, 'impl', { pfi })
 P.eq(#g:children(root), 4, 'expand keys on (from, edge, child): new edge kind is a new entry')
 
 -- visit: explored
@@ -72,7 +72,7 @@ P.eq(#g:children(root), before, 'tree-edge navigation adds no edge')
 -- a node in another subtree is a real cross edge
 g:visit(root)
 local other = S('Other', 'internal/z/other.go', 3)
-g:expand(root, 'caller', { other })
+g:expand(root, 'callee', { other })
 P.eq(g:visit(other), 'explored', 'second subtree under root')
 P.eq(g:visit(fwd), 'back', "visit existing node in another subtree -> 'back'")
 local back_edge
@@ -99,9 +99,9 @@ P.ok(jump and jump.edge == 'jump' and jump.state == 'explored', 'non-current pen
 P.eq(graph.key(g2:current()), graph.key(rows), 'non-current pending: becomes current')
 
 -- loops reported by the LSP are back-edges, not frontier
-g2:expand(rows, 'caller', { root })
+g2:expand(rows, 'callee', { root })
 local loop = g2:children(rows)[1]
-P.ok(loop.back and loop.state == 'explored', 'expand to an existing node records a back-edge')
+P.ok(loop and loop.back and loop.state == 'explored', 'expand to an existing node records a back-edge')
 local in_frontier = false
 for _, s in ipairs(g2:frontier()) do
   if graph.key(s) == graph.key(root) then in_frontier = true end
@@ -159,7 +159,7 @@ g4:visit(pf)
 g4:expand(pf, 'caller', { npod })
 g4:visit(npod)
 g4:expand(npod, 'callee', { pf })
-P.eq(#entries(g4, npod, pf), 0, 'decision 3: callee answer naming the node you came up from is skipped')
+P.eq(#entries(g4, npod, pf), 1, 'decision 3: callee answer naming the callee npod nests is skipped (only the tree line)')
 local g5 = graph.deserialize(vim.json.decode(vim.json.encode(g4:serialize())))
 g5:expand(ipf, 'caller', { pf })
 P.eq(#entries(g5, ipf, pf), 0, 'decision 3: facts survive serialize/deserialize')
@@ -185,7 +185,7 @@ local gn = graph.new(pf)
 gn:expand(pf, 'caller', { npod })
 gn:visit(npod)
 gn:expand(npod, 'def', { pf })
-P.eq(#entries(gn, npod, pf), 0, 'gd from a caller onto the callee you came up from is the same fact, skipped')
+P.eq(#entries(gn, npod, pf), 1, 'gd from a caller onto the callee it nests is the same fact, skipped (only the tree line)')
 gn:expand(pf, 'def', { npod })
 P.eq(#entries(gn, pf, npod), 1, 'gd the other way (pf uses npod) is a new fact and stays')
 local iface, impl = S('Lister.List', 'd/types.go', 69), S('Pod.List', 'd/pod.go', 80)
@@ -203,7 +203,7 @@ g6:expand(run, 'callee', { exec })
 g6:expand(run, 'caller', { exec })
 g6 = graph.deserialize(vim.json.decode(vim.json.encode(g6:serialize())))
 g6:visit(exec)
-P.eq(entries(g6, run, exec)[1].edge, 'caller', 'decision 6: pending stamps survive serialize/deserialize')
+P.eq(g6:info(run).parent and graph.key(g6:info(run).parent), graph.key(exec), 'decision 6: pending stamps survive serialize/deserialize (the later caller entry is walked)')
 
 -- decision 7: the asked-about symbol enters as def, not jump
 local inject, init = S('inject', 'v/app.go', 700), S('Init', 'm/types.go', 57)
@@ -214,5 +214,83 @@ P.ok(#asked == 1 and asked[1].edge == 'def' and asked[1].tree,
   'decision 7: expand from a non-node adds it under current as def')
 P.eq(graph.key(g7:current()), graph.key(init), 'decision 7: the asked-about sym becomes current')
 P.eq(#g7:children(init), 1, 'decision 7: the answer hangs off the asked-about sym')
+
+-- forest: nesting always reads "parent calls child", so a walked caller goes above
+local K = graph.key
+local function parent_of(gr, sym)
+  local i = gr:info(sym)
+  return i and i.parent and K(i.parent)
+end
+local function root_keys(gr) return table.concat(vim.tbl_map(K, gr:roots()), ' ') end
+
+local send, routes = S('Send', 'h/send.go', 120), S('SetupRoutes', 's/routes.go', 15)
+local gf = graph.new(send)
+gf:expand(send, 'caller', { routes })
+P.eq(gf:visit(routes), 'explored', 'forest: walking a pending caller is explored')
+P.eq(root_keys(gf), K(routes), 'forest: a caller of the root becomes the root')
+P.eq(parent_of(gf, send), K(routes), 'forest: the old root nests under its caller')
+local down = entries(gf, routes, send)
+P.ok(#down == 1 and down[1].tree and down[1].edge == 'callee', 'forest: the nesting edge reads caller calls callee')
+P.eq(#entries(gf, send, routes), 0, 'forest: no upward caller line is left under the callee')
+
+local metric, ses, handle = S('Metric', 'm/metric.go', 1), S('SES', 's/ses.go', 2), S('Handle', 's/handle.go', 3)
+gf:visit(send)
+gf:expand(send, 'callee', { metric })
+gf:visit(metric)
+gf:expand(metric, 'callee', { ses })
+gf:visit(ses)
+gf:expand(ses, 'caller', { handle })
+P.eq(gf:visit(handle), 'explored', 'forest: walking a caller of a nested node is explored')
+P.eq(parent_of(gf, ses), K(metric), 'forest: a nested node keeps its parent when a second caller is walked')
+P.eq(parent_of(gf, handle), nil, 'forest: the second caller starts a root of its own')
+local seen = entries(gf, handle, ses)
+P.ok(#seen == 1 and seen[1].back and seen[1].edge == 'callee', 'forest: the node shows under the new root as a back-edge')
+P.eq(root_keys(gf), K(routes) .. ' ' .. K(handle), 'forest: a replacing root keeps its slot, a new root goes last')
+
+local n_handle, n_ses = #gf:children(handle), #gf:children(ses)
+P.eq(gf:visit(ses), 'back', 'forest: new root -> the node it calls is back')
+gf:visit(handle)
+P.ok(#gf:children(handle) == n_handle and #gf:children(ses) == n_ses,
+  'forest: moving between a new root and the node it calls adds no jump edge')
+
+local tmpl, logf = S('Tmpl', 's/tmpl.go', 4), S('Log', 'l/log.go', 5)
+gf:expand(handle, 'callee', { tmpl })
+gf:expand(send, 'callee', { logf })
+local fr = vim.tbl_map(K, gf:frontier())
+P.ok(vim.tbl_contains(fr, K(tmpl)) and vim.tbl_contains(fr, K(logf)), 'forest: frontier spans every root')
+
+local gfr = graph.deserialize(vim.json.decode(vim.json.encode(gf:serialize())))
+P.eq(root_keys(gfr), root_keys(gf), 'forest: serialize keeps the roots in order')
+local v1 = graph.new(send):serialize()
+v1.roots, v1.version = nil, 1
+P.eq(root_keys(graph.deserialize(v1)), K(send), 'forest: a version-1 session (no roots list) loads as one root')
+
+-- a caller named once it is already a node hangs under it, pointing down
+local ca, cb, cc = S('CA', 'c/a.go', 1), S('CB', 'c/b.go', 2), S('CC', 'c/c.go', 3)
+local gk = graph.new(ca)
+gk:expand(ca, 'callee', { cb, cc })
+gk:visit(cb)
+gk:visit(ca)
+gk:visit(cc)
+gk:expand(cb, 'caller', { cc })
+local cdown = entries(gk, cc, cb)
+P.ok(#vim.tbl_filter(function(c) return c.edge == 'callee' and c.back end, cdown) == 1,
+  'forest: a caller that is already a node gets a downward back-edge under it')
+P.eq(#entries(gk, cb, cc), 0, 'forest: …and nothing points up from the callee')
+
+-- a pending caller elsewhere moves under the caller when it becomes a node
+local px = S('PX', 'c/x.go', 9)
+local gp = graph.new(ca)
+gp:expand(ca, 'callee', { cb })
+gp:visit(cb)
+gp:expand(cb, 'caller', { px })
+gp:visit(ca)
+gp:expand(ca, 'callee', { px })
+P.eq(gp:visit(px), 'explored', 'forest: px walked as a callee of ca')
+P.eq(parent_of(gp, px), K(ca), 'forest: px nests under ca, the edge walked')
+local pdown = entries(gp, px, cb)
+P.ok(#pdown == 1 and pdown[1].back and pdown[1].edge == 'callee',
+  'forest: cb\'s pending caller px becomes px\'s downward back-edge')
+P.eq(#entries(gp, cb, px), 0, 'forest: …and leaves nothing pending under cb')
 
 P.done()

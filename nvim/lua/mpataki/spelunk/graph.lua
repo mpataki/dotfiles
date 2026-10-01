@@ -3,11 +3,16 @@
 -- data — no vim.lsp, no buffers — so render and the probes drive it directly.
 --
 -- Invariants the rest of the module leans on:
+--   * nesting is one direction: an explored entry under A pointing at B means A
+--     calls, uses or implements-toward B (or you jumped A -> B). 'caller'
+--     entries are only ever pending; once the caller is a node the entry lives
+--     under the caller as a 'callee' instead. So walking a caller puts it above
+--     the node that named it: in that node's place when it is a root, else as a
+--     new root of its own (the dive is a forest, `_roots` in order).
 --   * every non-root node has a tree entry (explored, not back) in its parent's
 --     list; the earliest-`at` one is the tree edge render walks. Other entries
---     between the same pair are either same-direction duplicates (folded out
---     of children()) or run the other way and live under the child instead
---     (see facts).
+--     between the same pair are same-direction duplicates, folded out of
+--     children().
 --   * an entry whose target is already a node is never 'unexplored'. Targets that
 --     become nodes later are swept: under the tree parent they are duplicates,
 --     anywhere else they turn into back-edges (the LSP told us about a loop).
@@ -64,6 +69,7 @@ end
 function M.new(root)
   local self = setmetatable({ _nodes = {}, _kids = {}, _notes = {}, _facts = {}, _seq = 0 }, Graph)
   self._root = add_node(self, root, nil)
+  self._roots = { self._root }
   self._cur = self._root
   return self
 end
@@ -80,6 +86,15 @@ local function explored_entry(self, k, sym, edge, back)
     state = 'explored', back = back, at = now, born = now }
 end
 
+-- Caller `from` calls node `to`: the explored, downward form of a caller entry.
+local function add_down(self, from, to, count, born, back)
+  local e = explored_entry(self, to, self._nodes[to].sym, 'callee', back)
+  e.count, e.born = count or 1, born or e.born
+  local list = self._kids[from]
+  list[#list + 1] = e
+  return e
+end
+
 -- The pending entry for k a visit walks: the most recently born one.
 local function latest_pending(list, k)
   local best
@@ -89,41 +104,6 @@ local function latest_pending(list, k)
     end
   end
   return best
-end
-
--- The entry render descends through from parent to its tree child k.
-local function tree_entry(self, parent, k)
-  local best
-  for _, e in ipairs(self._kids[parent]) do
-    if e.key == k and e.state == 'explored' and not e.back and (not best or e.at < best.at) then
-      best = e
-    end
-  end
-  return best
-end
-
-local FLIP = { caller = 'callee', callee = 'caller' }
-
-local function up(edge) return edge == 'caller' end
-
--- A call entry between parent and its tree child k that runs against the tree
--- edge (run's callers naming exec, when exec is run's callee) is a different
--- fact the tree does not show: move it under the child, flipped, as a
--- back-edge (exec's callee run). Same-direction duplicates stay and fold out.
-local function settle(self, parent, k)
-  local tree = tree_entry(self, parent, k)
-  if not tree then return end
-  local list, keep = self._kids[parent], {}
-  for _, e in ipairs(list) do
-    if e.key == k and e ~= tree and e.state == 'explored' and FLIP[e.edge] and up(e.edge) ~= up(tree.edge) then
-      local kids = self._kids[k]
-      kids[#kids + 1] = { key = parent, sym = copy_sym(self._nodes[parent].sym), edge = FLIP[e.edge],
-        count = e.count, state = 'explored', back = true, at = tick(self), born = e.born }
-    else
-      keep[#keep + 1] = e
-    end
-  end
-  self._kids[parent] = keep
 end
 
 -- Tree children in first-visit order, for DFS walks.
@@ -146,10 +126,13 @@ local function tree_kids(self, k)
   return uniq
 end
 
-local function walk(self, fn, k)
-  k = k or self._root
-  if fn(k) == false then return end
-  for _, e in ipairs(tree_kids(self, k)) do walk(self, fn, e.key) end
+-- DFS over every root in order; fn returning false skips that subtree.
+local function walk(self, fn)
+  local function go(k)
+    if fn(k) == false then return end
+    for _, e in ipairs(tree_kids(self, k)) do go(e.key) end
+  end
+  for _, r in ipairs(self._roots) do go(r) end
 end
 
 -- Asking the LSP about a symbol that is not yet a node means you were reading
@@ -168,17 +151,21 @@ function Graph:expand(from, edge, children)
       e.count = math.max(e.count, c.count or 1)
     elseif ck ~= fk and not self._facts[fact(fk, edge, ck)] then
       local n = self._nodes[ck]
-      if n then
-        e = explored_entry(self, ck, c, edge, n.parent ~= fk)
+      if n and edge == 'caller' then
+        -- A caller that is already a node: the call hangs under it, pointing down.
+        record(self, ck, add_down(self, ck, fk, c.count, nil, self._nodes[fk].parent ~= ck))
       else
-        e = { key = ck, sym = copy_sym(c), edge = edge, state = 'unexplored', back = false,
-          born = tick(self) }
+        if n then
+          e = explored_entry(self, ck, c, edge, n.parent ~= fk)
+        else
+          e = { key = ck, sym = copy_sym(c), edge = edge, state = 'unexplored', back = false,
+            born = tick(self) }
+        end
+        e.count = c.count or 1
+        local list = self._kids[fk]
+        list[#list + 1] = e
+        record(self, fk, e)
       end
-      e.count = c.count or 1
-      local list = self._kids[fk]
-      list[#list + 1] = e
-      record(self, fk, e)
-      if n and n.parent == fk then settle(self, fk, ck) end
     end
   end
 end
@@ -207,13 +194,47 @@ local function pending_parent(self, k)
   return found
 end
 
-local function sweep(self, k, parent)
+local function remove(list, e)
+  for i, x in ipairs(list) do
+    if x == e then return table.remove(list, i) end
+  end
+end
+
+-- Walking caller entry `e` (under node x) to new node k puts k above x: in x's
+-- place when x is a root, else as a new root with x a back-edge under it.
+local function lift(self, x, k, sym, e)
+  remove(self._kids[x], e)
+  add_node(self, sym, nil)
+  local xn = self._nodes[x]
+  if xn.parent == nil then
+    xn.parent = k
+    for i, r in ipairs(self._roots) do
+      if r == x then self._roots[i] = k end
+    end
+    add_down(self, k, x, e.count, e.born, false)
+  else
+    self._roots[#self._roots + 1] = k
+    add_down(self, k, x, e.count, e.born, true)
+  end
+end
+
+-- Other pending entries for the new node k turn explored: back-edges unless
+-- under k's tree parent. Pending callers of k's neighbours move under k.
+local function sweep(self, k)
+  local parent = self._nodes[k].parent
   for from, list in pairs(self._kids) do
+    local keep = {}
     for _, e in ipairs(list) do
-      if e.key == k and e.state == 'unexplored' then
-        e.state, e.back, e.at = 'explored', from ~= parent, tick(self)
+      if e.key == k and e.state == 'unexplored' and e.edge == 'caller' then
+        add_down(self, k, from, e.count, e.born, self._nodes[from].parent ~= k)
+      else
+        if e.key == k and e.state == 'unexplored' then
+          e.state, e.back, e.at = 'explored', from ~= parent, tick(self)
+        end
+        keep[#keep + 1] = e
       end
     end
+    self._kids[from] = keep
   end
 end
 
@@ -227,7 +248,8 @@ function Graph:visit(sym)
     -- it is navigation, not a loop; it adds no edge. Loops the code itself
     -- forms are already caught at expand time. Only landing in another
     -- subtree draws a cross edge.
-    if not related(self, prev, k) and not find_entry(self._kids[prev], k) then
+    if not related(self, prev, k) and not find_entry(self._kids[prev], k)
+      and not find_entry(self._kids[k], prev) then
       local list = self._kids[prev]
       list[#list + 1] = explored_entry(self, k, sym, 'jump', true)
     end
@@ -243,20 +265,24 @@ function Graph:visit(sym)
     if elsewhere then parent, result = elsewhere, 'explored' end
   end
 
-  add_node(self, sym, parent)
   if result == 'jump' then
+    add_node(self, sym, prev)
     local list = self._kids[prev]
     list[#list + 1] = explored_entry(self, k, sym, 'jump', false)
   else
     local tree = latest_pending(self._kids[parent], k)
-    tree.state, tree.back, tree.at = 'explored', false, tick(self)
+    if tree.edge == 'caller' then
+      lift(self, parent, k, sym, tree)
+    else
+      add_node(self, sym, parent)
+      tree.state, tree.back, tree.at = 'explored', false, tick(self)
+    end
     if parent ~= prev then
       local list = self._kids[prev]
       list[#list + 1] = explored_entry(self, k, sym, 'jump', false)
     end
   end
-  sweep(self, k, parent)
-  settle(self, parent, k)
+  sweep(self, k)
   self._cur = k
   return result
 end
@@ -278,8 +304,17 @@ function Graph:current()
   return copy_sym(self._nodes[self._cur].sym)
 end
 
+-- The sym the session started at, which may no longer be a root: walking its
+-- callers puts them above it.
 function Graph:root()
   return copy_sym(self._nodes[self._root].sym)
+end
+
+-- Tops of the forest, in order. Render draws one tree per root.
+function Graph:roots()
+  local out = {}
+  for _, k in ipairs(self._roots) do out[#out + 1] = copy_sym(self._nodes[k].sym) end
+  return out
 end
 
 -- nil for a sym that is not a node.
@@ -370,8 +405,8 @@ function Graph:serialize()
   local notes = {}
   for k, text in pairs(self._notes) do notes[#notes + 1] = { key = k, text = text } end
   table.sort(notes, function(a, b) return a.key < b.key end)
-  return { version = 1, root = self._root, current = self._cur, seq = self._seq,
-    nodes = nodes, notes = notes }
+  return { version = 2, root = self._root, roots = vim.list_extend({}, self._roots),
+    current = self._cur, seq = self._seq, nodes = nodes, notes = notes }
 end
 
 function M.deserialize(t)
@@ -389,7 +424,9 @@ function M.deserialize(t)
     self._kids[n.key] = list
   end
   for _, n in ipairs(t.notes or {}) do self._notes[n.key] = n.text end
+  -- Version 1 had one root and no forest.
   self._root, self._cur = t.root, t.current
+  self._roots = t.roots or { t.root }
   return self
 end
 
