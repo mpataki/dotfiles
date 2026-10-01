@@ -306,3 +306,22 @@ Lower priority:
   externals that run and exec both call; not checked).
 - Callers drawn below their callee, and impl from concrete to interface
   drawn "down": **open**, not in scope.
+
+## After the nesting pass (not re-run: k9s is not on this machine)
+
+Status changes since the readability pass, from the code and the graph/render
+probes; the trees above are still the readability-pass output.
+
+- Echoes item 2, **Still there:** both closed by `ee89298`. gd now records the
+  same `call|` fact as the tree edge, and `impl` facts are order-normalised, so
+  `NewPod ↩ portForwardIndicator` and the second `↩ List` line go away.
+- **Callers drawn below their callee: closed.** Nesting now always means
+  "parent calls child", and the `←`/`→` glyphs are gone. Walking a caller of a
+  root puts the caller above it. Walking a caller of a node that already has a
+  parent starts a second root (the dive is a forest), and the node appears under
+  it as `↩ (seen)`. Pending callers stay under the node they call, tagged
+  `(caller)`; nested implementations and jumps are tagged `(impl)` / `(jump)`.
+- **impl from concrete to interface drawn "down": still open.** gopls gives an
+  interface method and a concrete method the same kind (method), so the
+  graph can't tell which side is the interface. `impl` nests in the
+  direction you walked it.
