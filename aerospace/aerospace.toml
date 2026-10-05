@@ -1,3 +1,9 @@
+# See: https://nikitabobko.github.io/AeroSpace/guide#config-version
+config-version = 2
+
+# Only these stay alive while empty. 3/4 are created on demand by their
+# bindings and vanish once emptied (v1 inferred persistence from bindings).
+persistent-workspaces = ['1', '2']
 
 # You can use it to add commands that run after login to macOS user session.
 # 'start-at-login' needs to be 'true' for 'after-login-command' to work
@@ -253,13 +259,13 @@ alt-shift-tab = 'move-workspace-to-monitor --wrap-around next'
 alt-shift-semicolon = 'mode service'
 
 [workspace-to-monitor-force-assignment]
-# Built-in + Samsung S22R35x
-1 = 'S22R35x'
-2 = 'Built-in'
+# BenQ RD320U + LG SDQHD
+1 = 'RD320U'
+2 = 'SDQHD'
 
-# Samsung RD320U + SDQHD
-# 1 = 'RD320U'
-# 2 = 'SDQHD'
+# Built-in + Samsung S22R35x
+# 1 = 'S22R35x'
+# 2 = 'Built-in'
 
 # Built-in + RD320U + SDQHD
 # 1 = 'Built-in'
