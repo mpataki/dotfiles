@@ -163,8 +163,6 @@ alt-enter = 'fullscreen'
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
 alt-q = 'workspace 1'
 alt-w = 'workspace 2'
-alt-e = 'workspace 3'
-alt-d = 'workspace 4'
 # alt-5 = 'workspace 5'
 # alt-6 = 'workspace 6'
 # alt-7 = 'workspace 7'
@@ -205,8 +203,6 @@ alt-d = 'workspace 4'
 # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
 alt-ctrl-q = ['layout tiling', 'move-node-to-workspace 1 --focus-follows-window']
 alt-ctrl-w = ['layout tiling', 'move-node-to-workspace 2 --focus-follows-window']
-alt-ctrl-e = ['layout tiling', 'move-node-to-workspace 3 --focus-follows-window']
-alt-ctrl-d = ['layout tiling', 'move-node-to-workspace 4 --focus-follows-window']
 # alt-shift-5 = 'move-node-to-workspace 5 --focus-follows-window'
 # alt-shift-6 = 'move-node-to-workspace 6 --focus-follows-window'
 # alt-shift-7 = 'move-node-to-workspace 7 --focus-follows-window'
