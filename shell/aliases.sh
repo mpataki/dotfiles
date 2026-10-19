@@ -49,7 +49,17 @@ gwt-rm() {
 alias glab='GITLAB_TOKEN= command glab'
 
 # tmux
-alias ta='tmux attach -t'
+# ta NAME: attach, or join as a grouped view if NAME already has a client
+# (another window) so the two don't mirror; tmux.conf's session-created hook
+# reaps the view on detach. See bin/tmux-goto-session for the in-tmux path.
+unalias ta 2>/dev/null  # re-sourcing a shell that has the old alias
+ta() {
+  if [[ "$(tmux display-message -p -t "$1:" '#{session_attached}' 2>/dev/null)" -gt 0 ]]; then
+    tmux new-session -t "$1"
+  else
+    tmux attach -t "$1"
+  fi
+}
 alias tad='tmux attach -d -t'
 alias ts='tmux new-session -s'
 alias tl='tmux list-sessions'

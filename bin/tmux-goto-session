@@ -1,36 +1,90 @@
 #!/usr/bin/env bash
-# tmux-goto-session NAME
+# tmux-goto-session [-c CLIENT] NAME[:WINDOW[.PANE]] | --next | --prev | --last
 #
-# Switch the current client to session NAME (prefix match, like sessionist's
-# prefix+g). If NAME already has a client attached (another WezTerm window),
-# join it via a grouped session instead of mirroring: same windows, independent
-# current window. The view gets `destroy-unattached keep-last` so it is reaped
-# when its client leaves; canonical sessions keep the default (survive detach).
+# Single entry point for moving a client between sessions (prefix+g, ( ) P,
+# pick-claude). NAME is a prefix match, like sessionist's prefix+g. If the
+# target already has a client attached (another WezTerm window), join it via a
+# grouped session instead of mirroring: same windows, independent current
+# window. The view gets `destroy-unattached keep-last` so it is reaped when its
+# client leaves; canonical sessions keep the default (survive detach).
+#
+# Navigation works over canonical sessions only (ungrouped, or the group
+# leader — tmux names a group after the session it was created from), so other
+# clients' views never show up in next/prev and a reaped view never becomes
+# "last". tmux's own last-session can't be trusted here: it usually points at
+# the view we just left, which is gone. We track it per client instead.
 set -u
-name=${1:-}
-[[ -n "$name" ]] || exit 0
-tmux send-keys -X cancel 2>/dev/null  # close the session list shown by prefix+g
+client=
+if [[ ${1:-} == -c ]]; then
+  client=${2:-}
+  shift 2
+fi
+arg=${1:-}
+[[ -n "$arg" ]] || exit 0
+[[ -n "$client" ]] || client=$(tmux display-message -p '#{client_name}')
 
-# Only canonical sessions are switch targets: ungrouped ones, or the group
-# leader (tmux names a group after the session it was created from), so
-# auto-named views like `policies-1` never match a prefix.
+canon_fmt='#{?session_grouped,#{session_group},#{session_name}}'
 canonical=$(tmux list-sessions \
     -f '#{||:#{==:#{session_grouped},0},#{==:#{session_name},#{session_group}}}' \
     -F '#{session_name}' 2>/dev/null)
-target=$(grep -x -- "$name" <<<"$canonical" || grep -m1 -- "^$name" <<<"$canonical")
+# client's session: actual (maybe a view) and canonical
+read -r cur_actual cur_canon < <(tmux list-clients \
+    -f "#{==:#{client_name},$client}" -F "#{session_name} $canon_fmt")
+last_opt="@goto-last-${client//[^A-Za-z0-9]/_}"
+
+target='' rest=''
+case "$arg" in
+  --next|--prev)
+    list=()  # no mapfile: run-shell's PATH may resolve to macOS bash 3.2
+    while IFS= read -r s; do list+=("$s"); done <<<"$canonical"
+    n=${#list[@]} i=0
+    for idx in "${!list[@]}"; do
+      [[ "${list[$idx]}" == "$cur_canon" ]] && i=$idx
+    done
+    step=1; [[ "$arg" == --prev ]] && step=-1
+    target=${list[$(( (i + step + n) % n ))]}
+    ;;
+  --last)
+    target=$(tmux show-options -gqv "$last_opt")
+    if [[ -z "$target" ]] || ! grep -qx -- "$target" <<<"$canonical"; then
+      exec tmux switch-client -c "$client" -l
+    fi
+    ;;
+  *)
+    tmux send-keys -X cancel 2>/dev/null  # close the session list shown by prefix+g
+    name=${arg%%:*}
+    [[ "$arg" == *:* ]] && rest=":${arg#*:}"
+    # exact session (incl. a view, e.g. from pick-claude) → its canonical;
+    # otherwise prefix match over canonical sessions only
+    if tmux has-session -t "=$name" 2>/dev/null; then
+      target=$(tmux display-message -p -t "=$name:" "$canon_fmt")
+    else
+      target=$(grep -m1 -- "^$name" <<<"$canonical")
+    fi
+    ;;
+esac
+
 if [[ -z "$target" ]]; then
-  tmux display-message "no session matching '$name'"
+  tmux display-message -c "$client" "no session matching '$arg'"
   exit 1
 fi
 
-attached=$(tmux display-message -p -t "$target" '#{session_attached}')
+# Already here (possibly via a view): just move within it.
+if [[ "$target" == "$cur_canon" ]]; then
+  [[ -n "$rest" ]] && exec tmux switch-client -c "$client" -t "=$cur_actual$rest"
+  exit 0
+fi
+
+[[ -n "$cur_canon" ]] && tmux set-option -g "$last_opt" "$cur_canon"
+
+attached=$(tmux display-message -p -t "=$target:" '#{session_attached}')
 if [[ "$attached" == 0 ]]; then
-  exec tmux switch-client -t "$target"
+  exec tmux switch-client -c "$client" -t "=$target$rest"
 fi
 
 # Created detached, so the session-created hook (attached-only) skips it; set
 # keep-last here, *after* the client is on it. Setting it while unattached would
 # get the view reaped the moment this CLI client disconnects.
-view=$(tmux new-session -d -t "$target" -P -F '#{session_name}')
-tmux switch-client -t "$view"
-exec tmux set-option -t "$view" destroy-unattached keep-last
+view=$(tmux new-session -d -t "=$target" -P -F '#{session_name}')
+tmux switch-client -c "$client" -t "=$view$rest"
+exec tmux set-option -t "=$view:" destroy-unattached keep-last
