@@ -52,6 +52,27 @@ local session
 -- The split: { win, buf, index } while open.
 local split = {}
 
+local ns = vim.api.nvim_create_namespace('mpataki_spelunk')
+
+-- Links only, so ':colorscheme' (which re-applies default links) needs no
+-- re-declare; `default = true` leaves an override standing.
+local HL_LINKS = {
+  SpelunkHere = 'Title',
+  SpelunkNode = 'Function',
+  SpelunkTree = 'NonText',
+  SpelunkGlyph = 'Special',
+  SpelunkPending = 'Identifier',
+  SpelunkBack = 'Comment',
+  SpelunkTag = 'Type',
+  SpelunkCycle = 'WarningMsg',
+  SpelunkNote = 'String',
+  SpelunkSummary = 'Comment',
+  SpelunkPath = 'Comment',
+}
+for group, link in pairs(HL_LINKS) do
+  vim.api.nvim_set_hl(0, group, { default = true, link = link })
+end
+
 local function notify(msg, level)
   vim.notify('spelunk: ' .. msg, level or vim.log.levels.INFO)
 end
@@ -137,13 +158,17 @@ end
 -- sym's line is gone). A fresh split always starts on the current node.
 function M.render()
   if not (split_open() and session) then return end
-  local lines, index, here = render().tree(session.g, { width = vim.api.nvim_win_get_width(split.win) })
+  local lines, index, here, hls = render().tree(session.g, { width = vim.api.nvim_win_get_width(split.win) })
   local row = vim.api.nvim_win_get_cursor(split.win)[1]
   local was = split.index and split.index[row]
   local browsing = split.index ~= nil and vim.api.nvim_get_current_win() == split.win
   vim.bo[split.buf].modifiable = true
   vim.api.nvim_buf_set_lines(split.buf, 0, -1, false, lines)
   vim.bo[split.buf].modifiable = false
+  vim.api.nvim_buf_clear_namespace(split.buf, ns, 0, -1)
+  for _, h in ipairs(hls) do
+    vim.api.nvim_buf_set_extmark(split.buf, ns, h[1] - 1, h[2], { end_col = h[3], hl_group = h[4] })
+  end
   split.index = index
   local target = math.min(row, #lines)
   if not browsing then

@@ -1,5 +1,5 @@
 -- Graph -> text. `tree` draws the dive as box-drawing lines for the split plus
--- an index (line -> sym) that <CR> resolves; `markdown` wraps the same tree with
+-- an index (line -> sym) that <CR> resolves and highlight spans for the split; `markdown` wraps the same tree with
 -- a mermaid diagram and a notes list for the export file. Pure: reads the graph
 -- through its public methods only, no buffers, no IO.
 local graph = require('mpataki.spelunk.graph')
@@ -18,11 +18,35 @@ local PLURAL = { caller = 'callers', callee = 'callees', def = 'definitions',
 
 local width = vim.fn.strdisplaywidth
 
+-- Highlight group per segment kind. init.lua declares them as default links,
+-- so a theme or override can restyle any one of them.
+local HL = {
+  here = 'SpelunkHere', -- ▶ and the current node's name
+  node = 'SpelunkNode', -- an explored node's name
+  tree = 'SpelunkTree', -- box-drawing connectors
+  glyph = 'SpelunkGlyph', -- ? ↩ … markers
+  pending = 'SpelunkPending', -- an unexplored child's name
+  back = 'SpelunkBack', -- a ↩ target's name
+  tag = 'SpelunkTag', -- (impl) (jump) (caller) (seen)
+  cycle = 'SpelunkCycle', -- (cycle)
+  note = 'SpelunkNote',
+  summary = 'SpelunkSummary', -- counts, (pruned)
+  path = 'SpelunkPath',
+}
+M.HL = HL
+
+-- A row's left side is a list of { text, hl } segments; hl nil draws plain.
+local function flat(segs)
+  local t = {}
+  for i, sg in ipairs(segs) do t[i] = sg[1] end
+  return table.concat(t)
+end
+
 -- Nesting reads "parent calls child", so plain calls and defs carry no glyph;
 -- the edges that mean something else say so. Pending callers sit under the
 -- node they call until walked, when they move above it.
-local TREE_TAG = { impl = ' (impl)', jump = ' (jump)' }
-local PENDING_TAG = { caller = ' (caller)', impl = ' (impl)' }
+local TREE_TAG = { impl = '(impl)', jump = '(jump)' }
+local PENDING_TAG = { caller = '(caller)', impl = '(impl)' }
 
 local function truncate(s, cap)
   if width(s) <= cap then return s end
@@ -76,8 +100,8 @@ local function back_label(g, at, c)
   return c.edge == 'jump' and '(jump)' or '(seen)'
 end
 
--- Rows are { left, path, sym, here }; the path column is placed once every row
--- is known. Note rows have no path and no sym.
+-- Rows are { left = segments, path, sym, here }; the path column is placed once
+-- every row is known. Note rows have no path and no sym.
 local function rows(g)
   local out = {}
   local cur = graph.key(g:current())
@@ -91,11 +115,17 @@ local function rows(g)
 
   local function node(sym, prefix, head, tag)
     local info = g:info(sym)
-    out[#out + 1] = { left = head .. sym.name .. (tag or ''), path = short(sym), sym = sym, here = graph.key(sym) == cur }
-    if info.note then out[#out + 1] = { left = prefix .. '· ' .. truncate(info.note, M.NOTE_CAP), path = '' } end
+    local here = graph.key(sym) == cur
+    local left = { { head, HL.tree }, { sym.name, here and HL.here or HL.node } }
+    if tag then vim.list_extend(left, { { ' ' }, { tag, HL.tag } }) end
+    out[#out + 1] = { left = left, path = short(sym), sym = sym, here = here }
+    if info.note then
+      out[#out + 1] = { left = { { prefix, HL.tree }, { '· ', HL.glyph },
+        { truncate(info.note, M.NOTE_CAP), HL.note } }, path = '' }
+    end
     local kids = {}
     if info.pruned and not in_subtree(g, sym, g:current()) then
-      kids[1] = { text = '… (pruned)' }
+      kids[1] = { text = '(pruned)', glyph = '…' }
     else
       -- Pending children, one per sym (a sym pending under two edges is one
       -- choice): first-listed position, latest entry's edge (the one a visit
@@ -144,14 +174,20 @@ local function rows(g)
         node(k.child.sym, cont, branch .. ' ', TREE_TAG[k.child.edge])
       elseif k.child then
         local s = k.child.sym
-        out[#out + 1] = { left = branch .. '↩ ' .. s.name .. ' ' .. back_label(g, sym, k.child),
-          path = short(s), sym = s }
+        local lbl = back_label(g, sym, k.child)
+        out[#out + 1] = { left = { { branch, HL.tree }, { '↩ ', HL.glyph }, { s.name, HL.back }, { ' ' },
+          { lbl, lbl == '(cycle)' and HL.cycle or HL.tag } }, path = short(s), sym = s }
       elseif k.pending then
         local s = k.pending.sym
-        out[#out + 1] = { left = branch .. '? ' .. s.name .. (PENDING_TAG[k.pending.edge] or ''),
-          path = short(s), sym = s }
+        local left = { { branch, HL.tree }, { '? ', HL.glyph }, { s.name, HL.pending } }
+        local ptag = PENDING_TAG[k.pending.edge]
+        if ptag then vim.list_extend(left, { { ' ' }, { ptag, HL.tag } }) end
+        out[#out + 1] = { left = left, path = short(s), sym = s }
       else
-        out[#out + 1] = { left = branch .. (k.glyph and (k.glyph .. ' ') or '') .. k.text, path = '' }
+        local left = { { branch, HL.tree } }
+        if k.glyph then left[#left + 1] = { k.glyph .. ' ', HL.glyph } end
+        left[#left + 1] = { k.text, HL.summary }
+        out[#out + 1] = { left = left, path = '' }
       end
     end
   end
@@ -166,30 +202,45 @@ local function pad(s, w)
   return s .. string.rep(' ', w - sw + 2)
 end
 
--- Returns lines, index (line -> sym, nil holes) and the current node's line.
--- The path column sits where the current node's line still fits in
--- opts.width (default M.WIDTH); rows whose left side is wider overflow it.
+-- Returns lines, index (line -> sym, nil holes), the current node's line and
+-- highlight spans: { line, col, end_col, group }, 1-based line, 0-based
+-- end-exclusive byte columns (extmark-ready). The path column sits where the
+-- current node's line still fits in opts.width (default M.WIDTH); rows whose
+-- left side is wider overflow it.
 function M.tree(g, opts)
   local limit = (opts and opts.width) or M.WIDTH
   local rs = rows(g)
   local lw, here = 0, nil
   for i, r in ipairs(rs) do
+    r.text = flat(r.left)
     if r.here then here = i end
     if r.path ~= '' then
-      local w = width(r.left)
+      local w = width(r.text)
       if w <= M.LEFT_CAP and w > lw then lw = w end
     end
   end
   if here then
     lw = math.min(lw, limit - width(HERE) - 2 - width(rs[here].path))
   end
-  local lines, index = {}, {}
+  local lines, index, hls = {}, {}, {}
   for i, r in ipairs(rs) do
-    local line = r.path ~= '' and pad(r.left, lw) .. r.path or r.left
-    lines[i] = ((r.here and HERE or GUTTER) .. line):gsub('%s+$', '')
+    local segs = { { r.here and HERE or GUTTER, r.here and HL.here or nil } }
+    vim.list_extend(segs, r.left)
+    if r.path ~= '' then
+      segs[#segs + 1] = { pad(r.text, lw):sub(#r.text + 1) }
+      segs[#segs + 1] = { r.path, HL.path }
+    end
+    local line = flat(segs):gsub('%s+$', '')
+    local col = 0
+    for _, sg in ipairs(segs) do
+      local e = math.min(col + #sg[1], #line)
+      if sg[2] and e > col then hls[#hls + 1] = { i, col, e, sg[2] } end
+      col = col + #sg[1]
+    end
+    lines[i] = line
     index[i] = r.sym
   end
-  return lines, index, here
+  return lines, index, here, hls
 end
 
 local function mid(key)
