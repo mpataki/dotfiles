@@ -6,15 +6,19 @@
 --
 -- Usage: just navigate. The first gr/gd/incoming/outgoing call with no session
 -- starts one rooted at the symbol the question was about.
---   :SpelunkStart [name]  new session rooted at the symbol under the cursor;
---                         name defaults to <root>-<HHMM>. Replaces an open
---                         session (its export stays on disk)
---   :SpelunkStop          end the session and close the split
---   :SpelunkOpen          toggle the tree split (right, 40 cols)
---   :SpelunkNote [text]   one-line note on the current node; prompts without text
---   :SpelunkMark          record the cursor's symbol as a visit (scrolling into an
---                         unknown symbol in the same file is not one on its own)
---   :SpelunkExport        write the export now (it is also written on every change)
+--   <leader>ss  :SpelunkStart [name]  new session rooted at the symbol under the
+--                                     cursor, split opened; name defaults to
+--                                     <root>-<HHMM>. Replaces an open session
+--                                     (its export stays on disk): the reset
+--   <leader>sx  :SpelunkStop          end the session and close the split
+--   <leader>so  :SpelunkOpen          toggle the tree split (right, 40 cols)
+--   <leader>sn  :SpelunkNote [text]   one-line note on the current node; prompts
+--                                     without text
+--   <leader>sm  :SpelunkMark          record the cursor's symbol as a visit
+--                                     (scrolling into an unknown symbol in the
+--                                     same file is not one on its own)
+--   <leader>se  :SpelunkExport        write the export now (it is also written
+--                                     on every change)
 --
 -- In the split:
 --   <CR>  jump to the node in the window you came from
@@ -27,8 +31,8 @@
 -- like review drafts); setup({ export_dir = ... }) points them elsewhere, e.g.
 -- the vault, where Obsidian renders the mermaid block live.
 --
--- No global keymaps yet; <leader>s* is the suggested prefix once a real dive
--- shows which of these get used.
+-- <leader>s also holds the split maps (s\ s-, remap.lua); keep spelunk on
+-- letters.
 
 -- graph and render load on first session, not at startup: the config calls
 -- setup() on every launch and most launches never dive. lsp.lua never
@@ -344,24 +348,49 @@ function M.toggle()
   if split_open() then M.close() else M.open() end
 end
 
+-- Starting a dive always shows it: the split is how you see the frontier.
+function M.start_here(name)
+  cursor_sym(function(sym)
+    M.start(sym, name or '')
+    M.open()
+  end)
+end
+
+function M.mark()
+  -- Without a session a visit has nowhere to go; marking starts one here.
+  if session then lsp.mark() else cursor_sym(function(sym) M.start(sym) end) end
+end
+
+local function export_cmd()
+  if not session then return notify(NO_SESSION, vim.log.levels.WARN) end
+  if M.export() then notify('wrote ' .. M.export_path()) end
+end
+
 local function commands()
   local cmd = vim.api.nvim_create_user_command
-  cmd('SpelunkStart', function(o)
-    local name = table.concat(o.fargs, ' ')
-    cursor_sym(function(sym) M.start(sym, name) end)
-  end, { nargs = '*', desc = 'spelunk: new session rooted at the cursor symbol' })
+  cmd('SpelunkStart', function(o) M.start_here(table.concat(o.fargs, ' ')) end,
+    { nargs = '*', desc = 'spelunk: new session rooted at the cursor symbol' })
   cmd('SpelunkStop', M.stop, { desc = 'spelunk: end the session' })
   cmd('SpelunkOpen', M.toggle, { desc = 'spelunk: toggle the tree split' })
   cmd('SpelunkNote', function(o) M.note(o.args) end,
     { nargs = '*', desc = 'spelunk: note on the current node' })
-  cmd('SpelunkMark', function()
-    -- Without a session a visit has nowhere to go; marking starts one here.
-    if session then lsp.mark() else cursor_sym(function(sym) M.start(sym) end) end
-  end, { desc = 'spelunk: record the cursor symbol as a visit' })
-  cmd('SpelunkExport', function()
-    if not session then return notify(NO_SESSION, vim.log.levels.WARN) end
-    if M.export() then notify('wrote ' .. M.export_path()) end
-  end, { desc = 'spelunk: write the export now' })
+  cmd('SpelunkMark', M.mark, { desc = 'spelunk: record the cursor symbol as a visit' })
+  cmd('SpelunkExport', export_cmd, { desc = 'spelunk: write the export now' })
+end
+
+local KEYS = {
+  { 'ss', function() M.start_here() end, 'start dive at cursor (replaces open one)' },
+  { 'so', M.toggle, 'toggle split' },
+  { 'sx', M.stop, 'end dive' },
+  { 'sn', function() M.note() end, 'note on current node' },
+  { 'sm', M.mark, 'mark cursor symbol as visited' },
+  { 'se', export_cmd, 'export now' },
+}
+
+local function keymaps()
+  for _, k in ipairs(KEYS) do
+    vim.keymap.set('n', '<leader>' .. k[1], k[2], { silent = true, desc = 'spelunk: ' .. k[3] })
+  end
 end
 
 -- Re-callable: a later call replaces the options (probes point export_dir at
@@ -372,6 +401,7 @@ function M.setup(opts)
   lsp.on_event(on_event)
   lsp.set_known(function(sym) return session ~= nil and session.g:has(sym) end)
   commands()
+  keymaps()
 end
 
 return M

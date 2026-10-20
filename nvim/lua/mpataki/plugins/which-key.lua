@@ -8,6 +8,7 @@ return {
       { "<leader>r", group = "Requests (kulala)" },
       { "<leader>g", group = "Git" },
       { "<leader>f", group = "Find" },
+      { "<leader>s", group = "Spelunk / split" },
     },
   },
   keys = {
