@@ -54,24 +54,37 @@ local split = {}
 
 local ns = vim.api.nvim_create_namespace('mpataki_spelunk')
 
--- Links only, so ':colorscheme' (which re-applies default links) needs no
--- re-declare; `default = true` leaves an override standing.
+-- Default links; `default = true` leaves an override standing. Here is the
+-- one literal group: Constant's fg made bold, so the current node stands apart
+-- from Node (Title shares Function's blue in catppuccin). Literal attributes do
+-- not survive ':colorscheme' (it re-applies default links only), hence the
+-- re-declare on ColorScheme. Cycle and Tag must differ: (cycle) is the one tag
+-- worth noticing.
 local HL_LINKS = {
-  SpelunkHere = 'Title',
   SpelunkNode = 'Function',
   SpelunkTree = 'NonText',
   SpelunkGlyph = 'Special',
   SpelunkPending = 'Identifier',
   SpelunkBack = 'Comment',
-  SpelunkTag = 'Type',
+  SpelunkTag = 'Comment',
   SpelunkCycle = 'WarningMsg',
   SpelunkNote = 'String',
   SpelunkSummary = 'Comment',
   SpelunkPath = 'Comment',
 }
-for group, link in pairs(HL_LINKS) do
-  vim.api.nvim_set_hl(0, group, { default = true, link = link })
+local function declare_hl()
+  for group, link in pairs(HL_LINKS) do
+    vim.api.nvim_set_hl(0, group, { default = true, link = link })
+  end
+  local fg = vim.api.nvim_get_hl(0, { name = 'Constant', link = false }).fg
+  vim.api.nvim_set_hl(0, 'SpelunkHere', { default = true, fg = fg, bold = true })
 end
+
+declare_hl()
+vim.api.nvim_create_autocmd('ColorScheme', {
+  group = vim.api.nvim_create_augroup('mpataki_spelunk_hl', {}),
+  callback = declare_hl,
+})
 
 local function notify(msg, level)
   vim.notify('spelunk: ' .. msg, level or vim.log.levels.INFO)

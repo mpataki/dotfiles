@@ -93,6 +93,18 @@ for group in pairs(HL) do
     'hl: ' .. name .. ' resolves to attributes')
 end
 
+-- Distinctness under the live theme: the decision, not a colour.
+local function hl(name) return vim.api.nvim_get_hl(0, { name = name, link = false }) end
+local function distinct(a, b, msg)
+  P.ok(hl(a).fg ~= nil and hl(a).fg ~= hl(b).fg, ('%s: %s %s vs %s %s'):format(msg,
+    a, tostring(hl(a).fg), b, tostring(hl(b).fg)))
+end
+distinct('SpelunkHere', 'SpelunkNode', 'hl: current node colour differs from explored nodes')
+distinct('SpelunkCycle', 'SpelunkTag', 'hl: (cycle) colour differs from plain tags')
+P.ok(hl('SpelunkHere').bold, 'hl: current node is bold')
+vim.cmd.colorscheme(vim.g.colors_name or 'default')
+P.ok(hl('SpelunkHere').fg ~= nil and hl('SpelunkHere').bold, 'hl: SpelunkHere survives :colorscheme')
+
 -- Re-render replaces, not stacks.
 local before = #marks()
 spelunk.render()
