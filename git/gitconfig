@@ -55,6 +55,9 @@
 	process = git-lfs filter-process
 [includeIf "gitdir:~/code/1password/"]
   path = ~/.gitconfig.1password
+# b5 lives under GOPATH: its lcl server serves assets from $GOPATH/src/go.1password.io/b5.
+[includeIf "gitdir:~/go/src/go.1password.io/"]
+  path = ~/.gitconfig.1password
 [url "ssh://git@gitlab.1password.io:2227"]
   insteadOf = https://gitlab.1password.io
 [url "git@github.com-1password:agilebits-inc/"]
