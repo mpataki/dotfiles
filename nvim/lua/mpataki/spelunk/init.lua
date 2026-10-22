@@ -312,7 +312,9 @@ function M.open()
   vim.cmd('botright vertical ' .. M.WIDTH .. 'split')
   local win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(win, buf)
-  local wo = vim.wo[win]
+  -- [0]: :setlocal, so these stay with the spelunk buffer. Plain vim.wo[win]
+  -- is :set and leaks the bare gutter to any file later shown in this window.
+  local wo = vim.wo[win][0]
   wo.wrap, wo.cursorline, wo.winfixwidth = false, true, true
   wo.number, wo.relativenumber, wo.spell = false, false, false
   wo.signcolumn, wo.foldcolumn = 'no', '0'
@@ -322,6 +324,15 @@ function M.open()
     buffer = buf,
     once = true,
     callback = function() split.win, split.buf, split.index = nil, nil, nil end,
+  })
+  -- winfixwidth belongs to the window, not the buffer: :setlocal cannot scope
+  -- it, so it goes when the sidebar's buffer does.
+  vim.api.nvim_create_autocmd('BufWinLeave', {
+    buffer = buf,
+    once = true,
+    callback = function()
+      if vim.api.nvim_win_is_valid(win) then vim.wo[win].winfixwidth = false end
+    end,
   })
   M.render()
   -- The split is a sidebar: navigation carries on where it was.
