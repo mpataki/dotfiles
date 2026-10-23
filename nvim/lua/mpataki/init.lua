@@ -8,3 +8,4 @@ require("mpataki.nvim_goto")
 
 require("mpataki.review").setup()
 require("mpataki.spelunk").setup()
+require("mpataki.ask").setup()
