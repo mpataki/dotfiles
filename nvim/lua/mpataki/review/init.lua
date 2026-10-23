@@ -1,31 +1,39 @@
--- PR review comments from nvim: draft inline comments on the PR's changed
--- lines, see everyone's threads as virtual text, push a pending GitHub review.
--- Commands, keymaps and glue between pr/store/render/capture; push and pull
--- live in sync.lua but register here so the command surface is in one place.
+-- Review comments from nvim, agent-first: comment on any line of the branch's
+-- changes, hand the draft to the Claude pane, or (secondary) push it to GitHub
+-- as a pending review. Commands, keymaps and glue between pr/store/render/
+-- capture; push/pull live in sync.lua, send/clear in handoff.lua, but all
+-- register here so the command surface is in one place.
 --
--- Usage: `gh pr checkout N` (or a worktree on the PR branch), open nvim there.
---   <leader>gS      pick a file changed in the PR
---   <leader>go      toggle the inline diff overlay (against the PR base)
+-- Usage: any branch, PR or not.
+--   <leader>gS      pick a file changed on the branch (committed, uncommitted,
+--                   untracked) against its base
+--   <leader>go      toggle the inline diff overlay (against the base)
 --   <leader>gc      comment at the cursor or on the visual range; `:w` saves,
 --                   `q` cancels, an empty body deletes the comment
 --   <leader>gC      every comment, mine and remote, into the quickfix list
 --   ]q / [q         walk that quickfix list (Neovim defaults)
---   :ReviewPull     fetch remote threads + my pending review, then re-render
---   :ReviewPush[!]  create/replace my pending review on GitHub; `!` skips the
---                   clobber guard (push over a pending review that has drifted)
---   :ReviewBrowse   open the PR in the browser
+--   <leader>cr      :ReviewSend — hand the draft to the Claude pane (ask.lua's
+--                   tmux transport); the draft is kept
+--   :ReviewClear    archive the draft to <branch>.<timestamp>.md, start empty
 --   :ReviewOpen     edit the draft file directly (escape hatch)
 --   :ReviewRender   re-render comments in this buffer
---   :ReviewToggle   hide/show every review decoration; pushes, pulls and saves
---                   keep working while it is off, so toggling back on shows all
+--   :ReviewToggle   hide/show every review decoration; saves, sends, pushes
+--                   and pulls keep working while it is off
 --   :ReviewRefresh  drop the cached PR identity and re-render — after a rebase,
 --                   or when the PR is opened mid-session
+-- GitHub (needs a PR for the branch; no keys on purpose):
+--   :ReviewPush[!]  create/replace my pending review, after a confirm that
+--                   defaults to No; `!` skips the clobber guard, never the
+--                   confirm. Refused while a commented file is dirty.
+--   :ReviewPull     fetch remote threads + my pending review, then re-render
+--   :ReviewBrowse   open the PR in the browser
 --
--- Drafts live outside the worktree, in <git-common-dir>/reviews/<N>.md.
+-- Base: the PR's base when there is one, else origin/HEAD, else main/master.
+-- Drafts live outside the worktree, in <git-common-dir>/reviews/<branch>.md
+-- (branch percent-encoded).
 --
--- The review is meant to be finished in the browser, and two steps only happen
--- there: retiring a pending review (emptying the draft and pushing is refused,
--- so delete the review in the browser) and submitting the verdict.
+-- On GitHub the review is finished in the browser: retiring a pending review
+-- (emptying the draft and pushing is refused) and submitting the verdict.
 local pr = require('mpataki.review.pr')
 local store = require('mpataki.review.store')
 local render = require('mpataki.review.render')
@@ -44,25 +52,32 @@ local function notify_err(msg)
   vim.notify('review: ' .. msg, vim.log.levels.ERROR)
 end
 
+-- A review is a branch's: no PR needed. GitHub gestures ask require_pr().
 local function repo_context(root)
   local info, err = pr.info(root)
   if not info then return nil, err end
-  -- gh failing (unauthenticated, offline, rate-limited) is not the same as this
-  -- branch having no PR, and the fix is different for each.
-  if not info.number then
-    if info.pr_err then return nil, 'no PR for this branch: ' .. info.pr_err end
-    return nil, 'no PR for this branch (gh pr view found none)'
-  end
+  if not info.branch then return nil, info.branch_err end
   return {
     root = root,
     info = info,
-    file = store.path(info.common_dir, info.number),
-    remote_file = store.remote_path(info.common_dir, info.number),
+    file = store.path(info.common_dir, info.branch),
+    remote_file = store.remote_path(info.common_dir, info.branch),
   }
 end
 
+-- nil when the branch has a PR, else why not. gh failing (unauthenticated,
+-- offline, rate-limited) is not the same as this branch having no PR, and the
+-- fix is different for each.
+function M.require_pr(ctx, command)
+  if ctx.info.number then return nil end
+  if ctx.info.pr_err then
+    return ('%s needs a PR; none for branch %s: %s'):format(command, ctx.info.branch, ctx.info.pr_err)
+  end
+  return ('%s needs a PR; none for branch %s (gh pr create)'):format(command, ctx.info.branch)
+end
+
 -- A file buffer's review context; nil, err when it has no file, no repo, or no
--- PR. `root` is optional: a caller that already resolved it (the BufWinEnter
+-- branch. `root` is optional: a caller that already resolved it (the BufWinEnter
 -- path) passes it rather than paying for a second `git rev-parse` per entry.
 function M.context(bufnr, root)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
@@ -146,16 +161,8 @@ function M.comment(opts)
     local covering = store.covering(doc, ctx.relpath, line)
     if covering then line, start_line = covering.line, covering.start_line end
   end
-  local head = ctx.info.head or 'HEAD'
-  local ranges, derr = pr.diff_ranges(ctx.root, ctx.info.base_sha, head, ctx.relpath)
-  if not ranges then
-    return notify_err(pr.no_diff_message(ctx.relpath, head, derr))
-  end
-  local outside = pr.first_line_outside(ranges, start_line, line)
-  if outside then
-    return notify_err(('line %d is not in the PR diff; GitHub only anchors comments inside hunks (+3 context)'):format(outside))
-  end
-
+  -- Any line: an agent review is not bound by GitHub's hunk rule. Push checks
+  -- every entry against the PR diff before anything leaves the machine.
   local existing = store.find(doc, ctx.relpath, line, start_line)
   local title = store.key({ path = ctx.relpath, line = line, start_line = start_line })
 
@@ -201,6 +208,8 @@ end
 function M.browse()
   local ctx, err = M.current_context()
   if not ctx then return notify_err(err) end
+  local nopr = M.require_pr(ctx, ':ReviewBrowse')
+  if nopr then return notify_err(nopr) end
   local url = ctx.info.url
   if not url or url == '' then
     return notify_err(('no PR url for #%s; :ReviewRefresh to re-resolve it'):format(tostring(ctx.info.number)))
@@ -271,11 +280,17 @@ function M.setup()
     { bang = true, desc = 'Review: push pending comments as a draft GitHub review' })
   cmd('ReviewPull', function() require('mpataki.review.sync').pull() end,
     { desc = 'Review: pull remote threads + my pending review' })
+  cmd('ReviewSend', function() require('mpataki.review.handoff').send() end,
+    { desc = 'Review: send the draft to the Claude pane' })
+  cmd('ReviewClear', function() require('mpataki.review.handoff').clear() end,
+    { desc = 'Review: archive the draft and start empty' })
 
   vim.keymap.set('n', '<leader>gc', M.comment, { desc = 'Review comment at cursor' })
   -- ':' from visual mode supplies the '<,'> range; <Cmd> would not.
   vim.keymap.set('x', '<leader>gc', ':ReviewComment<CR>', { silent = true, desc = 'Review comment on selection' })
   vim.keymap.set('n', '<leader>gC', M.quickfix, { desc = 'Review comments → quickfix' })
+  vim.keymap.set('n', '<leader>cr', function() require('mpataki.review.handoff').send() end,
+    { desc = 'Send review to Claude' })
 
   local group = vim.api.nvim_create_augroup('MpatakiReview', { clear = true })
   vim.api.nvim_create_autocmd('BufWinEnter', { group = group, callback = on_buf_win_enter })

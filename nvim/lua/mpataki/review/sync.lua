@@ -121,7 +121,7 @@ end
 -- success, which is the one failure mode a push must never have. Pull is the
 -- mirror image: it rewrites the file the buffer is sitting on, so those same
 -- edits would be lost the moment anything reloaded it.
-local function unsaved(ctx)
+function M.unsaved(ctx)
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_loaded(buf)
       and vim.api.nvim_buf_get_name(buf) == ctx.file
@@ -161,12 +161,44 @@ end
 -- current_context, not context: both are repo gestures, and the most likely
 -- buffer to fire one from is the comments file itself, which has no repo of its
 -- own (it lives under .git).
-local function resolve(command)
+-- The repo a repo-level gesture (push, pull, send, clear) acts on, or nil once
+-- the refusal has been reported.
+function M.repo_for(command)
   local ctx, err = review.current_context()
   if not ctx then return fail(err) end
   local wrong = foreign_buffer(ctx, command)
   if wrong then return fail(wrong) end
   return ctx
+end
+
+local function resolve(command)
+  local ctx = M.repo_for(command)
+  if not ctx then return nil end
+  local nopr = review.require_pr(ctx, command)
+  if nopr then return fail(nopr) end
+  return ctx
+end
+
+-- Commented files with uncommitted changes. Anchors are working-tree line
+-- numbers (an agent review comments on unsaved agent edits); pushed against
+-- the PR head, a dirty file's line can land in a hunk and pass the diff guard
+-- while pointing at different code on GitHub.
+function M.dirty_paths(root, entries)
+  local paths, seen = {}, {}
+  for _, e in ipairs(entries) do
+    if not seen[e.path] then seen[e.path] = true; paths[#paths + 1] = e.path end
+  end
+  if #paths == 0 then return {} end
+  local r = pr.git(root, vim.list_extend({ 'status', '--porcelain', '--' }, paths))
+  local dirty = {}
+  for line in (r.stdout or ''):gmatch('[^\n]+') do dirty[#dirty + 1] = line:sub(4) end
+  return dirty
+end
+
+-- The speed bump before anything is written to GitHub. A seam, not a guard:
+-- probes answer it; the default is No, so a stray <CR> pushes nothing.
+function M.confirm(msg)
+  return vim.fn.confirm(msg, '&No\n&Yes', 1) == 2
 end
 
 -- My login and my pending review as the server has it, or nil once the refusal
@@ -203,7 +235,7 @@ end
 function M.push(bang)
   local ctx = resolve(':ReviewPush')
   if not ctx then return end
-  if unsaved(ctx) then
+  if M.unsaved(ctx) then
     return fail(('%s has unwritten changes: write the comments file first (:w)'):format(ctx.file))
   end
   local doc = store.read(ctx.file)
@@ -215,6 +247,11 @@ function M.push(bang)
   local ranges = {}
   local ok, cerr = M.check_push(ctx, doc, nil, head, ranges)
   if not ok then return fail(cerr) end
+  local dirty = M.dirty_paths(ctx.root, doc.entries)
+  if #dirty > 0 then
+    return fail(('commented file(s) have uncommitted changes: %s — commit them (and push the branch) so line numbers match the PR')
+      :format(table.concat(dirty, ', ')))
+  end
 
   local login, pending = resolve_pending(ctx)
   if not login then return end
@@ -224,8 +261,12 @@ function M.push(bang)
     if not dok then return fail(derr) end
   end
 
-  -- Nothing destructive until every guard has passed: the DELETE is the point
-  -- of no return for whatever the browser has in that review.
+  -- Nothing destructive until every guard has passed and the user says yes:
+  -- the DELETE is the point of no return for whatever the browser has in that
+  -- review. `!` skips the clobber guard above, never this.
+  if not M.confirm(('Push %d comment(s) as a PENDING review to %s?'):format(#doc.entries, repo_tag(ctx.info))) then
+    return notify('push cancelled; nothing sent')
+  end
   local deleted = false
   if pending then
     local dok, derr = gh.delete_review(ctx.root, ctx.info.number, pending.id)
@@ -266,7 +307,7 @@ function M.pull()
   -- Pull overwrites the comments file from the server. Doing that under a
   -- buffer holding unwritten edits loses them on the next :e, with no warning
   -- and nothing to recover from — the push side refuses for the same reason.
-  if unsaved(ctx) then
+  if M.unsaved(ctx) then
     return fail(('%s has unwritten changes: write or discard the comments file first (:w or :e!)')
       :format(ctx.file))
   end

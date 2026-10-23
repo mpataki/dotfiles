@@ -11,6 +11,14 @@ local render = require('mpataki.review.render')
 local review = require('mpataki.review')
 local sync = require('mpataki.review.sync')
 
+-- The push confirm is a prompt; these probes are about what happens after a
+-- yes. confirm_answer flips it for the probes that answer no.
+local confirm_answer, confirm_asked = true, {}
+sync.confirm = function(msg)
+  confirm_asked[#confirm_asked + 1] = msg
+  return confirm_answer
+end
+
 -- One virt_lines mark per rendered comment; the range tints sharing the
 -- namespace would otherwise inflate a count of "how many comments are drawn".
 local function comment_marks(buf)
@@ -366,8 +374,8 @@ P.eq(#calls_since(c0), 0, 'a backwards range never reaches gh')
 -- fixture's comments file resolves to no repo of its own (it lives under .git),
 -- so current_context falls through to the cwd — the *first* fixture's PR.
 vim.fn.mkdir(fw.root .. '/.git/reviews', 'p')
-vim.fn.writefile({ '<!-- review:  head= pushed= -->' }, fw.root .. '/.git/reviews/7.md')
-vim.cmd('edit ' .. vim.fn.fnameescape(fw.root .. '/.git/reviews/7.md'))
+vim.fn.writefile({ '<!-- review:  head= pushed= -->' }, fw.root .. '/.git/reviews/feature.md')
+vim.cmd('edit ' .. vim.fn.fnameescape(fw.root .. '/.git/reviews/feature.md'))
 vim.fn.chdir(fx.root)
 c0 = #calls
 m = mark()

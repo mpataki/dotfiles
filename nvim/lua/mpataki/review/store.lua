@@ -14,12 +14,19 @@ function M.first_line(s)
   return (vim.trim(s or ''):gsub('\r', ''):match('^[^\n]*'))
 end
 
-function M.path(common_dir, number)
-  return common_dir .. '/reviews/' .. tostring(number) .. '.md'
+-- One draft per branch. Anything outside [%w._-] is percent-encoded so
+-- `feat/x` and `feat%2Fx` can never share a file (as `/` → `__` would let
+-- `a/b` and `a__b` do).
+function M.slug(branch)
+  return (branch:gsub('[^%w%._%-]', function(c) return ('%%%02X'):format(c:byte()) end))
 end
 
-function M.remote_path(common_dir, number)
-  return common_dir .. '/reviews/' .. tostring(number) .. '.remote.json'
+function M.path(common_dir, branch)
+  return common_dir .. '/reviews/' .. M.slug(branch) .. '.md'
+end
+
+function M.remote_path(common_dir, branch)
+  return common_dir .. '/reviews/' .. M.slug(branch) .. '.remote.json'
 end
 
 function M.key(entry)

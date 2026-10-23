@@ -1,10 +1,13 @@
--- PR identity for the review flow. Single source of: repo root, repo-relative
--- paths, PR number/base/head (via gh), merge-base, and diff line ranges.
+-- Review identity. Single source of: repo root, repo-relative paths, the
+-- branch (what a draft is keyed on), the optional PR number/base/head (via gh),
+-- merge-base, and diff line ranges. A review needs a branch, not a PR.
 -- Every path handed to git or GitHub goes through relpath(); nvim's cwd is
 -- never consulted, because it is often a different directory or repo.
 local M = {}
 
--- root -> { info = info } | { err = err }. Failures are cached too: the passive
+-- root..'\0'..branch -> { info = info } | { err = err }. Keyed by branch too:
+-- the PR (and so the base) belongs to the branch, and a checkout mid-session
+-- must not answer with the old branch's PR. Failures are cached too: the passive
 -- BufWinEnter render would otherwise re-run `gh pr view` (network) plus two
 -- merge-base attempts on every window entry in a repo with no merge base.
 -- `refresh` and clear_cache() drop both kinds, so a cached failure never
@@ -15,6 +18,11 @@ local cache = {}
 -- and this is on the BufWinEnter path: one `git rev-parse` per window entry,
 -- per file, forever, for an answer that is always the same string.
 local common_dirs = {}
+
+-- root -> this worktree's git dir (not the common one: HEAD is per worktree).
+-- Constant per root, like common_dirs; what it holds (HEAD) is not, and is read
+-- fresh.
+local git_dirs = {}
 
 -- vim.system():wait() with no argument waits forever: a git or gh call that
 -- hangs (a credential prompt, an unreachable host) would freeze the editor with
@@ -127,13 +135,49 @@ local function gh_pr_view(root)
   return data, nil
 end
 
+-- The checked-out branch, read fresh every call (cheap, local): the draft is
+-- keyed on it, and a cached answer would write into the old branch's draft
+-- after a checkout.
+-- It is on the BufWinEnter path, so it reads <git-dir>/HEAD rather than
+-- spawning git per window entry. A reftable repo keeps a placeholder there
+-- (refs/heads/.invalid); only then does it ask git.
+local DETACHED = 'detached HEAD: check out a branch to review'
+function M.branch(root)
+  if not git_dirs[root] then
+    local r = M.git(root, { 'rev-parse', '--absolute-git-dir' })
+    if r.code ~= 0 then return nil, 'not a git repo: ' .. root end
+    git_dirs[root] = vim.trim(r.stdout)
+  end
+  local f = io.open(git_dirs[root] .. '/HEAD', 'r')
+  local head = f and vim.trim(f:read('*l') or '') or ''
+  if f then f:close() end
+  local ref = head:match('^ref: refs/heads/(.+)$')
+  if ref and ref ~= '.invalid' then return ref end
+  if not ref then return nil, DETACHED end
+  local r = M.git(root, { 'symbolic-ref', '--quiet', '--short', 'HEAD' })
+  if r.code ~= 0 or vim.trim(r.stdout) == '' then return nil, DETACHED end
+  return vim.trim(r.stdout)
+end
+
+-- origin/HEAD names the remote's default branch whatever it is called; main
+-- and master are the guesses for a repo with no remote HEAD set.
+local function default_base(root)
+  local r = M.git(root, { 'symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD' })
+  local ref = r.code == 0 and vim.trim(r.stdout) or ''
+  return (ref ~= '' and merge_base(root, ref)) or merge_base(root, 'main') or merge_base(root, 'master')
+end
+
 function M.info(root, opts)
   if not root or root == '' then return nil, 'no repo root' end
   opts = opts or {}
-  local hit = cache[root]
+  -- nil on a detached HEAD: the PR-base pickers and overlay work there, only
+  -- a review draft needs a branch (review's repo_context refuses for it).
+  local branch, berr = M.branch(root)
+  local key = root .. '\0' .. (branch or '')
+  local hit = cache[key]
   if not opts.refresh and hit then return hit.info, hit.err end
 
-  local info = { root = root, common_dir = M.common_dir(root) }
+  local info = { root = root, branch = branch, branch_err = berr, common_dir = M.common_dir(root) }
   local pr, pr_err = gh_pr_view(root)
   info.pr_err = pr_err
   if pr then
@@ -143,20 +187,21 @@ function M.info(root, opts)
     info.url = pr.url
     info.base_sha = merge_base(root, 'origin/' .. pr.baseRefName) or merge_base(root, pr.baseRefName)
   end
-  info.base_sha = info.base_sha or merge_base(root, 'main') or merge_base(root, 'master')
+  info.base_sha = info.base_sha or default_base(root)
   if not info.base_sha then
-    local err = 'could not find merge base (no PR, no main/master)'
-    cache[root] = { err = err }
+    local err = 'could not find merge base (no PR, no origin/HEAD, no main/master)'
+    cache[key] = { err = err }
     return nil, err
   end
 
-  cache[root] = { info = info }
+  cache[key] = { info = info }
   return info
 end
 
 function M.clear_cache()
   cache = {}
   common_dirs = {}
+  git_dirs = {}
 end
 
 -- New-file line ranges from `@@ -a,b +c,d @@` headers. Matched per line and

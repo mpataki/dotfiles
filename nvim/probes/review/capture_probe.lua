@@ -55,7 +55,7 @@ local code_win = vim.api.nvim_get_current_win()
 local ctx, err = review.context(code_buf)
 P.ok(ctx ~= nil, 'context resolves: ' .. tostring(err))
 P.eq(ctx and ctx.relpath, 'sub/dir/file.txt', 'context relpath')
-P.eq(ctx and ctx.file, store.path(info.common_dir, 7), 'context store file')
+P.eq(ctx and ctx.file, store.path(info.common_dir, 'feature'), 'context store file: the branch draft')
 
 -- A second repo with no review files: opening a file there must not run gh.
 local other = F.repo()
@@ -69,10 +69,14 @@ P.eq(gh_calls, 0, 'BufWinEnter in a repo without review files never runs gh')
 local other_info = pr.info(other.root)
 P.ok(type(other_info and other_info.pr_err) == 'string' and other_info.pr_err ~= '',
   'pr.info records why gh pr view failed: ' .. tostring(other_info and other_info.pr_err))
+-- No PR is fine for a review: the draft is the branch's. Only the GitHub
+-- gestures need one, and their refusal carries the gh failure.
 local nopr_ctx, nopr_err = review.context()
-P.eq(nopr_ctx, nil, 'no context without a PR')
-P.ok(nopr_err and nopr_err:find('no PR for this branch: ' .. tostring(other_info.pr_err), 1, true) ~= nil,
-  'the context error carries the gh failure: ' .. tostring(nopr_err))
+P.ok(nopr_ctx ~= nil, 'context resolves without a PR: ' .. tostring(nopr_err))
+P.eq(nopr_ctx and nopr_ctx.file, store.path(other_info.common_dir, 'feature'), 'no-PR context: the branch draft')
+local need = nopr_ctx and review.require_pr(nopr_ctx, ':ReviewPush')
+P.ok(need and need:find('none for branch feature: ' .. tostring(other_info.pr_err), 1, true) ~= nil,
+  'require_pr carries the gh failure: ' .. tostring(need))
 gh_calls = 0
 
 vim.api.nvim_set_current_buf(code_buf)
@@ -91,28 +95,25 @@ local _, err1 = pr.info(bare)
 P.ok(err1 ~= nil, 'pr.info fails without a merge base')
 spawns = 0
 local _, err2 = pr.info(bare)
+-- The branch is re-read on every call (a checkout must not hit the old
+-- branch's cache entry), but from <git-dir>/HEAD: still no process.
 P.eq(spawns, 0, 'second pr.info on a failing root spawns no process (failure cached)')
 P.eq(err2, err1, 'cached failure returns the same error')
 pr.info(bare, { refresh = true })
 P.ok(spawns > 0, 'refresh bypasses the cached failure')
 
--- Line 1 is outside the diff: refuse. nvim-notify records history on the
--- next tick, so wait for it.
+-- Line 1 is outside the diff: an agent review comments anywhere (push is
+-- where GitHub's hunk rule is enforced). An unfetched PR head does not matter
+-- either: commenting never diffs against it.
+info.head = ('0'):rep(40)
 vim.api.nvim_win_set_cursor(code_win, { 1, 0 })
 review.comment()
-P.eq(vim.api.nvim_get_current_win(), code_win, 'no float outside diff')
-P.wait(500, function() return notified():find('not in the PR diff', 1, true) ~= nil end)
-P.ok(notified():find('not in the PR diff', 1, true) ~= nil, 'refusal message')
-
--- A PR head that is not fetched locally: git diff fails, and the message must
--- blame the missing ref, not the line.
-info.head = ('0'):rep(40)
-vim.api.nvim_win_set_cursor(code_win, { 5, 0 })
-review.comment()
-P.eq(vim.api.nvim_get_current_win(), code_win, 'no float when the diff itself fails')
-P.wait(500, function() return notified():find('no diff for sub/dir/file.txt', 1, true) ~= nil end)
-P.ok(notified():find('no diff for sub/dir/file.txt against PR head 00000000', 1, true) ~= nil,
-  'failed diff names the file and head, not the line')
+local outside_float = vim.api.nvim_get_current_win()
+P.ok(outside_float ~= code_win, 'float opens on a line outside the diff, unfetched PR head and all')
+vim.cmd('stopinsert')
+vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>q', true, false, true), 'x', false)
+P.wait(200)
+P.eq(vim.api.nvim_get_current_win(), code_win, 'q closes it')
 info.head = fx.head_sha
 
 -- Line 5 is changed: float opens, write body, :w saves. nvim resolves
