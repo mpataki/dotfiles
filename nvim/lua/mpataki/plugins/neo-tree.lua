@@ -33,6 +33,25 @@ return {
             }
         })
 
+        -- TODO(neo-tree-status-cache): remove once upstream git/init.lua
+        -- M.status returns the base diff on its "status_text == last_status_text"
+        -- early return too. Today that path returns only the worktree status,
+        -- so reopening the git_status source with git_base (<leader>gF) on an
+        -- unchanged worktree lists nothing from the branch.
+        -- prtree_probe.lua catches a regression either way.
+        do
+            local git = require("neo-tree.git")
+            local status = git.status
+            git.status = function(path, base_lookup, skip_bubbling, status_opts)
+                local st, root, over_base = status(path, base_lookup, skip_bubbling, status_opts)
+                local base = root and base_lookup and base_lookup[root]
+                if st and base and not over_base then
+                    over_base = require("neo-tree.git.diff").diff_name_status(root, base, skip_bubbling)
+                end
+                return st, root, over_base
+            end
+        end
+
         vim.keymap.set('n', '<Leader>ls', ':Neotree<CR>', { desc = 'Neotree' })
         vim.keymap.set('n', '<Leader>lS', ':Neotree position=current<CR>', { desc = 'Neotree (full window)' })
 
@@ -47,7 +66,7 @@ return {
         -- Same base as <leader>gS and the mini.diff overlay (pr.info: PR base,
         -- else origin/HEAD), so the tree, picker and overlay agree on what
         -- changed. Neo-tree layers uncommitted status over base..HEAD.
-        vim.keymap.set('n', '<leader>gT', function()
+        local function pr_tree(source)
             local pr = require('mpataki.review.pr')
             local root = pr.current_root()
             if not root then
@@ -61,9 +80,12 @@ return {
                 vim.notify('PR tree: ' .. err, vim.log.levels.ERROR)
                 return
             end
-            vim.cmd('Neotree git_base=' .. info.base_sha)
+            vim.cmd('Neotree ' .. source .. ' git_base=' .. info.base_sha)
             pr_tree_active = true
-        end, { desc = 'Neotree (PR base)' })
+        end
+        vim.keymap.set('n', '<leader>gT', function() pr_tree('filesystem') end, { desc = 'Neotree (PR base)' })
+        -- Changed files only: the git_status source lists just what <leader>gS does.
+        vim.keymap.set('n', '<leader>gF', function() pr_tree('git_status') end, { desc = 'Neotree changed files (PR base)' })
 
         -- PR-ladder picker — reads ladder state files from
         -- <git-common-dir>/ladders/*.json. Rung branches are regular
