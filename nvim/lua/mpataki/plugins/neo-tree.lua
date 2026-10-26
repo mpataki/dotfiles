@@ -33,64 +33,6 @@ return {
             }
         })
 
-        -- TODO(neo-tree-diff-bug): remove this block once upstream fixes
-        -- diff.lua's name_status_job. Check on nvim-neo-tree/neo-tree.nvim
-        -- — compare diff.lua:~65 vs git/init.lua status_job and
-        -- git/ls-files.lua; this block can go once diff.lua wraps
-        -- on_parsed the same way they do.
-        --
-        -- Bug: git/diff.lua name_status_job forwards on_parsed directly to
-        -- git_utils.run_coroutine_on_interval, which invokes its callback
-        -- as (success, ...). The other two callers wrap and unwrap success;
-        -- diff.lua doesn't. Result: on_parsed receives `true` as the
-        -- "status", which gets stored at worktree.status_diff[base] and
-        -- later crashes _find_existing_status_code_in_git_status with
-        -- "attempt to index a boolean value". Only triggers with
-        -- git_base=... (e.g. <leader>gt/gT). Introduced in PR #1959.
-        do
-            local git_diff = require("neo-tree.git.diff")
-            local git_utils = require("neo-tree.git.utils")
-            local git_cmd = require("neo-tree.git.cmd")
-            local git_parser = require("neo-tree.git.parser")
-            local log = require("neo-tree.log")
-            local utils = require("neo-tree.utils")
-
-            git_diff.name_status_job = function(worktree_root, base, skip_bubbling, context, on_parsed)
-                local cmd = git_cmd.with_args({
-                    "-C", worktree_root, "diff", base, "HEAD", "--name-status", "-z",
-                })
-                utils.job(cmd, nil, function(code, stdout_chunks)
-                    if code ~= 0 then
-                        log.warn("Could not async diff HEAD vs", base)
-                        return
-                    end
-                    local full_output = table.concat(stdout_chunks)
-                    local parsing_task = coroutine.create(git_parser.parse_diff_name_status_output)
-                    local first_output = {
-                        coroutine.resume(
-                            parsing_task,
-                            worktree_root,
-                            skip_bubbling,
-                            utils.gsplit_plain(full_output, "\000"),
-                            context
-                        ),
-                    }
-                    git_utils.run_coroutine_on_interval(
-                        parsing_task,
-                        context.batch_delay,
-                        first_output,
-                        function(success, status_or_err)
-                            if success then
-                                on_parsed(status_or_err)
-                            else
-                                on_parsed(nil, status_or_err)
-                            end
-                        end
-                    )
-                end)
-            end
-        end
-
         vim.keymap.set('n', '<Leader>ls', ':Neotree<CR>', { desc = 'Neotree' })
         vim.keymap.set('n', '<Leader>lS', ':Neotree position=current<CR>', { desc = 'Neotree (full window)' })
 
@@ -102,21 +44,24 @@ return {
                 pr_tree_active = false
             end
         end, { desc = 'Neotree (HEAD)' })
+        -- Same base as <leader>gS and the mini.diff overlay (pr.info: PR base,
+        -- else origin/HEAD), so the tree, picker and overlay agree on what
+        -- changed. Neo-tree layers uncommitted status over base..HEAD.
         vim.keymap.set('n', '<leader>gT', function()
-            local base_branch
-            local base = vim.fn.system("git merge-base HEAD main 2>/dev/null"):gsub("%s+", "")
-            if base ~= "" then
-                base_branch = 'main'
-            else
-                base = vim.fn.system("git merge-base HEAD master 2>/dev/null"):gsub("%s+", "")
-                base_branch = 'master'
-            end
-            if base == "" then
-                vim.notify("Could not find merge base", vim.log.levels.ERROR)
+            local pr = require('mpataki.review.pr')
+            local root = pr.current_root()
+            if not root then
+                vim.notify('PR tree: not in a git repo', vim.log.levels.ERROR)
                 return
             end
-            vim.cmd('Neotree git_base=' .. base)
-            print('PR diff vs ' .. base_branch)
+            -- DiffPRBase first: it refreshes the cached PR identity this reads.
+            vim.cmd('DiffPRBase')
+            local info, err = pr.info(root)
+            if not info then
+                vim.notify('PR tree: ' .. err, vim.log.levels.ERROR)
+                return
+            end
+            vim.cmd('Neotree git_base=' .. info.base_sha)
             pr_tree_active = true
         end, { desc = 'Neotree (PR base)' })
 
