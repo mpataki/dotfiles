@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# tmux status-right widget: branch + lines added/removed vs the branch base.
+# Usage: git-branch-status <path>   (tmux passes #{pane_current_path})
+# Outputs an empty string outside a git repo.
+#
+# Format:  <branch> +12 -4   (counts omitted when zero)
+#
+# Base = merge-base with origin/HEAD, else main, else master — the no-PR
+# fallback of nvim's pr.info, so it agrees with <leader>gT/gS except on a
+# stacked PR (that needs `gh`, too slow for a 1s status refresh). Counts are
+# base vs the working tree, like the neo-tree rows and mini.diff overlay;
+# untracked files don't count.
+#
+# tmux re-runs this every status-interval; a 5s per-repo cache keeps git off
+# the hot path (an unstaged edit changes nothing git could key on cheaply).
+
+set -u
+
+dir=${1:-$PWD}
+root=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || exit 0
+
+cache_dir="${TMPDIR:-/tmp}/git-branch-status"
+mkdir -p "$cache_dir"
+cache="$cache_dir/$(printf '%s' "$root" | shasum | cut -c1-16)"
+now=$(date +%s)
+if [[ -f $cache ]]; then
+  { read -r stamp; IFS= read -r line; } <"$cache"
+  if (( now - stamp < 5 )); then
+    printf '%s' "$line"
+    exit 0
+  fi
+fi
+
+branch=$(git -C "$root" symbolic-ref --quiet --short HEAD 2>/dev/null) \
+  || branch=$(git -C "$root" rev-parse --short HEAD 2>/dev/null) \
+  || exit 0
+(( ${#branch} > 30 )) && branch="${branch:0:29}…"
+
+base=""
+default=$(git -C "$root" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)
+for ref in $default main master; do
+  base=$(git -C "$root" merge-base HEAD "$ref" 2>/dev/null) && break
+  base=""
+done
+
+line="#[fg=magenta]$branch"
+if [[ -n $base ]]; then
+  read -r add del < <(git -C "$root" diff --numstat "$base" 2>/dev/null \
+    | awk '$1 != "-" { a += $1; d += $2 } END { print a + 0, d + 0 }')
+  (( add > 0 )) && line+=" #[fg=green]+$add"
+  (( del > 0 )) && line+=" #[fg=red]-$del"
+fi
+line+="#[default]"
+
+printf '%s\n%s\n' "$now" "$line" >"$cache"
+printf '%s' "$line"
