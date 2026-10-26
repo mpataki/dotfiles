@@ -71,4 +71,22 @@ for i = 1, 2 do
   P.eq((st.git_base_by_worktree or {})[fx.root], base, ('open %d: git_base is the branch merge-base'):format(i))
 end
 
+-- diff_stat: the file row carries +adds -dels vs the base (line 5 changed,
+-- line 11 appended); HEAD mode (<leader>gt) shows none.
+local function tree_lines()
+  for _, w in ipairs(vim.api.nvim_list_wins()) do
+    local b = vim.api.nvim_win_get_buf(w)
+    if vim.bo[b].filetype == 'neo-tree' then return vim.api.nvim_buf_get_lines(b, 0, -1, false) end
+  end
+  return {}
+end
+local function row(name)
+  for _, l in ipairs(tree_lines()) do if l:find(name, 1, true) then return l end end
+end
+P.wait(2000, function() local r = row('file.txt'); return r and r:find('+2 -1', 1, true) end)
+P.ok((row('file.txt') or ''):find('+2 -1', 1, true), 'changed file row shows +2 -1: ' .. tostring(row('file.txt')))
+press('<leader>gt')
+P.wait(2000, function() return row('unchanged.txt') end)
+P.ok(not (row('file.txt') or ''):find('%+%d+ %-%d+'), 'HEAD tree shows no diff stats: ' .. tostring(row('file.txt')))
+
 P.done()

@@ -8,8 +8,54 @@ return {
         -- "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
     },
     config = function()
+        -- +adds/-dels per file vs the tree's git_base (<leader>gT/gF), like the
+        -- <leader>gS picker but against the worktree, as the tree's status is.
+        -- Cached per base; dropped on write and when neo-tree swaps in a new
+        -- status table (commit, checkout, external edit).
+        local stats_cache = {}
+        vim.api.nvim_create_autocmd('BufWritePost', { callback = function() stats_cache = {} end })
+        local function diff_stat(_, node, state)
+            if node.type ~= 'file' then return {} end
+            for root, base in pairs(state.git_base_by_worktree or {}) do
+                if base ~= 'HEAD' and node.path:sub(1, #root + 1) == root .. '/' then
+                    local _, wt = require('neo-tree.git').find_existing_worktree(node.path)
+                    local key = root .. '\0' .. base
+                    local entry = stats_cache[key]
+                    if not entry or entry.status ~= (wt and wt.status) then
+                        entry = { status = wt and wt.status, files = {} }
+                        for _, l in ipairs(vim.fn.systemlist({ 'git', '-C', root, 'diff', '--numstat', base })) do
+                            local add, del, file = l:match('^(%S+)\t(%S+)\t(.+)$')
+                            if file then entry.files[file] = { add, del } end
+                        end
+                        stats_cache[key] = entry
+                    end
+                    local s = entry.files[node.path:sub(#root + 2)]
+                    if not s then return {} end
+                    return {
+                        { text = '+' .. s[1], highlight = 'diffAdded' },
+                        { text = '-' .. s[2], highlight = 'diffRemoved' },
+                    }
+                end
+            end
+            return {}
+        end
+        local file_renderer = vim.deepcopy(require('neo-tree.defaults').renderers.file)
+        for _, c in ipairs(file_renderer) do
+            if c[1] == 'container' then
+                for i, inner in ipairs(c.content) do
+                    if inner[1] == 'git_status' then
+                        table.insert(c.content, i, { 'diff_stat', zindex = 10, align = 'right' })
+                        break
+                    end
+                end
+            end
+        end
+
         require("neo-tree").setup({
+            renderers = { file = file_renderer },
+            git_status = { components = { diff_stat = diff_stat } },
             filesystem = {
+                components = { diff_stat = diff_stat },
                 hijack_netrw_behavior = "open_current",
                 use_libuv_file_watcher = true,
                 follow_current_file = {
