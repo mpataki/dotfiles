@@ -25,6 +25,12 @@
 [push]
   default = current
   autoSetupRemote = true
+[remote "origin"]
+  # Keep origin/HEAD tracking the remote's default branch on every fetch.
+  # The default only creates it once, so a main/master rename leaves it
+  # stale — and everything diffing vs "the branch base" (nvim pr.info,
+  # bin/git-branch-status) silently uses the old trunk.
+  followRemoteHEAD = always
 [delta]
   navigate = true
   light = false
