@@ -104,12 +104,36 @@ return {
 
 		vim.keymap.set('n', '<leader>ps', builtin.live_grep, {})
 
+		-- Shared preview for both git diff pickers: `git diff | delta` rendered
+		-- into a process-less terminal (nvim_open_term) for the ANSI colours.
+		-- Not a termopen previewer: that caches one live terminal per previewed
+		-- entry until the picker closes, and delta pages into `less`, so every
+		-- entry pinned a pty — ~100 files exhausted macOS's 256-fd limit.
+		local function delta_previewer(diff_cmd)
+			return require('telescope.previewers').new_buffer_previewer({
+				define_preview = function(self, entry)
+					local bufnr, winid = self.state.bufnr, self.state.winid
+					local sh = diff_cmd(entry)
+						.. ' | delta --no-gitconfig --dark --paging=never --hunk-header-style=omit --width='
+						.. vim.api.nvim_win_get_width(winid)
+					vim.system({ 'bash', '-c', sh }, { text = true }, vim.schedule_wrap(function(out)
+						-- A terminal opened in an undisplayed buffer hard-wraps at
+						-- 80 cols; skip entries the user already moved past.
+						if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_buf(winid) ~= bufnr then
+							return
+						end
+						local text = out.stdout ~= '' and out.stdout or (out.stderr or '')
+						vim.api.nvim_chan_send(vim.api.nvim_open_term(bufnr, {}), (text:gsub('\n', '\r\n')))
+					end))
+				end,
+			})
+		end
+
 		-- Git diff picker (1/2) — see also git_pr_files below. Extract at 3.
 		local function git_status_files()
 			local pickers = require('telescope.pickers')
 			local finders = require('telescope.finders')
 			local conf = require('telescope.config').values
-			local previewers = require('telescope.previewers')
 
 			-- Fetch line stats
 			local numstat = {}
@@ -161,13 +185,9 @@ return {
 						}
 					end,
 				}),
-				previewer = previewers.new_termopen_previewer({
-					get_command = function(entry)
-						return { 'bash', '-c', 'git diff --no-color HEAD -- '
-							.. vim.fn.shellescape(entry.value.file)
-							.. ' | delta --no-gitconfig --dark --width=${COLUMNS:-80} --hunk-header-style=omit; cat' }
-					end,
-				}),
+				previewer = delta_previewer(function(entry)
+					return 'git diff --no-color HEAD -- ' .. vim.fn.shellescape(entry.value.file)
+				end),
 				sorter = conf.generic_sorter({}),
 			}):find()
 		end
@@ -177,7 +197,6 @@ return {
 			local pickers = require('telescope.pickers')
 			local finders = require('telescope.finders')
 			local conf = require('telescope.config').values
-			local previewers = require('telescope.previewers')
 
 			local pr = require('mpataki.review.pr')
 			local root = pr.current_root()
@@ -275,17 +294,14 @@ return {
 						}
 					end,
 				}),
-				previewer = previewers.new_termopen_previewer({
-					get_command = function(entry)
-						-- The paths stay repo-relative: they are arguments to a
-						-- git that already runs in `root`.
-						local paths = entry.value.old_file
-							and (vim.fn.shellescape(entry.value.old_file) .. ' ' .. vim.fn.shellescape(entry.value.file))
-							or vim.fn.shellescape(entry.value.file)
-						return { 'bash', '-c', 'git -C ' .. vim.fn.shellescape(root) .. ' diff --no-color ' .. base .. '...HEAD -- ' .. paths
-							.. ' | delta --no-gitconfig --dark --width=${COLUMNS:-80} --hunk-header-style=omit; cat' }
-					end,
-				}),
+				previewer = delta_previewer(function(entry)
+					-- The paths stay repo-relative: they are arguments to a
+					-- git that already runs in `root`.
+					local paths = entry.value.old_file
+						and (vim.fn.shellescape(entry.value.old_file) .. ' ' .. vim.fn.shellescape(entry.value.file))
+						or vim.fn.shellescape(entry.value.file)
+					return 'git -C ' .. vim.fn.shellescape(root) .. ' diff --no-color ' .. base .. '...HEAD -- ' .. paths
+				end),
 				sorter = conf.generic_sorter({}),
 			}):find()
 		end
