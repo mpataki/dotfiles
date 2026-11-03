@@ -131,10 +131,9 @@ unset _completion_shim
 # unambiguous selector (from `op account list --format=json`).
 claude() {
   local op_account='4T4I5FCQRVFW5OBTUNAD3BN6PQ' # matpataki@gmail.com account_uuid
-  local obsidian_key boldsign_key
+  local obsidian_key
   obsidian_key=$(op read --account "$op_account" 'op://Private/obsidian-local-rest-api/password' 2>/dev/null)
-  boldsign_key=$(op read --account "$op_account" 'op://bandvan/BoldSign API Key Staging/credential' 2>/dev/null)
-  OBSIDIAN_API_KEY=$obsidian_key BOLDSIGN_API_KEY=$boldsign_key command claude "$@"
+  OBSIDIAN_API_KEY=$obsidian_key command claude "$@"
 }
 
 # Uncomment the following line to use case-sensitive completion.
