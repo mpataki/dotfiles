@@ -1,5 +1,9 @@
--- Draws pending and remote comments as virtual lines under their anchor line,
--- a background tint on every line they cover, and fills the quickfix list. Pure
+-- Draws pending comments, notes and remote threads as a one-line stub
+-- right-aligned on their anchor's end line (the body is one keypress away, in
+-- peek.lua), a background tint on every line they cover, and fills the
+-- quickfix list. The stub replaced virtual lines under the anchor: a full body
+-- pushed the code down, and a review of any size read as prose with code in
+-- it rather than the other way round. Pure
 -- presentation: no git, no gh, no file IO — store is required for its pure
 -- one-line-body helper, nothing else.
 local store = require('mpataki.review.store')
@@ -23,47 +27,45 @@ local function declare_hl()
   vim.api.nvim_set_hl(0, 'ReviewRemote', { default = true, link = 'Comment' })
   vim.api.nvim_set_hl(0, 'ReviewPendingRange', { default = true, bg = '#2b2a1c' })
   vim.api.nvim_set_hl(0, 'ReviewRemoteRange', { default = true, link = 'CursorLine' })
+  vim.api.nvim_set_hl(0, 'ReviewNote', { default = true, link = 'DiagnosticVirtualTextInfo' })
+  vim.api.nvim_set_hl(0, 'ReviewNoteRange', { default = true, bg = '#1c2a2e' })
 end
 
 declare_hl()
 vim.api.nvim_create_autocmd('ColorScheme', { callback = declare_hl })
 
--- GitHub returns comment bodies with CRLF endings. Splitting on '\n' alone
--- leaves a trailing '\r', and nvim transliterates that into a literal '^M' at
--- the end of every rendered line.
-local function body_lines(body)
-  local text = ((body or ''):gsub('\r', ''))
-  return vim.split(text, '\n', { plain = true })
-end
+-- Display columns the summary may take, prefix excluded. Past it the stub
+-- would start eating the code it sits beside.
+M.SUMMARY_WIDTH = 50
 
--- `hl` is a chunk highlight list, not one group: the range tint supplies the
--- background and the fg group sits on top of it, so the comment block reads as
--- part of the range it belongs to.
-local function virt_lines(prefix, body, hl)
-  -- Display width, not #prefix: an author name can carry multi-byte characters,
-  -- so byte-length padding pushes continuation lines out of alignment.
-  local indent = string.rep(' ', vim.fn.strdisplaywidth(prefix))
-  local lines = {}
-  for i, l in ipairs(body_lines(body)) do
-    table.insert(lines, { { (i == 1 and prefix or indent) .. l, hl } })
+-- The stub's text: first line of the body, clipped by display width (an author
+-- or a body can carry multi-byte characters), with '…' whenever anything was
+-- left out — a clipped line or further lines — so a stub never passes for the
+-- whole comment. store.first_line strips the CR GitHub's CRLF bodies carry,
+-- which nvim would otherwise draw as a literal '^M'.
+function M.summary(body)
+  local text = vim.trim(((body or ''):gsub('\r', '')))
+  local first = store.first_line(text)
+  local more = #first < #text
+  if vim.fn.strdisplaywidth(first) > M.SUMMARY_WIDTH then
+    first = vim.fn.strcharpart(first, 0, M.SUMMARY_WIDTH - 1)
+    while vim.fn.strdisplaywidth(first) > M.SUMMARY_WIDTH - 1 do
+      first = vim.fn.strcharpart(first, 0, vim.fn.strchars(first) - 1)
+    end
+    more = true
   end
-  return lines
+  return more and (first .. '…') or first
 end
 
--- Sole gate on anchor validity. `line` is nil whenever GitHub nils both `line`
--- and `original_line` on an outdated comment, and one such entry must not throw
--- partway through and take the rest of the buffer's marks with it.
-local function mark(buf, line, lines)
-  if type(line) ~= 'number' then return end
-  if line < 1 or line > vim.api.nvim_buf_line_count(buf) then return end
-  vim.api.nvim_buf_set_extmark(buf, M.ns, line - 1, 0, { virt_lines = lines })
+local function valid_line(buf, line)
+  return type(line) == 'number' and line >= 1 and line <= vim.api.nvim_buf_line_count(buf)
 end
 
--- Virtual lines hang under the *end* line only, so a multi-line comment reads as
--- a comment on that one line. Tinting every covered line is what makes the range
+-- The stub sits on the *end* line only, so a multi-line comment reads as a
+-- comment on that one line. Tinting every covered line is what makes the range
 -- visible as a range. The low priority is load-bearing: mini.diff paints changed
 -- lines with its own line background, and that git signal must win where the two
--- overlap. Same gate as `mark`: lines outside the buffer draw nothing.
+-- overlap. Lines outside the buffer draw nothing.
 local function range_tint(buf, start_line, line, hl)
   if type(line) ~= 'number' then return end
   local last = vim.api.nvim_buf_line_count(buf)
@@ -77,19 +79,45 @@ function M.clear(buf)
   vim.api.nvim_buf_clear_namespace(buf, M.ns, 0, -1)
 end
 
+-- One stub mark per end line, holding every comment that ends there: two
+-- right_align marks on one line would be laid side by side by nvim anyway, but
+-- one mark keeps their order (pending, note, remote; then input order) ours.
+-- `hl` is a chunk highlight list, not one group: the range tint supplies the
+-- background and the fg group sits on top of it.
 function M.render(buf, relpath, entries, threads)
   M.clear(buf)
+  local stubs, order = {}, {}
+  local function add(line, start_line, text, range_hl, fg_hl)
+    -- Tint first: a range whose tail runs past EOF still tints the lines that
+    -- exist; only the stub needs a real end line to sit on.
+    range_tint(buf, start_line, line, range_hl)
+    if not valid_line(buf, line) then return end
+    if not stubs[line] then stubs[line] = {}; table.insert(order, line) end
+    local chunks = stubs[line]
+    if #chunks > 0 then table.insert(chunks, { '  ', range_hl }) end
+    table.insert(chunks, { text, { range_hl, fg_hl } })
+  end
   for _, e in ipairs(entries or {}) do
-    if e.path == relpath then
-      range_tint(buf, e.start_line, e.line, 'ReviewPendingRange')
-      mark(buf, e.line, virt_lines('[pending] ', e.body, { 'ReviewPendingRange', 'ReviewPending' }))
+    if e.path == relpath and not store.is_note(e) then
+      add(e.line, e.start_line, '[pending] ' .. M.summary(e.body), 'ReviewPendingRange', 'ReviewPending')
+    end
+  end
+  for _, e in ipairs(entries or {}) do
+    if e.path == relpath and store.is_note(e) then
+      add(e.line, e.start_line, '[note] ' .. M.summary(e.body), 'ReviewNoteRange', 'ReviewNote')
     end
   end
   for _, t in ipairs(threads or {}) do
     if t.path == relpath and t.side ~= 'LEFT' then
-      range_tint(buf, t.start_line, t.line, 'ReviewRemoteRange')
-      mark(buf, t.line, virt_lines('@' .. t.author .. ': ', t.body, { 'ReviewRemoteRange', 'ReviewRemote' }))
+      add(t.line, t.start_line, '@' .. t.author .. ': ' .. M.summary(t.body), 'ReviewRemoteRange', 'ReviewRemote')
     end
+  end
+  for _, line in ipairs(order) do
+    vim.api.nvim_buf_set_extmark(buf, M.ns, line - 1, 0, {
+      virt_text = stubs[line],
+      virt_text_pos = 'right_align',
+      hl_mode = 'combine',
+    })
   end
 end
 
@@ -109,7 +137,7 @@ function M.quickfix(root, entries, threads)
     table.insert(items, { filename = join(root, path), lnum = line or 1, text = text })
   end
   for _, e in ipairs(entries or {}) do
-    add(e.path, e.line, '[pending] ' .. store.first_line(e.body))
+    add(e.path, e.line, (store.is_note(e) and '[note] ' or '[pending] ') .. store.first_line(e.body))
   end
   for _, t in ipairs(threads or {}) do
     add(t.path, t.line, '@' .. t.author .. ': ' .. store.first_line(t.body))

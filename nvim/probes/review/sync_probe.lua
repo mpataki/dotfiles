@@ -19,12 +19,12 @@ sync.confirm = function(msg)
   return confirm_answer
 end
 
--- One virt_lines mark per rendered comment; the range tints sharing the
+-- One stub mark per commented line; the range tints sharing the
 -- namespace would otherwise inflate a count of "how many comments are drawn".
 local function comment_marks(buf)
   local n = 0
   for _, m in ipairs(vim.api.nvim_buf_get_extmarks(buf, render.ns, 0, -1, { details = true })) do
-    if m[4].virt_lines then n = n + 1 end
+    if m[4].virt_text then n = n + 1 end
   end
   return n
 end
