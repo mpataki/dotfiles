@@ -110,6 +110,44 @@ local nok, nres = pcall(store.covering, nilline, 'a/b.go', 3)
 P.ok(nok, 'a line-less entry does not error')
 P.eq(nok and nres, nil, '…and covers nothing')
 
+-- Notes: a `[note]` tag on the heading; untagged stays a review comment so old
+-- drafts read back unchanged.
+local mixed = store.parse(table.concat({
+  '## n.go:3', '', 'review on 3', '',
+  '## n.go:3 [note]', '', 'note on 3', '',
+  '## n.go:5-9 [note]  ', '', 'range note', '',
+}, '\n'))
+P.eq(#mixed.entries, 3, 'a note and a review on one anchor are two entries')
+P.eq(store.kind(mixed.entries[1]), 'review', 'untagged heading is a review comment')
+P.eq(store.kind(mixed.entries[2]), 'note', '[note] heading is a note')
+P.eq(mixed.entries[3].start_line, 5, 'range note with trailing space parses')
+P.eq(store.find(mixed, 'n.go', 3).body, 'review on 3', 'find defaults to the review kind')
+P.eq(store.find(mixed, 'n.go', 3, nil, 'note').body, 'note on 3', 'find by note kind')
+local re = store.parse(store.serialize(mixed))
+P.eq(store.serialize(re), store.serialize(mixed), 'mixed draft round-trips')
+P.ok(store.serialize(mixed):find('\n## n.go:5-9 [note]\n', 1, true) ~= nil, 'note heading serialized with its tag')
+P.eq(store.covering(mixed, 'n.go', 7, 'review'), nil, 'covering filtered by kind skips notes')
+P.eq(store.covering(mixed, 'n.go', 7).body, 'range note', 'covering with no kind sees notes')
+
+P.eq(store.fingerprint(mixed.entries), store.fingerprint({ mixed.entries[1] }),
+  'fingerprint ignores notes: GitHub never holds one')
+
+store.upsert(mixed, { path = 'n.go', line = 3, kind = 'note', body = 'edited note' })
+P.eq(store.find(mixed, 'n.go', 3).body, 'review on 3', 'upserting the note leaves the review alone')
+P.eq(store.find(mixed, 'n.go', 3, nil, 'note').body, 'edited note', '…and edits the note')
+P.eq(#store.reviews(mixed.entries), 1, 'reviews() keeps only review comments')
+
+local fok, ferr = store.flip(mixed, store.find(mixed, 'n.go', 3, nil, 'note'))
+P.eq(fok, false, 'flip refused when the other kind holds the anchor')
+P.ok(ferr:find('merge', 1, true) ~= nil, '…and says to merge by hand: ' .. tostring(ferr))
+local pos_before = store.find(mixed, 'n.go', 9, 5, 'note')
+local fok2, now = store.flip(mixed, pos_before)
+P.eq(fok2, true, 'flip a lone note')
+P.eq(now, 'review', '…to a review comment')
+local _, pos = store.find(mixed, 'n.go', 9, 5, 'review')
+P.eq(pos, 3, '…keeping its place in the file')
+P.eq(store.find(mixed, 'n.go', 9, 5, 'note'), nil, '…and no note left behind')
+
 -- A write that cannot land was silent: callers cleared the float, stamped the
 -- header and reported success over a file that never changed. `afile` is a
 -- regular file, so mkdir throws (E739) on the directory this path needs.
