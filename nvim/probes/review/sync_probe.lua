@@ -109,7 +109,13 @@ canned['pulls/7/comments'] = json({ { { id = 9, path = 'sub/dir/file.txt', line 
 -- Pure guard checks -----------------------------------------------------------
 local doc = { header = {}, entries = {} }
 local ok, err = sync.check_push(ctx, doc, nil, fx.head_sha)
-P.ok(not ok and err:find('no pending comments', 1, true), 'empty doc refused')
+P.ok(not ok and err:find('no review comments', 1, true), 'empty doc refused')
+
+-- Notes never leave the machine: a draft of only notes has nothing to push,
+-- and a note outside the PR diff must not trip the diff guard.
+local notes_only = { header = {}, entries = { { path = 'sub/dir/file.txt', line = 1, kind = 'note', body = 'n' } } }
+ok, err = sync.check_push(ctx, notes_only, nil, fx.head_sha)
+P.ok(not ok and err:find('notes are never pushed', 1, true), 'notes-only draft refused: ' .. tostring(err))
 
 store.upsert(doc, { path = 'sub/dir/file.txt', line = 5, body = 'c1' })
 ok, err = sync.check_push(ctx, doc, nil, 'othersha')
@@ -119,6 +125,9 @@ store.upsert(doc, { path = 'sub/dir/file.txt', line = 1, body = 'outside' })
 ok, err = sync.check_push(ctx, doc, nil, fx.head_sha)
 P.ok(not ok and err:find('sub/dir/file.txt:1', 1, true), 'out-of-diff entry named: ' .. tostring(err))
 store.remove(doc, 'sub/dir/file.txt', 1)
+store.upsert(doc, { path = 'sub/dir/file.txt', line = 1, kind = 'note', body = 'my understanding' })
+ok, err = sync.check_push(ctx, doc, nil, fx.head_sha)
+P.ok(ok, 'a note outside the diff does not block the push: ' .. tostring(err))
 
 -- A diff that *fails* (PR head not fetched) is not "no hunks": it must be its
 -- own refusal naming the file and the head, never a throw from in_ranges(nil).
@@ -171,9 +180,9 @@ local c0 = #calls
 sync.push(false)
 P.wait(200)
 P.eq(#calls_since(c0), 0, 'refusing an empty draft never touches the network')
-P.ok(wait_note(m, 'no pending comments'):find('no pending comments', 1, true) ~= nil,
+P.ok(wait_note(m, 'no review comments'):find('no review comments', 1, true) ~= nil,
   'empty draft refusal notified')
-P.eq(level_of(m, 'no pending comments'), 'ERROR', 'refusals notify at ERROR')
+P.eq(level_of(m, 'no review comments'), 'ERROR', 'refusals notify at ERROR')
 
 store.write(ctx.file, doc)
 c0 = #calls
@@ -186,8 +195,10 @@ for _, c in ipairs(calls_since(c0)) do
 end
 P.ok(posted ~= nil, 'POST sent')
 P.eq(posted and posted.commit_id, fx.head_sha, 'commit_id is PR head')
-P.eq(posted and #posted.comments, 1, 'one comment posted')
+P.eq(posted and #posted.comments, 1, 'one comment posted: the note stays home')
+P.eq(posted and posted.comments[1].body, 'c1', '…and it is the review comment')
 local after = store.read(ctx.file)
+P.eq(store.find(after, 'sub/dir/file.txt', 1, nil, 'note').body, 'my understanding', 'push keeps the note in the draft')
 P.eq(after.header.pushed, store.fingerprint(after.entries), 'header pushed updated')
 P.eq(after.header.head, fx.head_sha, 'header head updated')
 wait_note(m, 'pushed 1 comment')
@@ -249,14 +260,19 @@ local threads = review.load_threads(ctx)
 P.eq(#threads, 1, 'remote thread cached')
 P.eq(threads[1].author, 'bob', 'thread author cached')
 local pulled = store.read(ctx.file)
-P.eq(#pulled.entries, 1, 'unanchored server comment dropped')
+P.eq(#store.reviews(pulled.entries), 1, 'unanchored server comment dropped')
+-- Regression: pull assigned the server's list to the whole draft, deleting
+-- every note (GitHub has no copy of one to give back).
+P.eq((store.find(pulled, 'sub/dir/file.txt', 1, nil, 'note') or {}).body, 'my understanding',
+  'pull keeps local notes')
+P.ok(notes_since(m):find('kept 1 note', 1, true) ~= nil, 'pull says how many notes it kept')
 -- Dropping it loses text written in the browser, so it is said out loud.
 P.ok(notes_since(m):find('dropped unanchored pending comment sub/dir/file.txt: outdated', 1, true) ~= nil,
   'dropped comment named in a notification: ' .. notes_since(m))
 P.eq(level_of(m, 'dropped unanchored pending comment'), 'WARN', 'dropped comments warn')
-P.eq(pulled.entries[1].body, 'from server', 'pending section replaced from server')
+P.eq(store.reviews(pulled.entries)[1].body, 'from server', 'pending section replaced from server')
 P.eq(pulled.header.pushed, store.fingerprint(pulled.entries), 'pull sets pushed fingerprint to server state')
-P.eq(comment_marks(0), 2, 'pull re-rendered pending + remote')
+P.eq(comment_marks(0), 3, 'pull re-rendered pending + note + remote')
 
 -- …and the fingerprint the clobber guard compares against drops the same
 -- comment, or the next push refuses a review nobody touched.
@@ -271,9 +287,13 @@ canned['pulls/7/reviews'] = json({ {} })
 sync.pull()
 P.wait(200)
 local emptied = store.read(ctx.file)
-P.eq(#emptied.entries, 0, 'pull with no server pending review empties the draft')
+P.eq(#store.reviews(emptied.entries), 0, 'pull with no server pending review empties the review half')
+P.eq(#emptied.entries, 1, '…and keeps the note')
 P.eq(emptied.header.pushed, store.fingerprint({}), 'pushed matches an empty list')
-P.eq(comment_marks(0), 1, 'only the remote thread renders')
+P.eq(comment_marks(0), 2, 'the remote thread and the note render')
+store.remove(emptied, 'sub/dir/file.txt', 1, nil, 'note')
+store.write(ctx.file, emptied)
+review.render_buf(0, ctx)
 
 -- Other windows are re-rendered too, and a window holding a fileless buffer
 -- (no repo, no context) must be skipped rather than take the loop down.

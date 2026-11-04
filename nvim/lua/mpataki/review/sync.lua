@@ -58,8 +58,12 @@ end
 -- so push can run the local guards before it talks to the network and the
 -- clobber guard after, without shelling out to git twice.
 function M.check_push(ctx, doc, pending, head, ranges)
-  if #doc.entries == 0 then
-    return false, 'no pending comments in ' .. ctx.file
+  -- Notes never leave the machine, so none of the guards below apply to them:
+  -- a note outside the PR diff is fine, and a draft of only notes has nothing
+  -- to push.
+  local reviews = store.reviews(doc.entries)
+  if #reviews == 0 then
+    return false, 'no review comments in ' .. ctx.file .. ' (notes are never pushed)'
   end
   if not head then
     return false, ('cannot read HEAD in %s; is the branch unborn?'):format(ctx.root)
@@ -71,14 +75,14 @@ function M.check_push(ctx, doc, pending, head, ranges)
   -- A backwards range is not just invalid to GitHub: `for l = start, line`
   -- never runs for it, so it would slip the diff guard below untouched and
   -- reach the DELETE. Hand-editing the file is how one gets here.
-  for _, e in ipairs(doc.entries) do
+  for _, e in ipairs(reviews) do
     if e.start_line and e.start_line > e.line then
       return false, ('%s runs backwards (start line after end line); fix the heading in %s')
         :format(store.key(e), ctx.file)
     end
   end
   ranges = ranges or {}
-  for _, e in ipairs(doc.entries) do
+  for _, e in ipairs(reviews) do
     if ranges[e.path] == nil then
       local r, derr = pr.diff_ranges(ctx.root, ctx.info.base_sha, ctx.info.head, e.path)
       if not r then
@@ -247,7 +251,8 @@ function M.push(bang)
   local ranges = {}
   local ok, cerr = M.check_push(ctx, doc, nil, head, ranges)
   if not ok then return fail(cerr) end
-  local dirty = M.dirty_paths(ctx.root, doc.entries)
+  local reviews = store.reviews(doc.entries)
+  local dirty = M.dirty_paths(ctx.root, reviews)
   if #dirty > 0 then
     return fail(('commented file(s) have uncommitted changes: %s — commit them (and push the branch) so line numbers match the PR')
       :format(table.concat(dirty, ', ')))
@@ -264,7 +269,7 @@ function M.push(bang)
   -- Nothing destructive until every guard has passed and the user says yes:
   -- the DELETE is the point of no return for whatever the browser has in that
   -- review. `!` skips the clobber guard above, never this.
-  if not M.confirm(('Push %d comment(s) as a PENDING review to %s?'):format(#doc.entries, repo_tag(ctx.info))) then
+  if not M.confirm(('Push %d comment(s) as a PENDING review to %s?'):format(#reviews, repo_tag(ctx.info))) then
     return notify('push cancelled; nothing sent')
   end
   local deleted = false
@@ -273,7 +278,7 @@ function M.push(bang)
     if not dok then return fail(derr) end
     deleted = true
   end
-  local id, ierr = gh.create_pending(ctx.root, ctx.info.number, ctx.info.head, doc.entries)
+  local id, ierr = gh.create_pending(ctx.root, ctx.info.number, ctx.info.head, reviews)
   if not id then
     -- The DELETE already landed: the user's pending review is gone from
     -- GitHub and the POST that was to replace it failed. Reporting only the
@@ -297,10 +302,12 @@ function M.push(bang)
   -- the sentence is the part that gets cut off — and the url is what the user
   -- came for (the verdict is submitted in the browser).
   notify(('pushed %d comment(s) as pending review %s\n%s')
-    :format(#doc.entries, tostring(id), ctx.info.url or '(no url)'))
+    :format(#reviews, tostring(id), ctx.info.url or '(no url)'))
 end
 
--- :ReviewPull. Overwrites both local caches from the server.
+-- :ReviewPull. Overwrites both local caches from the server — the review half
+-- of the draft only. Notes are local-only, so the server has no copy to
+-- overwrite them with; replacing the whole entry list would delete every one.
 function M.pull()
   local ctx = resolve(':ReviewPull')
   if not ctx then return end
@@ -327,14 +334,16 @@ function M.pull()
 
   local doc = store.read(ctx.file)
   local comments, dropped = split_anchored(pending and pending.comments)
-  doc.entries = comments
+  local notes = vim.tbl_filter(store.is_note, doc.entries)
+  doc.entries = vim.list_extend(comments, notes)
   stamp(doc, ctx)
   local wok, werr = store.write(ctx.file, doc)
   if not wok then return fail(werr) end
   reload_file_buffers()
 
   rerender(ctx)
-  notify(('pulled %d thread(s), %d pending comment(s)'):format(#threads, #doc.entries))
+  notify(('pulled %d thread(s), %d pending comment(s); kept %d note(s)')
+    :format(#threads, #doc.entries - #notes, #notes))
   -- Dropping a comment loses text the user wrote in the browser, so say which
   -- ones: they are gone from the file and cannot be pushed back.
   if #dropped > 0 then

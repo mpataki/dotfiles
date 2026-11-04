@@ -73,6 +73,8 @@ P.eq(gh_writes, 0, 'no gh write without a PR')
 local msg = handoff.message(ctx.file)
 P.ok(msg:find(ctx.file, 1, true) ~= nil, 'send message names the draft path')
 P.ok(msg:find('"## path:line"', 1, true) ~= nil, 'send message explains the headings')
+P.ok(msg:find('[note]', 1, true) ~= nil and msg:find('do not change code', 1, true) ~= nil,
+  'send message tells the agent notes are checked, not acted on')
 
 -- Send refuses an empty draft and an unwritten draft buffer, before tmux.
 local real_send = require('mpataki.ask').send

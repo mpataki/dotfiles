@@ -14,7 +14,10 @@ end
 function M.message(file)
   return ('Review comments for this branch: %s\n'
     .. 'Each "## path:line" heading is a comment on that location (path:start-end = a range). '
-    .. 'Address each one.'):format(file)
+    .. 'Address each one. '
+    .. 'Headings tagged [note] are not requests: they are my notes on what I think that code does. '
+    .. 'Check each against the code and tell me where my understanding is wrong or incomplete; '
+    .. 'do not change code for them.'):format(file)
 end
 
 -- ctx, doc, or nil once the refusal is reported. An unwritten draft buffer
