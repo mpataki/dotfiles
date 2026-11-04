@@ -38,6 +38,7 @@ return {
         jsonc = { 'prettier' },
         yaml = { 'prettier' },
         markdown = { 'prettier' },
+        proto = { 'buf' },
       },
     })
   end,

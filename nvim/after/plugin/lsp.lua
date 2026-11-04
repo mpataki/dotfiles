@@ -307,7 +307,7 @@ vim.lsp.config('ruby_lsp', {
 -- clangd (using LLVM 19 from Homebrew)
 vim.lsp.config('clangd', {
     cmd = { '/opt/homebrew/opt/llvm/bin/clangd', '--background-index', '--clang-tidy', '--header-insertion=iwyu', '--completion-style=detailed', '--header-insertion=never', '--pretty', '--fallback-style=llvm' },
-    filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda', 'proto' },
+    filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda' },
     root_markers = { '.clangd', '.clang-tidy', '.clang-format', 'compile_commands.json', 'compile_flags.txt', 'configure.ac', '.git' },
     on_attach = on_attach,
     capabilities = capabilities,
@@ -316,6 +316,17 @@ vim.lsp.config('clangd', {
         completeUnimported = true,
         clangdFileStatus = true,
     },
+})
+
+-- buf_ls: protobuf (compile errors, buf lint, hover, go-to-def, completion).
+-- Ships with the Buf CLI (Homebrew), not Mason. Works without buf.yaml
+-- (falls back to .git root), but imports resolve best with a buf workspace.
+vim.lsp.config('buf_ls', {
+    cmd = { 'buf', 'lsp', 'serve', '--log-format=text' },
+    filetypes = { 'proto' },
+    root_markers = { 'buf.yaml', 'buf.work.yaml', '.git' },
+    on_attach = on_attach,
+    capabilities = capabilities,
 })
 
 -- Enable all configured servers
@@ -333,6 +344,7 @@ local servers = {
     'marksman',
     'ruby_lsp',
     'clangd',
+    'buf_ls',
 }
 
 for _, server in ipairs(servers) do
