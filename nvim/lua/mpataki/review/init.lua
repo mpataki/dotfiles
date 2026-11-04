@@ -10,6 +10,12 @@
 --   <leader>go      toggle the inline diff overlay (against the base)
 --   <leader>gc      comment at the cursor or on the visual range; `:w` saves,
 --                   `q` cancels, an empty body deletes the comment
+--   <leader>gn      :ReviewNote — the same float, for a private note: what I
+--                   think this code does. Never pushed; the agent checks it
+--   <leader>gk      :ReviewPeek — every comment and note on the cursor line,
+--                   in full, in a float (the code shows only one-line stubs)
+--   <leader>gN      :ReviewFlip — the note under the cursor becomes a review
+--                   comment, or back
 --   <leader>gC      every comment, mine and remote, into the quickfix list
 --   ]q / [q         walk that quickfix list (Neovim defaults)
 --   <leader>cr      :ReviewSend — hand the draft to the Claude pane (ask.lua's
@@ -143,8 +149,10 @@ local function anchor_from_range(range)
   return e, s
 end
 
--- opts: command opts (range/line1/line2) or nil for a plain call.
-function M.comment(opts)
+-- opts: command opts (range/line1/line2) or nil for a plain call. kind: nil
+-- (a review comment) or 'note'. Each kind reopens only its own entries, so a
+-- note and a review comment on the same lines are two separate floats.
+function M.comment(opts, kind)
   local bufnr = vim.api.nvim_get_current_buf()
   local ctx, err = M.context(bufnr)
   if not ctx then return notify_err(err) end
@@ -158,13 +166,14 @@ function M.comment(opts)
   -- anchor, so it creates or replaces exactly that key.
   if not line then
     line = vim.api.nvim_win_get_cursor(0)[1]
-    local covering = store.covering(doc, ctx.relpath, line)
+    local covering = store.covering(doc, ctx.relpath, line, store.kind({ kind = kind }))
     if covering then line, start_line = covering.line, covering.start_line end
   end
   -- Any line: an agent review is not bound by GitHub's hunk rule. Push checks
   -- every entry against the PR diff before anything leaves the machine.
-  local existing = store.find(doc, ctx.relpath, line, start_line)
+  local existing = store.find(doc, ctx.relpath, line, start_line, kind)
   local title = store.key({ path = ctx.relpath, line = line, start_line = start_line })
+    .. (kind == 'note' and ' [note]' or '')
 
   capture.open({
     title = title,
@@ -174,7 +183,7 @@ function M.comment(opts)
     on_save = function(body)
       -- Re-read: the file may have been hand-edited while the float was open.
       local fresh = store.read(ctx.file)
-      store.upsert(fresh, { path = ctx.relpath, line = line, start_line = start_line, body = body })
+      store.upsert(fresh, { path = ctx.relpath, line = line, start_line = start_line, body = body, kind = kind })
       local ok, werr = store.write(ctx.file, fresh)
       if not ok then
         notify_err(werr)
@@ -270,6 +279,10 @@ end
 function M.setup()
   local cmd = vim.api.nvim_create_user_command
   cmd('ReviewComment', M.comment, { range = true, desc = 'Review: comment at cursor/selection' })
+  local notes = require('mpataki.review.notes')
+  cmd('ReviewNote', function(o) M.comment(o, 'note') end, { range = true, desc = 'Review: private note at cursor/selection' })
+  cmd('ReviewPeek', notes.peek, { desc = 'Review: every comment on the cursor line, in full' })
+  cmd('ReviewFlip', notes.flip, { desc = 'Review: note <-> review comment under the cursor' })
   cmd('ReviewRender', M.render_current, { desc = 'Review: re-render comments in buffer' })
   cmd('ReviewToggle', M.toggle, { desc = 'Review: hide/show review rendering' })
   cmd('ReviewRefresh', M.refresh, { desc = 'Review: drop cached PR identity and re-render' })
@@ -288,6 +301,10 @@ function M.setup()
   vim.keymap.set('n', '<leader>gc', M.comment, { desc = 'Review comment at cursor' })
   -- ':' from visual mode supplies the '<,'> range; <Cmd> would not.
   vim.keymap.set('x', '<leader>gc', ':ReviewComment<CR>', { silent = true, desc = 'Review comment on selection' })
+  vim.keymap.set('n', '<leader>gn', function() M.comment(nil, 'note') end, { desc = 'Review note at cursor' })
+  vim.keymap.set('x', '<leader>gn', ':ReviewNote<CR>', { silent = true, desc = 'Review note on selection' })
+  vim.keymap.set('n', '<leader>gk', notes.peek, { desc = 'Review: peek comments on this line' })
+  vim.keymap.set('n', '<leader>gN', notes.flip, { desc = 'Review: flip note <-> review comment' })
   vim.keymap.set('n', '<leader>gC', M.quickfix, { desc = 'Review comments → quickfix' })
   vim.keymap.set('n', '<leader>cr', function() require('mpataki.review.handoff').send() end,
     { desc = 'Send review to Claude' })
