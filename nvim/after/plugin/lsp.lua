@@ -261,11 +261,15 @@ vim.lsp.config('yamlls', {
                 enable = false,
                 url = '',
             },
-            -- Exclude GitHub schemas — actionlint + zizmor handle workflow validation
+            -- Exclude GitHub schemas — actionlint + zizmor handle workflow validation.
+            -- JSONPatch claims *.patch.yaml, which in kustomize/Flux repos is a
+            -- strategic-merge patch (a partial HelmRelease etc.), never an RFC 6902
+            -- op array — every such file lit up "Expected array".
             schemas = require('schemastore').yaml.schemas({
                 ignore = {
                     'GitHub Workflow',
                     'GitHub Action',
+                    'JSONPatch',
                 },
             }),
         },
