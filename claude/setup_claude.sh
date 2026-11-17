@@ -8,6 +8,11 @@ function setup_claude() {
   check_and_link_file `pwd`/agent-config/CLAUDE.md $HOME/.claude/CLAUDE.md
   check_and_link_file `pwd`/agent-config/workflows/ $HOME/.claude
 
+  # agent-config/hooks/page.sh: desktop pages with a real app icon (-sender).
+  if is_mac && ! command -v terminal-notifier >/dev/null; then
+    brew install terminal-notifier
+  fi
+
   render_claude_settings || return 1
   sync_claude_mcp_servers
   sync_claude_marketplaces
