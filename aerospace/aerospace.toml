@@ -255,9 +255,10 @@ alt-shift-tab = 'move-workspace-to-monitor --wrap-around next'
 alt-shift-semicolon = 'mode service'
 
 [workspace-to-monitor-force-assignment]
-# BenQ RD320U + LG SDQHD
+# BenQ RD320U main (alt-q); alt-w = LG SDQHD if attached, else built-in.
+# List = first connected match wins, so both desks work without edits.
 1 = 'RD320U'
-2 = 'SDQHD'
+2 = ['SDQHD', 'Built-in']
 
 # Built-in + Samsung S22R35x
 # 1 = 'S22R35x'
