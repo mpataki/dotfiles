@@ -45,6 +45,10 @@ return {
             'gh_actions_expressions',
         }
 
+        -- Markdown fences name the language by info string (```protobuf), which
+        -- resolves via get_lang() — the parser is `proto`, so alias it.
+        vim.treesitter.language.register('proto', 'protobuf')
+
         -- The main branch leaves feature activation to the user. Enable highlighting
         -- (and experimental indentation) for any buffer whose filetype has a parser.
         local no_indent = { python = true }
