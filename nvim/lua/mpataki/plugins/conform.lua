@@ -37,7 +37,9 @@ return {
         json = { 'prettier' },
         jsonc = { 'prettier' },
         yaml = { 'prettier' },
-        markdown = { 'prettier' },
+        -- markdownlint --fix runs after prettier and uses the nearest .markdownlint.jsonc
+        -- (the vault's, or ~/.markdownlintrc), so it repairs what nvim-lint flags on save.
+        markdown = { 'prettier', 'markdownlint' },
         proto = { 'buf' },
       },
     })
