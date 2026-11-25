@@ -1,0 +1,2 @@
+Agents may `git push` this repo without prompting (non-force; force-push stays denied).
+Read by ~/dotfiles/agent-config/hooks/guard-push.py. Delete this file to restore the prompt.
