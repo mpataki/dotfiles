@@ -190,7 +190,7 @@ return {
 
             if ladder.fat_branch then
                 table.insert(entries, {
-                    label = "fat: " .. ladder.fat_branch .. "  (re-attach, vs " .. base_ref .. ")",
+                    label = "fat: " .. ladder.fat_branch .. "  (attach, or detach if another worktree has it; vs " .. base_ref .. ")",
                     branch = ladder.fat_branch,
                     detach = false,
                     base = base_ref,
@@ -235,8 +235,22 @@ return {
                         return
                     end
 
-                    if current ~= target or choice.detach == false then
-                        local cmd = choice.detach
+                    -- Two-worktree ladders: the fat branch is attached in the
+                    -- agent's worktree and git refuses a second checkout, so
+                    -- view it detached at its tip instead. Rungs always detach.
+                    local detach = choice.detach
+                    if not detach then
+                        local mine = vim.uv.fs_realpath(vim.trim(vim.fn.system("git rev-parse --show-toplevel")))
+                        local path
+                        for _, l in ipairs(vim.fn.systemlist("git worktree list --porcelain")) do
+                            local p = l:match("^worktree (.+)$")
+                            if p then path = vim.uv.fs_realpath(p) or p end
+                            if l == "branch refs/heads/" .. choice.branch and path ~= mine then detach = true end
+                        end
+                    end
+
+                    if current ~= target or not detach then
+                        local cmd = detach
                             and ("git checkout --detach " .. vim.fn.shellescape(choice.branch))
                             or  ("git checkout " .. vim.fn.shellescape(choice.branch))
                         local result = vim.fn.system(cmd .. " 2>&1")
