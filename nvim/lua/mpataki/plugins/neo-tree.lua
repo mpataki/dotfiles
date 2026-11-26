@@ -12,10 +12,13 @@ return {
         -- <leader>gS picker but against the worktree, as the tree's status is.
         -- Cached per base; dropped on write and when neo-tree swaps in a new
         -- status table (commit, checkout, external edit).
+        -- The same entry carries which changed files are linguist-generated:
+        -- those get a "(gen)" tag and muted highlights (mpataki.generated).
+        local generated = require('mpataki.generated')
         local stats_cache = {}
         vim.api.nvim_create_autocmd('BufWritePost', { callback = function() stats_cache = {} end })
-        local function diff_stat(_, node, state)
-            if node.type ~= 'file' then return {} end
+        -- entry, repo-relative path for a file node in a tree with a git_base.
+        local function stat_entry(node, state)
             for root, base in pairs(state.git_base_by_worktree or {}) do
                 if base ~= 'HEAD' and node.path:sub(1, #root + 1) == root .. '/' then
                     local _, wt = require('neo-tree.git').find_existing_worktree(node.path)
@@ -23,21 +26,52 @@ return {
                     local entry = stats_cache[key]
                     if not entry or entry.status ~= (wt and wt.status) then
                         entry = { status = wt and wt.status, files = {} }
+                        local paths = {}
                         for _, l in ipairs(vim.fn.systemlist({ 'git', '-C', root, 'diff', '--numstat', base })) do
                             local add, del, file = l:match('^(%S+)\t(%S+)\t(.+)$')
-                            if file then entry.files[file] = { add, del } end
+                            if file then
+                                entry.files[file] = { add, del }
+                                table.insert(paths, file)
+                            end
                         end
+                        entry.gen = generated.set(root, paths)
                         stats_cache[key] = entry
                     end
-                    local s = entry.files[node.path:sub(#root + 2)]
-                    if not s then return {} end
-                    return {
-                        { text = '+' .. s[1], highlight = 'diffAdded' },
-                        { text = '-' .. s[2], highlight = 'diffRemoved' },
-                    }
+                    return entry, node.path:sub(#root + 2)
                 end
             end
-            return {}
+        end
+        local function is_generated(node, state)
+            if node.type ~= 'file' then return false end
+            local entry, rel = stat_entry(node, state)
+            return entry ~= nil and entry.gen[rel] == true
+        end
+        local function diff_stat(_, node, state)
+            if node.type ~= 'file' then return {} end
+            local entry, rel = stat_entry(node, state)
+            local s = entry and entry.files[rel]
+            if not s then return {} end
+            if not entry.gen[rel] then
+                return {
+                    { text = '+' .. s[1], highlight = 'diffAdded' },
+                    { text = '-' .. s[2], highlight = 'diffRemoved' },
+                }
+            end
+            return {
+                { text = generated.TAG .. ' ', highlight = generated.muted('Normal') },
+                { text = '+' .. s[1], highlight = generated.muted('diffAdded') },
+                { text = '-' .. s[2], highlight = generated.muted('diffRemoved') },
+            }
+        end
+        -- Wrap a source's own name component: same text, muted highlight.
+        local function muted_name(orig)
+            return function(config, node, state)
+                local r = orig(config, node, state)
+                if r and r.highlight and is_generated(node, state) then
+                    r.highlight = generated.muted(r.highlight)
+                end
+                return r
+            end
         end
         local file_renderer = vim.deepcopy(require('neo-tree.defaults').renderers.file)
         for _, c in ipairs(file_renderer) do
@@ -53,9 +87,15 @@ return {
 
         require("neo-tree").setup({
             renderers = { file = file_renderer },
-            git_status = { components = { diff_stat = diff_stat } },
+            git_status = { components = {
+                diff_stat = diff_stat,
+                name = muted_name(require('neo-tree.sources.git_status.components').name),
+            } },
             filesystem = {
-                components = { diff_stat = diff_stat },
+                components = {
+                    diff_stat = diff_stat,
+                    name = muted_name(require('neo-tree.sources.common.components').name),
+                },
                 hijack_netrw_behavior = "open_current",
                 use_libuv_file_watcher = true,
                 follow_current_file = {

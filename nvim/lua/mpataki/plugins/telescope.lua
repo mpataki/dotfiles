@@ -194,6 +194,7 @@ return {
 
 		-- Git diff picker (2/2) — see also git_status_files above. Extract at 3.
 		local function git_pr_files()
+			local generated = require('mpataki.generated')
 			local pickers = require('telescope.pickers')
 			local finders = require('telescope.finders')
 			local conf = require('telescope.config').values
@@ -258,6 +259,15 @@ return {
 				end
 			end
 
+			-- Generated files (linguist-generated) sort after hand-written ones
+			-- and render muted; stable within each group.
+			local gen = generated.set(root, vim.tbl_map(function(r) return r.file end, results))
+			for i, r in ipairs(results) do r.gen, r.order = gen[r.file] or false, i end
+			table.sort(results, function(a, b)
+				if a.gen ~= b.gen then return not a.gen end
+				return a.order < b.order
+			end)
+
 			local total_add, total_del = 0, 0
 			for _, s in pairs(numstat) do
 				total_add = total_add + s.add
@@ -276,14 +286,16 @@ return {
 							and (entry.old_file .. ' → ' .. entry.file)
 							or entry.file
 						local stats = numstat[entry.file] or { add = 0, del = 0 }
+						local hl = entry.gen and generated.muted or function(g) return g end
+						if entry.gen then file_label = file_label .. '  ' .. generated.TAG end
 						return {
 							value = entry,
 							display = function()
 								return pr_displayer({
-									{ info[1], info[2] },
-									{ file_label, info[2] },
-									{ '+' .. stats.add, 'diffAdded' },
-									{ '/-' .. stats.del, 'diffRemoved' },
+									{ info[1], hl(info[2]) },
+									{ file_label, hl(info[2]) },
+									{ '+' .. stats.add, hl('diffAdded') },
+									{ '/-' .. stats.del, hl('diffRemoved') },
 								})
 							end,
 							ordinal = entry.file,
