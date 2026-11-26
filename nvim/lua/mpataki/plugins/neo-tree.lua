@@ -143,6 +143,9 @@ return {
 
         local pr_tree_active = false
         vim.keymap.set('n', '<leader>gt', function()
+            local pr = require('mpataki.review.pr')
+            local root = pr.current_root()
+            if root then pr.pin_base(root, nil) end
             vim.cmd('Neotree git_base=HEAD')
             if pr_tree_active then
                 vim.cmd('DiffReset')
@@ -245,8 +248,28 @@ return {
                     end
                 end
 
-                vim.cmd('Neotree git_base=' .. choice.base)
-                vim.cmd('DiffPRBase ' .. choice.base)
+                -- A rung pins its base for every PR-base view (gS, gT/gF, gD,
+                -- the overlay), not just this tree. merge-base, not the
+                -- previous rung's tip: a lower rung that gained a commit
+                -- after this one was built would otherwise show reversed.
+                -- Fat and HEAD unpin.
+                local pr = require('mpataki.review.pr')
+                local root = pr.current_root()
+                local base = choice.base
+                if root and choice.detach then
+                    local mb = pr.git(root, { 'merge-base', 'HEAD', choice.base })
+                    if mb.code ~= 0 then
+                        vim.notify('No merge base with ' .. choice.base, vim.log.levels.ERROR)
+                        return
+                    end
+                    base = vim.trim(mb.stdout)
+                    pr.pin_base(root, base)
+                elseif root then
+                    pr.pin_base(root, nil)
+                end
+
+                vim.cmd('Neotree git_base=' .. base)
+                vim.cmd('DiffPRBase ' .. base)
                 pr_tree_active = true
             end)
         end

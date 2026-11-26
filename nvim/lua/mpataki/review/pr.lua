@@ -167,8 +167,28 @@ local function default_base(root)
   return (ref ~= '' and merge_base(root, ref)) or merge_base(root, 'main') or merge_base(root, 'master')
 end
 
+-- root -> sha the user pinned as the base (the PR-ladder picker's rung base).
+-- Every PR-base view (overlay, <leader>gS, gT/gF, gD) reads info(), so
+-- honouring the pin here keeps them agreeing with the picker. Outlives
+-- refresh and clear_cache(): only an explicit gesture (re-attach to the fat
+-- branch, <leader>gt) unpins.
+local pinned = {}
+
+function M.pin_base(root, sha)
+  pinned[root] = sha
+end
+
+local resolve
+
 function M.info(root, opts)
   if not root or root == '' then return nil, 'no repo root' end
+  local info, err = resolve(root, opts)
+  local pin = pinned[root]
+  if not pin then return info, err end
+  return vim.tbl_extend('force', info or { root = root }, { base_sha = pin, base_pinned = true })
+end
+
+resolve = function(root, opts)
   opts = opts or {}
   -- nil on a detached HEAD: the PR-base pickers and overlay work there, only
   -- a review draft needs a branch (review's repo_context refuses for it).
