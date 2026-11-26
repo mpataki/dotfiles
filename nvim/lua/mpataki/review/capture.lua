@@ -36,15 +36,29 @@ local function reuse_existing(name)
   return nil
 end
 
--- Below the cursor unless that would push the float off the bottom, where nvim
--- would slide it back up over the very line being commented on. screenpos(),
--- not screenrow(): the latter is the *screen* cursor, which sits on the command
--- line right after a message and would flip every float above its line.
-local function placement()
-  local row = vim.fn.screenpos(0, vim.fn.line('.'), 1).row
-  local rows_left = vim.o.lines - vim.o.cmdheight - row
-  if rows_left >= HEIGHT + 2 then return { anchor = 'NW', row = 1 } end
-  return { anchor = 'SW', row = 0 }
+-- Below the range's last line unless that would push the float off the bottom
+-- (nvim would slide it back up over the lines being commented on), else above
+-- its first line. Window-relative, not cursor-relative: after a visual-mode `:`
+-- command the cursor sits on the *first* line, and a float under it covers the
+-- rest of the selection. screenpos(), not screenrow(): the latter is the
+-- *screen* cursor, which sits on the command line right after a message.
+-- Last line's last column so a wrapped line's continuation stays visible too.
+-- Editor-relative: screenpos() rows are 1-based editor rows, so a 0-based
+-- float row equal to one is the line just below it.
+local function placement(first, last)
+  local win = vim.api.nvim_get_current_win()
+  local col = vim.fn.win_screenpos(win)[2] - 1 + vim.fn.wincol() - 1
+  local last_len = math.max(1, #(vim.fn.getline(last)))
+  local below = vim.fn.screenpos(win, last, last_len).row
+  if below > 0 and vim.o.lines - vim.o.cmdheight - below >= HEIGHT + 2 then
+    return { relative = 'editor', anchor = 'NW', row = below, col = col }
+  end
+  local above = vim.fn.screenpos(win, first, 1).row
+  if above > 0 then
+    return { relative = 'editor', anchor = 'SW', row = above - 1, col = col }
+  end
+  -- Range scrolled out of view: fall back to the cursor.
+  return { relative = 'cursor', anchor = 'SW', row = 0, col = 0 }
 end
 
 function M.open(opts)
@@ -62,13 +76,16 @@ function M.open(opts)
   local lines = vim.split(opts.body or '', '\n', { plain = true })
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
-  local place = placement()
+  local cur = vim.fn.line('.')
+  local first = opts.lines and opts.lines[1] or cur
+  local last = opts.lines and opts.lines[2] or first
+  local place = placement(first, last)
   local width = math.min(80, math.max(40, vim.o.columns - 10))
   win = vim.api.nvim_open_win(buf, true, {
-    relative = 'cursor',
+    relative = place.relative,
     anchor = place.anchor,
     row = place.row,
-    col = 0,
+    col = place.col,
     width = width,
     height = HEIGHT,
     style = 'minimal',

@@ -62,6 +62,7 @@ function M.ask(opts)
     local ref = payload.ref(payload.path_for(path, root, row.cwd), s, e)
     capture.open({
       title = ('%s → claude %s'):format(ref, target.label(row)),
+      lines = { s, e or s },
       on_save = function(text)
         local body = payload.body(text)
         if body == '' then

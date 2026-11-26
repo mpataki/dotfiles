@@ -177,6 +177,7 @@ function M.comment(opts, kind)
 
   capture.open({
     title = title,
+    lines = { start_line or line, line },
     body = existing and existing.body or '',
     -- false keeps the float open with the draft still in it: closing on a
     -- failed write would throw away the comment the user just typed.
