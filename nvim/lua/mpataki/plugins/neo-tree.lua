@@ -133,8 +133,9 @@ return {
         -- Changed files only: the git_status source lists just what <leader>gS does.
         vim.keymap.set('n', '<leader>gF', function() pr_tree('git_status') end, { desc = 'Neotree changed files (PR base)' })
 
-        -- PR-ladder picker — reads ladder state files from
-        -- <git-common-dir>/ladders/*.json. Rung branches are regular
+        -- PR-ladder picker — reads ladder files from
+        -- <git-common-dir>/ladders/*.json and rung order from
+        -- <git-common-dir>/gh-stack. Rung branches are regular
         -- branches (no worktrees); the picker just moves HEAD in the
         -- current worktree. Selecting a rung detaches at the rung tip;
         -- selecting fat re-attaches. nvim's CWD/root never changes.
@@ -229,9 +230,40 @@ return {
                 return
             end
 
+            -- Rung order lives in gh-stack's catalog; the ladder file only
+            -- names its top rung. Legacy ladder files carry `rungs`/`base`
+            -- themselves and are used as-is until the skill migrates them.
+            local stacks = {}
+            local stack_file = git_common .. "/gh-stack"
+            if vim.fn.filereadable(stack_file) == 1 then
+                local ok, catalog = pcall(vim.fn.json_decode, vim.fn.readfile(stack_file))
+                if ok and type(catalog) == "table" and type(catalog.stacks) == "table" then
+                    stacks = catalog.stacks
+                end
+            end
+            local function resolve_from_stack(data)
+                for _, s in ipairs(stacks) do
+                    local names = {}
+                    local has_top = false
+                    for _, b in ipairs(s.branches or {}) do
+                        table.insert(names, b.branch)
+                        if b.branch == data.top then has_top = true end
+                    end
+                    if has_top then
+                        data.rungs = names
+                        data.base = s.trunk and s.trunk.branch or "main"
+                        return true
+                    end
+                end
+                return false
+            end
+
             local ladders = {}
             for _, file in ipairs(files) do
                 local ok, data = pcall(vim.fn.json_decode, vim.fn.readfile(file))
+                if ok and type(data) == "table" and type(data.top) == "string" and not resolve_from_stack(data) then
+                    vim.notify("Ladder " .. file .. ": top rung " .. data.top .. " not found in " .. stack_file, vim.log.levels.WARN)
+                end
                 if ok and type(data) == "table" and type(data.rungs) == "table" then
                     data._name = vim.fn.fnamemodify(file, ":t:r")
                     table.insert(ladders, data)
