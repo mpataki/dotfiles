@@ -10,11 +10,7 @@ return {
     local targetMode = 'vimux'
     local lastMarkedCommand = nil
 
-    -- Marked pane helpers
-    local function getMarkedPane()
-      local result = vim.fn.system('tmux list-panes -a -F "#{pane_id} #{?pane_marked,MARKED,}" | grep MARKED | cut -d" " -f1 | tr -d "\n"')
-      return result ~= '' and result or nil
-    end
+    local getMarkedPane = require('mpataki.tmux_mark').pane
 
     local function sendToMarked(cmd, enter)
       local pane = getMarkedPane()
