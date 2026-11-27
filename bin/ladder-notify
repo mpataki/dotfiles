@@ -5,8 +5,10 @@
 # <leader>gp) gets checked out at the new tip — git only, nvim not involved.
 #
 # Moves a worktree only when its HEAD is detached on exactly the branch's old
-# tip and its tracked files are clean; anything else (you moved, you're
-# editing) is left alone. Inert elsewhere: exits before any work unless the
+# tip and either its tracked files are clean, or its whole tree already equals
+# the new tip (your edits are what landed: re-point, no files rewritten).
+# Anything else (you moved, you're mid-edit) is left alone. Inert elsewhere:
+# exits before any work unless the
 # transaction committed and touched refs/heads/*, and the repo has a ladder.
 # Never fails the transaction.
 
@@ -31,8 +33,24 @@ follow() { # worktree path, detached HEAD sha
   read -r old new < <(printf '%s\n' "$moved" | awk -v r="refs/heads/$branch" '$3 == r { print $1, $2 }' | tail -n1)
   [ -n "$old" ] && [ "$head" = "$old" ] || return
   case $new in *[!0]*) ;; *) return ;; esac # branch deleted
-  [ -z "$(git -C "$wt" status --porcelain --untracked-files=no)" ] || return
-  git -C "$wt" checkout -q --detach "$new" >/dev/null 2>&1
+  if [ -z "$(git -C "$wt" status --porcelain --untracked-files=no)" ]; then
+    git -C "$wt" checkout -q --detach "$new" >/dev/null 2>&1
+  elif matches "$wt" "$new"; then
+    # Your uncommitted edits are exactly what landed (the agent absorbed them,
+    # nvim <leader>cl): point HEAD at the new tip and reset the index; the
+    # files on disk already match, so nothing is rewritten.
+    git -C "$wt" update-ref --no-deref HEAD "$new" "$old" && git -C "$wt" reset -q
+  fi
+}
+
+matches() { # worktree, commit: does the whole tree (untracked too) equal it?
+  local wt=$1 commit=$2 idx tree
+  idx=$(mktemp) || return 1
+  tree=$(GIT_INDEX_FILE=$idx git -C "$wt" read-tree "$commit" &&
+    GIT_INDEX_FILE=$idx git -C "$wt" add -A &&
+    GIT_INDEX_FILE=$idx git -C "$wt" write-tree)
+  rm -f "$idx"
+  [ -n "$tree" ] && [ "$tree" = "$(git -C "$wt" rev-parse "$commit^{tree}")" ]
 }
 
 wt='' head='' detached=''

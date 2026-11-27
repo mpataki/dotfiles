@@ -61,6 +61,28 @@ g -C "$review" worktree remove "$tmp/op"
 tip=$(git -C "$review" rev-parse rung1); settle "$review" "$tip"
 check "rung: review at new rung tip" "$(git -C "$review" rev-parse HEAD)" "$tip"
 
+# Your edits, absorbed by the agent: the tree matches the new tip, so the
+# hook re-points HEAD and you come back clean — untracked new files included.
+echo "review edit" >>"$review/one.txt"; echo "new file" >"$review/new.txt"
+g -C "$review" worktree add -q "$tmp/op" rung1
+cp "$review/one.txt" "$review/new.txt" "$tmp/op/"
+g -C "$tmp/op" add one.txt new.txt; g -C "$tmp/op" commit -qm "absorb review edits"
+g -C "$review" worktree remove "$tmp/op"
+tip=$(git -C "$review" rev-parse rung1); settle "$review" "$tip"
+check "absorbed: review at new tip" "$(git -C "$review" rev-parse HEAD)" "$tip"
+check "absorbed: tree clean" "$(git -C "$review" status --porcelain)" ""
+check "absorbed: edit kept on disk" "$(tail -n1 "$review/one.txt")" "review edit"
+
+# Partly absorbed (tree differs from the new tip): left alone.
+echo "keep" >>"$review/one.txt"; echo "other" >>"$review/base.txt"
+before=$(git -C "$review" rev-parse HEAD)
+g -C "$review" worktree add -q "$tmp/op" rung1
+cp "$review/one.txt" "$tmp/op/"; g -C "$tmp/op" commit -qam "absorb only one.txt"
+g -C "$review" worktree remove "$tmp/op"; sleep 0.5
+check "partial: HEAD untouched" "$(git -C "$review" rev-parse HEAD)" "$before"
+check "partial: edits untouched" "$(tail -n1 "$review/base.txt")" "other"
+git -C "$review" checkout -q -- one.txt base.txt
+
 # A repo with no ladder: exits at once, does nothing.
 plain="$tmp/plain"; g init -q -b main "$plain"
 start=$(perl -MTime::HiRes=time -e 'print time')
