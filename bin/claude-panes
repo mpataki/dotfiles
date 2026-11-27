@@ -6,7 +6,8 @@
 # its tmux pane by walking parent pids until a known pane_pid is found.
 #
 # Output: one line per session, tab-separated columns:
-#   target  status  waiting_for  cwd  session_id  updated_at  pid
+#   target  status  waiting_for  cwd  session_id  updated_at  pid  name
+# name is the session's /rename name, empty when it has none.
 
 set -u
 shopt -s nullglob
@@ -36,6 +37,7 @@ for f in "$HOME"/.claude/sessions/*.json; do
     read -r updated_at
     read -r kind
     read -r entrypoint
+    read -r name
   } < <(jq -r '
     .pid,
     (.status // ""),
@@ -44,7 +46,8 @@ for f in "$HOME"/.claude/sessions/*.json; do
     (.sessionId // ""),
     .updatedAt,
     (.kind // ""),
-    (.entrypoint // "")
+    (.entrypoint // ""),
+    (.name // "")
   ' "$f" 2>/dev/null)
 
   [[ "$kind" == "interactive" && "$entrypoint" == "cli" ]] || continue
@@ -53,6 +56,6 @@ for f in "$HOME"/.claude/sessions/*.json; do
   target=$(find_target "$pid")
   [[ -n "$target" ]] || continue
 
-  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-    "$target" "$status" "$waiting_for" "$cwd" "$session_id" "$updated_at" "$pid"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "$target" "$status" "$waiting_for" "$cwd" "$session_id" "$updated_at" "$pid" "$name"
 done

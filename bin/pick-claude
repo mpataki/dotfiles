@@ -16,7 +16,7 @@ fi
 
 # Re-shape claude-panes output for fzf:
 #   field 1 = target (hidden, used for switch + preview)
-#   field 2 = display string (status badge | waitingFor | cwd basename | target)
+#   field 2 = display string (status badge | session name | waitingFor | cwd basename | target)
 display=$(printf '%s\n' "$panes" \
   | awk -F'\t' -v OFS='\t' '
       {
@@ -27,13 +27,15 @@ display=$(printf '%s\n' "$panes" \
   | sort -t $'\t' -k1,1n -k7,7nr \
   | awk -F'\t' '
       {
-        # After sort prefix: $2=target $3=status $4=waiting_for $5=cwd ... $7=updated_at $8=pid
+        # After sort prefix: $2=target $3=status $4=waiting_for $5=cwd ... $7=updated_at $8=pid $9=name
         target      = $2
         status      = ($3 == "waiting") ? "WAIT" : ($3 == "busy") ? "BUSY" : "IDLE"
         waiting_for = $4
         cwd         = $5
         basename    = cwd; sub(/.*\//, "", basename)
-        printf "%s\t%-4s  %-28s  %-22s  %s\n", target, status, waiting_for, basename, target
+        name        = substr($9, 1, 22)
+        basename    = substr(basename, 1, 22)
+        printf "%s\t%-4s  %-22s  %-28s  %-22s  %s\n", target, status, name, waiting_for, basename, target
       }
     ')
 
