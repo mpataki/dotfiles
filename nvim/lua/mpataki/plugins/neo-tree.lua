@@ -295,6 +295,7 @@ return {
 
             vim.ui.select(entries, {
                 prompt = "Ladder view (" .. (ladder.fat_branch or "?") .. "):",
+                kind = "menu",
                 format_item = function(e) return e.label end,
             }, function(choice)
                 if choice then apply_choice(choice) end
@@ -405,6 +406,7 @@ return {
                     or "Pick a ladder (multiple match current branch):"
                 vim.ui.select(ladders, {
                     prompt = prompt,
+                    kind = "menu",
                     format_item = function(l)
                         return l._name .. "  — fat: " .. (l.fat_branch or "?")
                     end,

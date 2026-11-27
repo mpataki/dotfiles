@@ -89,6 +89,20 @@ return {
 		})
 
 		telescope.load_extension("ui-select")
+		-- kind = 'menu': a short fixed list (e.g. the <leader>gp rung picker)
+		-- opens in normal mode — j/k move, <CR> picks, no fuzzy prompt.
+		-- ui-select's per-kind opts can't set the mode, and pickers.new reads
+		-- the default at construction, so swap it for the one call.
+		local ui_select = vim.ui.select
+		vim.ui.select = function(items, opts, on_choice)
+			if not (opts and opts.kind == 'menu') then return ui_select(items, opts, on_choice) end
+			local values = require('telescope.config').values
+			local mode = values.initial_mode
+			values.initial_mode = 'normal'
+			local ok, err = pcall(ui_select, items, opts, on_choice)
+			values.initial_mode = mode
+			if not ok then error(err) end
+		end
 		telescope.load_extension("fzf")
 
 		-- vim.keymap.set('n', '<leader>pf', builtin.find_files, {})
