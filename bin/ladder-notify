@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# ladder-notify — git reference-transaction hook (wired globally in
+# git/gitconfig as hook.ladder-follow). When a branch moves in a repo that has
+# a PR ladder, poke the nvim on every worktree of that repo so a <leader>gp
+# view following the branch catches up (mpataki.ladder_follow.poke).
+#
+# Inert everywhere else: exits before any work unless the transaction has
+# committed, touched refs/heads/*, and the repo has <common-dir>/ladders/.
+# An nvim that isn't following ignores the poke. Never fails the transaction
+# and never waits on nvim: a commit made from inside that same nvim would
+# otherwise deadlock (git waits on the hook, the hook waits on nvim).
+
+[ "${1-}" = committed ] || exit 0
+refs=$(cat)
+case $refs in *" refs/heads/"*) ;; *) exit 0 ;; esac
+
+common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || exit 0
+[ -d "$common/ladders" ] || exit 0
+sockets=/tmp/nvim-sockets
+[ -d "$sockets" ] || exit 0
+
+# Socket name must match nvim/lua/mpataki/nvim_goto.lua:
+# sha256(symlink-resolved worktree toplevel), first 16 hex chars.
+git worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p' |
+  while IFS= read -r wt; do
+    root=$(cd "$wt" 2>/dev/null && pwd -P) || continue
+    sock="$sockets/$(printf '%s' "$root" | shasum -a 256 | cut -c1-16).pipe"
+    [ -S "$sock" ] || continue
+    nohup nvim --server "$sock" --remote-expr \
+      "luaeval('require(\"mpataki.ladder_follow\").poke()')" \
+      >/dev/null 2>&1 </dev/null &
+  done
+exit 0

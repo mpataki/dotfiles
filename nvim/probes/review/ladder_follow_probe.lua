@@ -3,7 +3,6 @@
 -- Run: nvim --headless -c 'luafile probes/review/ladder_follow_probe.lua' -c 'qa'
 local P = require('probe')
 local follow = require('mpataki.ladder_follow')
-follow.interval = 60 * 60 * 1000 -- drive check() by hand
 
 local root = vim.fn.tempname()
 vim.fn.mkdir(root, 'p')

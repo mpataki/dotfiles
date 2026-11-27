@@ -3,17 +3,23 @@
 -- checked out in another worktree, and cascades must always move rungs. So
 -- "following" a rung means re-detaching at its new tip whenever it moves.
 --
+-- Event-driven: git's reference-transaction hook (bin/ladder-notify, wired in
+-- git/gitconfig) calls poke() on every branch move in a ladder repo, from any
+-- worktree. FocusGained is the backstop for anything the hook misses.
+--
 -- Stops when HEAD moves away from the followed commit by any other means
--- (manual checkout, a new pick), or on stop() (<leader>gt, HEAD/attach picks).
--- A dirty tree is never touched: it warns once per new tip and waits.
+-- (manual checkout, a new pick, attaching a branch), or on stop() (<leader>gt,
+-- HEAD/attach picks). A dirty tree is never touched: it warns once per new tip
+-- and waits.
 local pr = require('mpataki.review.pr')
 
 local M = {}
 
-M.interval = 3000
+-- A cascade moves several refs in quick succession; settle before checking.
+M.debounce = 300
 
 local state -- { root, branch, sha, reapply, warned }
-local timer
+local timer -- debounce timer for poke()
 
 local function rev(root, ref)
   local r = pr.git(root, { 'rev-parse', '--verify', '--quiet', ref .. '^{commit}' })
@@ -22,11 +28,6 @@ end
 
 function M.stop()
   state = nil
-  if timer then
-    timer:stop()
-    timer:close()
-    timer = nil
-  end
 end
 
 function M.following()
@@ -65,10 +66,17 @@ function M.start(root, branch, reapply)
   local sha = rev(root, 'HEAD')
   if not sha then return M.stop() end
   state = { root = root, branch = branch, sha = sha, reapply = reapply }
-  if not timer then
-    timer = vim.uv.new_timer()
-    timer:start(M.interval, M.interval, vim.schedule_wrap(M.check))
-  end
+end
+
+-- Called by bin/ladder-notify over the nvim socket on every branch move in a
+-- ladder repo. Returns at once (the hook never waits); a no-op unless
+-- following. Debounced so a multi-rung cascade triggers one check.
+function M.poke()
+  if not state then return '' end
+  timer = timer or vim.uv.new_timer()
+  timer:stop()
+  timer:start(M.debounce, 0, vim.schedule_wrap(M.check))
+  return ''
 end
 
 vim.api.nvim_create_autocmd('FocusGained', { callback = function() M.check() end })

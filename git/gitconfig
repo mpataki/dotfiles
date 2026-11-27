@@ -71,3 +71,10 @@
   insteadOf = ssh://git@github.com/agilebits-inc/
 [url "git@github.com-1password:agilebits-inc/"]
   insteadOf = https://github.com/agilebits-inc/
+# PR-ladder follow: when a ladder's branch moves, poke the nvim on each of the
+# repo's worktrees (bin/ladder-notify). Config-defined hook (git 2.54+): it
+# adds to a repo's own hooks instead of replacing them like core.hooksPath.
+# Exits immediately in repos without <common-dir>/ladders/.
+[hook "ladder-follow"]
+  event = reference-transaction
+  command = ~/dotfiles/bin/ladder-notify
