@@ -167,15 +167,33 @@ local function default_base(root)
   return (ref ~= '' and merge_base(root, ref)) or merge_base(root, 'main') or merge_base(root, 'master')
 end
 
--- root -> sha the user pinned as the base (the PR-ladder picker's rung base).
--- Every PR-base view (overlay, <leader>gS, gT/gF, gD) reads info(), so
--- honouring the pin here keeps them agreeing with the picker. Outlives
--- refresh and clear_cache(): only an explicit gesture (re-attach to the fat
--- branch, <leader>gt) unpins.
+-- root -> ref the user pinned the base to (the PR-ladder picker: the rung
+-- below). The base is merge-base(HEAD, ref), resolved lazily so it tracks HEAD
+-- as a followed rung moves (a cascade shifts it). Every PR-base view (overlay,
+-- <leader>gS, gT/gF, gD) reads info(), so honouring the pin here keeps them
+-- agreeing with the picker. Outlives refresh and clear_cache(): only an
+-- explicit gesture (re-attach to the fat branch, <leader>gt) unpins.
 local pinned = {}
+-- root..'\0'..ref..'\0'..HEAD sha -> merge-base. info() is on the BufWinEnter
+-- path; keyed on HEAD, a cascade (which moves HEAD) is a natural miss.
+local pin_cache = {}
 
-function M.pin_base(root, sha)
-  pinned[root] = sha
+function M.pin_base(root, ref)
+  pinned[root] = ref
+end
+
+function M.pinned(root)
+  return pinned[root]
+end
+
+local function pinned_base(root, ref)
+  local head = M.git(root, { 'rev-parse', 'HEAD' })
+  if head.code ~= 0 then return nil end
+  local key = root .. '\0' .. ref .. '\0' .. vim.trim(head.stdout)
+  if pin_cache[key] then return pin_cache[key] end
+  local mb = merge_base(root, ref)
+  pin_cache[key] = mb
+  return mb
 end
 
 local resolve
@@ -184,8 +202,9 @@ function M.info(root, opts)
   if not root or root == '' then return nil, 'no repo root' end
   local info, err = resolve(root, opts)
   local pin = pinned[root]
-  if not pin then return info, err end
-  return vim.tbl_extend('force', info or { root = root }, { base_sha = pin, base_pinned = true })
+  local base = pin and pinned_base(root, pin)
+  if not base then return info, err end
+  return vim.tbl_extend('force', info or { root = root }, { base_sha = base, base_pinned = true })
 end
 
 resolve = function(root, opts)

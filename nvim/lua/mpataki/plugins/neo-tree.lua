@@ -145,8 +145,7 @@ return {
         vim.keymap.set('n', '<leader>gt', function()
             local pr = require('mpataki.review.pr')
             local root = pr.current_root()
-            if root then pr.pin_base(root, nil) end
-            require('mpataki.ladder_follow').stop()
+            if root then require('mpataki.ladder_follow').stop(root) end
             vim.cmd('Neotree git_base=HEAD')
             if pr_tree_active then
                 vim.cmd('DiffReset')
@@ -215,7 +214,7 @@ return {
                 base = "HEAD",
             })
 
-            -- Re-run by mpataki.ladder_follow whenever the followed branch moves.
+            -- Applies one picker entry: check out, follow, pin, refresh views.
             local function apply_choice(choice)
                 local detach = choice.detach
                 if choice.branch then
@@ -259,38 +258,34 @@ return {
                     end
                 end
 
-                -- A rung pins its base for every PR-base view (gS, gT/gF, gD,
-                -- the overlay), not just this tree. merge-base, not the
-                -- previous rung's tip: a lower rung that gained a commit
-                -- after this one was built would otherwise show reversed.
-                -- Fat and HEAD unpin.
+                -- A detached view follows its branch's new heads (git moves it:
+                -- bin/ladder-notify); an attached branch moves on its own, and
+                -- HEAD has nothing to follow. A rung also pins its base for
+                -- every PR-base view (gS, gT/gF, gD, the overlay) to
+                -- merge-base(HEAD, rung below), not the rung below's tip: a
+                -- lower rung that gained a commit after this one was built
+                -- would otherwise show reversed. Fat and HEAD unpin.
                 local pr = require('mpataki.review.pr')
+                local follow = require('mpataki.ladder_follow')
                 local root = pr.current_root()
                 local base = choice.base
+                if root and choice.branch and detach then
+                    follow.start(root, choice.branch, choice.detach and choice.base or nil)
+                elseif root then
+                    follow.stop(root)
+                end
                 if root and choice.detach then
-                    local mb = pr.git(root, { 'merge-base', 'HEAD', choice.base })
-                    if mb.code ~= 0 then
+                    local info = pr.info(root)
+                    if not info or not info.base_pinned then
                         vim.notify('No merge base with ' .. choice.base, vim.log.levels.ERROR)
                         return
                     end
-                    base = vim.trim(mb.stdout)
-                    pr.pin_base(root, base)
-                elseif root then
-                    pr.pin_base(root, nil)
+                    base = info.base_sha
                 end
 
                 vim.cmd('Neotree git_base=' .. base)
                 vim.cmd('DiffPRBase ' .. base)
                 pr_tree_active = true
-
-                -- A detached view follows its branch's new heads; an attached
-                -- branch follows on its own, and HEAD has nothing to follow.
-                local follow = require('mpataki.ladder_follow')
-                if root and choice.branch and detach then
-                    follow.start(root, choice.branch, function() apply_choice(choice) end)
-                else
-                    follow.stop()
-                end
             end
 
             vim.ui.select(entries, {

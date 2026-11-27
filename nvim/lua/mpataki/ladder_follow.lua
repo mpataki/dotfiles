@@ -1,84 +1,101 @@
--- Keeps a <leader>gp ladder view on its branch's latest head. The review
--- worktree stays detached on purpose: git refuses to rebase or move a branch
--- checked out in another worktree, and cascades must always move rungs. So
--- "following" a rung means re-detaching at its new tip whenever it moves.
+-- Keeps a <leader>gp ladder view on its branch's latest head. git does the
+-- moving; nvim only reacts to its own disk.
 --
--- Event-driven: git's reference-transaction hook (bin/ladder-notify, wired in
--- git/gitconfig) calls poke() on every branch move in a ladder repo, from any
--- worktree. FocusGained is the backstop for anything the hook misses.
+-- State lives in this worktree's git dir, <gitdir>/ladder-follow:
+--   line 1: the branch being followed
+--   line 2: the ref the diff base is pinned to (the rung below), or empty
+-- bin/ladder-notify (global reference-transaction hook, git/gitconfig) reads it
+-- and, when that branch moves, checks out the new tip here — if HEAD is
+-- detached on the old tip and the tree is clean. Works with nvim closed.
 --
--- Stops when HEAD moves away from the followed commit by any other means
--- (manual checkout, a new pick, attaching a branch), or on stop() (<leader>gt,
--- HEAD/attach picks). A dirty tree is never touched: it warns once per new tip
--- and waits.
+-- The review worktree stays detached on purpose: git refuses to rebase or move
+-- a branch checked out in another worktree, and cascades must always move
+-- rungs. Buffers reload via the checktime autocmds (mpataki.autocmd); this
+-- module watches HEAD and re-resolves the pinned base (pr.lua: merge-base with
+-- the rung below, which a cascade shifts) for the overlay and tree.
 local pr = require('mpataki.review.pr')
 
 local M = {}
 
--- A cascade moves several refs in quick succession; settle before checking.
-M.debounce = 300
+M.debounce = 200
 
-local state -- { root, branch, sha, reapply, warned }
-local timer -- debounce timer for poke()
+local watchers = {} -- root -> { fs = fs_event, timer = timer }
 
-local function rev(root, ref)
-  local r = pr.git(root, { 'rev-parse', '--verify', '--quiet', ref .. '^{commit}' })
-  return r.code == 0 and vim.trim(r.stdout) or nil
+local function state_file(root)
+  local r = pr.git(root, { 'rev-parse', '--absolute-git-dir' })
+  if r.code ~= 0 then return nil end
+  return vim.trim(r.stdout) .. '/ladder-follow'
 end
 
-function M.stop()
-  state = nil
+-- { branch, base } for root's worktree, or nil when not following.
+function M.read(root)
+  local f = state_file(root)
+  if not f or vim.fn.filereadable(f) == 0 then return nil end
+  local lines = vim.fn.readfile(f)
+  if not lines[1] or lines[1] == '' then return nil end
+  return { branch = lines[1], base = (lines[2] ~= '' and lines[2]) or nil }
 end
 
-function M.following()
-  return state and state.branch
+function M.following(root)
+  local s = M.read(root)
+  return s and s.branch
 end
 
--- One tick. Returns what happened, for probes:
--- 'idle' | 'stopped' | 'dirty' | 'elsewhere' | 'moved'.
-function M.check()
-  if not state then return 'idle' end
-  local s = state
-  local attached = pr.git(s.root, { 'symbolic-ref', '-q', 'HEAD' }).code == 0
-  if attached or rev(s.root, 'HEAD') ~= s.sha then
-    M.stop()
-    return 'stopped'
-  end
-  local tip = rev(s.root, s.branch)
-  if not tip or tip == s.sha then return 'idle' end
-  if vim.trim(pr.git(s.root, { 'status', '--porcelain' }).stdout) ~= '' then
-    if s.warned ~= tip then
-      s.warned = tip
-      vim.notify(('ladder: %s moved to %s; tree is dirty, not following'):format(s.branch, tip:sub(1, 8)),
-        vim.log.levels.WARN)
+-- HEAD moved (followed, or anything else): pinned views re-resolve their base.
+local function refresh(root)
+  if pr.current_root() ~= root or not pr.pinned(root) then return end
+  vim.cmd('silent! checktime')
+  vim.cmd('silent DiffPRBase')
+  local info = pr.info(root)
+  if not info then return end
+  for _, w in ipairs(vim.api.nvim_list_wins()) do
+    if vim.bo[vim.api.nvim_win_get_buf(w)].filetype == 'neo-tree' then
+      vim.cmd('Neotree git_base=' .. info.base_sha)
+      break
     end
-    return 'dirty'
   end
-  -- reapply resolves the repo from the focused buffer (then cwd); with another
-  -- repo's buffer focused it would pin that repo. Wait for focus to come back.
-  if pr.current_root() ~= s.root then return 'elsewhere' end
-  s.reapply() -- re-checks-out the branch tip, re-pins the base, calls start() again
-  vim.notify(('ladder: following %s → %s'):format(s.branch, tip:sub(1, 8)))
-  return 'moved'
 end
 
-function M.start(root, branch, reapply)
-  local sha = rev(root, 'HEAD')
-  if not sha then return M.stop() end
-  state = { root = root, branch = branch, sha = sha, reapply = reapply }
+-- Watch the git dir, not the HEAD file: git replaces HEAD by rename, which a
+-- file watch loses track of on macOS.
+local function watch(root)
+  if watchers[root] then return end
+  local f = state_file(root)
+  if not f then return end
+  local fs, timer = vim.uv.new_fs_event(), vim.uv.new_timer()
+  fs:start(vim.fs.dirname(f), {}, function(err, name)
+    if err or name ~= 'HEAD' then return end
+    timer:stop()
+    timer:start(M.debounce, 0, vim.schedule_wrap(function() refresh(root) end))
+  end)
+  watchers[root] = { fs = fs, timer = timer }
 end
 
--- Called by bin/ladder-notify over the nvim socket on every branch move in a
--- ladder repo. Returns at once (the hook never waits); a no-op unless
--- following. Debounced so a multi-rung cascade triggers one check.
-function M.poke()
-  if not state then return '' end
-  timer = timer or vim.uv.new_timer()
-  timer:stop()
-  timer:start(M.debounce, 0, vim.schedule_wrap(M.check))
-  return ''
+-- Follow `branch`; pin the diff base to merge-base(HEAD, base_ref) when given.
+function M.start(root, branch, base_ref)
+  local f = state_file(root)
+  if not f then return end
+  vim.fn.writefile({ branch, base_ref or '' }, f)
+  pr.pin_base(root, base_ref)
+  watch(root)
 end
 
-vim.api.nvim_create_autocmd('FocusGained', { callback = function() M.check() end })
+function M.stop(root)
+  local f = state_file(root)
+  if f then vim.fn.delete(f) end
+  pr.pin_base(root, nil)
+end
+
+-- A worktree left following across an nvim restart picks its pin back up.
+function M.restore(root)
+  local s = root and M.read(root)
+  if not s then return end
+  pr.pin_base(root, s.base)
+  watch(root)
+end
+
+vim.api.nvim_create_autocmd('VimEnter', {
+  callback = function() M.restore(pr.current_root()) end,
+})
 
 return M

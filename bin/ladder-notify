@@ -1,33 +1,48 @@
 #!/usr/bin/env bash
 # ladder-notify — git reference-transaction hook (wired globally in
-# git/gitconfig as hook.ladder-follow). When a branch moves in a repo that has
-# a PR ladder, poke the nvim on every worktree of that repo so a <leader>gp
-# view following the branch catches up (mpataki.ladder_follow.poke).
+# git/gitconfig as hook.ladder-follow). When a branch moves, every worktree of
+# this repo that follows that branch (<gitdir>/ladder-follow, written by nvim's
+# <leader>gp) gets checked out at the new tip — git only, nvim not involved.
 #
-# Inert everywhere else: exits before any work unless the transaction has
-# committed, touched refs/heads/*, and the repo has <common-dir>/ladders/.
-# An nvim that isn't following ignores the poke. Never fails the transaction
-# and never waits on nvim: a commit made from inside that same nvim would
-# otherwise deadlock (git waits on the hook, the hook waits on nvim).
+# Moves a worktree only when its HEAD is detached on exactly the branch's old
+# tip and its tracked files are clean; anything else (you moved, you're
+# editing) is left alone. Inert elsewhere: exits before any work unless the
+# transaction committed and touched refs/heads/*, and the repo has a ladder.
+# Never fails the transaction.
 
 [ "${1-}" = committed ] || exit 0
-refs=$(cat)
-case $refs in *" refs/heads/"*) ;; *) exit 0 ;; esac
+moved=$(grep ' refs/heads/') || exit 0
 
 common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || exit 0
 [ -d "$common/ladders" ] || exit 0
-sockets=/tmp/nvim-sockets
-[ -d "$sockets" ] || exit 0
 
-# Socket name must match nvim/lua/mpataki/nvim_goto.lua:
-# sha256(symlink-resolved worktree toplevel), first 16 hex chars.
-git worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p' |
-  while IFS= read -r wt; do
-    root=$(cd "$wt" 2>/dev/null && pwd -P) || continue
-    sock="$sockets/$(printf '%s' "$root" | shasum -a 256 | cut -c1-16).pipe"
-    [ -S "$sock" ] || continue
-    nohup nvim --server "$sock" --remote-expr \
-      "luaeval('require(\"mpataki.ladder_follow\").poke()')" \
-      >/dev/null 2>&1 </dev/null &
-  done
+# Hooks run with GIT_DIR, GIT_INDEX_FILE, … pointing at the worktree that made
+# the change; the checkouts below target other worktrees.
+unset $(git rev-parse --local-env-vars)
+
+worktrees=$(git --git-dir="$common" worktree list --porcelain)
+
+follow() { # worktree path, detached HEAD sha
+  local wt=$1 head=$2 gitdir branch old new
+  gitdir=$(git -C "$wt" rev-parse --absolute-git-dir 2>/dev/null) || return
+  [ -f "$gitdir/ladder-follow" ] || return
+  branch=$(head -n1 "$gitdir/ladder-follow")
+  [ -n "$branch" ] || return
+  read -r old new < <(printf '%s\n' "$moved" | awk -v r="refs/heads/$branch" '$3 == r { print $1, $2 }' | tail -n1)
+  [ -n "$old" ] && [ "$head" = "$old" ] || return
+  case $new in *[!0]*) ;; *) return ;; esac # branch deleted
+  [ -z "$(git -C "$wt" status --porcelain --untracked-files=no)" ] || return
+  git -C "$wt" checkout -q --detach "$new" >/dev/null 2>&1
+}
+
+wt='' head='' detached=''
+while IFS= read -r line; do
+  case $line in
+    'worktree '*) wt=${line#worktree } head='' detached='' ;;
+    'HEAD '*) head=${line#HEAD } ;;
+    detached) detached=1 ;;
+    '') [ -n "$detached" ] && (follow "$wt" "$head" &) ;;
+  esac
+done <<<"$worktrees
+"
 exit 0
