@@ -146,6 +146,7 @@ return {
             local pr = require('mpataki.review.pr')
             local root = pr.current_root()
             if root then pr.pin_base(root, nil) end
+            require('mpataki.ladder_follow').stop()
             vim.cmd('Neotree git_base=HEAD')
             if pr_tree_active then
                 vim.cmd('DiffReset')
@@ -200,7 +201,7 @@ return {
             local prev_ref = base_ref
             for i, rung in ipairs(ladder.rungs) do
                 table.insert(entries, {
-                    label = "rung " .. i .. ": " .. rung .. "  (detach, vs " .. prev_ref .. ")",
+                    label = "rung " .. i .. ": " .. rung .. "  (follow, vs " .. prev_ref .. ")",
                     branch = rung,
                     detach = true,
                     base = prev_ref,
@@ -214,12 +215,9 @@ return {
                 base = "HEAD",
             })
 
-            vim.ui.select(entries, {
-                prompt = "Ladder view (" .. (ladder.fat_branch or "?") .. "):",
-                format_item = function(e) return e.label end,
-            }, function(choice)
-                if not choice then return end
-
+            -- Re-run by mpataki.ladder_follow whenever the followed branch moves.
+            local function apply_choice(choice)
+                local detach = choice.detach
                 if choice.branch then
                     -- Refuse to switch when working tree is dirty
                     local dirty = vim.fn.system("git status --porcelain 2>/dev/null")
@@ -238,7 +236,6 @@ return {
                     -- Two-worktree ladders: the fat branch is attached in the
                     -- agent's worktree and git refuses a second checkout, so
                     -- view it detached at its tip instead. Rungs always detach.
-                    local detach = choice.detach
                     if not detach then
                         local mine = vim.uv.fs_realpath(vim.trim(vim.fn.system("git rev-parse --show-toplevel")))
                         local path
@@ -285,6 +282,22 @@ return {
                 vim.cmd('Neotree git_base=' .. base)
                 vim.cmd('DiffPRBase ' .. base)
                 pr_tree_active = true
+
+                -- A detached view follows its branch's new heads; an attached
+                -- branch follows on its own, and HEAD has nothing to follow.
+                local follow = require('mpataki.ladder_follow')
+                if root and choice.branch and detach then
+                    follow.start(root, choice.branch, function() apply_choice(choice) end)
+                else
+                    follow.stop()
+                end
+            end
+
+            vim.ui.select(entries, {
+                prompt = "Ladder view (" .. (ladder.fat_branch or "?") .. "):",
+                format_item = function(e) return e.label end,
+            }, function(choice)
+                if choice then apply_choice(choice) end
             end)
         end
 
